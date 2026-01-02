@@ -354,6 +354,7 @@ const ItemCard = ({ item, dragHandleProps, collapsed, onCollapse, onRemove, onEd
 
 export default function MenuPage() {
   const { initialMenu, availableMenus, debugInfo } = useLoaderData();
+  const actionData = useActionData();
   const submit = useSubmit();
   const nav = useNavigation();
   const shopify = useAppBridge();
