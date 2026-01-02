@@ -13,6 +13,7 @@ export const loader = async ({ request }) => {
   // 1. Fetch Existing Menus
   // 1. Fetch Existing Menus
   let availableMenus = [];
+  let debugInfo = {};
   try {
     const menusQuery = await admin.graphql(`
       query {
