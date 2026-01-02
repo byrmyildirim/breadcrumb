@@ -56,29 +56,30 @@ export const loader = async ({ request }) => {
   }
 
   // 2. Fetch Saved Custom Menu Metafield
+  // 2. Fetch Saved Custom Menu Metafield & Title
   const metafieldQuery = await admin.graphql(
     `query {
       currentAppInstallation {
-        metafield(namespace: "breadcrumb", key: "custom_menu") {
-          value
-        }
+        menuMeta: metafield(namespace: "breadcrumb", key: "custom_menu") { value }
+        titleMeta: metafield(namespace: "breadcrumb", key: "custom_menu_title") { value }
       }
     }`
   );
 
   const mfJson = await metafieldQuery.json();
-  const metafieldValue = mfJson.data?.currentAppInstallation?.metafield?.value;
+  const menuValue = mfJson.data?.currentAppInstallation?.menuMeta?.value;
+  const titleValue = mfJson.data?.currentAppInstallation?.titleMeta?.value;
 
   let initialMenu = [];
-  if (metafieldValue) {
+  if (menuValue) {
     try {
-      initialMenu = JSON.parse(metafieldValue);
+      initialMenu = JSON.parse(menuValue);
     } catch (e) {
       console.error("Failed to parse menu JSON", e);
     }
   }
 
-  return json({ initialMenu, availableMenus });
+  return json({ initialMenu, initialTitle: titleValue || "", availableMenus });
 };
 
 // --- ACTION ---
@@ -114,6 +115,13 @@ export const action = async ({ request }) => {
             key: "custom_menu",
             type: "json",
             value: menuJson
+          },
+          {
+            ownerId: appId,
+            namespace: "breadcrumb",
+            key: "custom_menu_title",
+            type: "single_line_text_field",
+            value: formData.get("menuTitle")
           }
         ]
       }
@@ -148,7 +156,7 @@ const parseShopifyMenuItem = (item) => {
 
 
 // --- COMPONENT: RECURSIVE ITEM ---
-function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker }) {
+function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker, onOpenImport }) {
   const handleChange = (field, value) => {
     onChange({ ...item, [field]: value });
   };
@@ -223,8 +231,9 @@ function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker }) {
             <Button icon={DeleteIcon} tone="critical" onClick={onDelete} accessibilityLabel="Sil" />
           </InlineStack>
 
-          <InlineStack align="start">
+          <InlineStack align="start" gap="200">
             <Button size="micro" onClick={handleAddChild} icon={PlusIcon} variant="tertiary">Alt Kategori Ekle (+)</Button>
+            <Button size="micro" onClick={() => onOpenImport(item.id)} icon={ImportIcon} variant="tertiary">Menü İçe Aktar (+)</Button>
           </InlineStack>
 
           {item.children && item.children.length > 0 && (
@@ -237,6 +246,7 @@ function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker }) {
                   onChange={(newChild) => handleChildChange(index, newChild)}
                   onDelete={() => handleDeleteChild(index)}
                   onOpenPicker={onOpenPicker}
+                  onOpenImport={onOpenImport}
                 />
               ))}
             </BlockStack>
@@ -249,13 +259,15 @@ function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker }) {
 
 // --- MAIN PAGE COMPONENT ---
 export default function MenuPage() {
-  const { initialMenu, availableMenus } = useLoaderData();
+  const { initialMenu, initialTitle, availableMenus } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   const nav = useNavigation();
   const shopify = useAppBridge(); // Use App Bridge Hook
 
   const [menuItems, setMenuItems] = useState(initialMenu || []);
+  const [menuTitle, setMenuTitle] = useState(initialTitle || "");
+  const [importTargetId, setImportTargetId] = useState(null);
   const [importModalActive, setImportModalActive] = useState(false);
 
   const isSaving = nav.state === "submitting";
@@ -305,13 +317,37 @@ export default function MenuPage() {
 
   const handleSave = () => {
     const jsonStr = JSON.stringify(menuItems);
-    submit({ menuJson: jsonStr }, { method: "post" });
+    submit({ menuJson: jsonStr, menuTitle }, { method: "post" });
   };
 
   const handleImportMenu = (shopifyMenu) => {
     const newStructure = shopifyMenu.items.map(parseShopifyMenuItem);
-    setMenuItems([...menuItems, ...newStructure]);
+
+    if (importTargetId) {
+      // Append to specific child
+      const appendToNode = (items, targetId) => {
+        return items.map(item => {
+          if (item.id === targetId) {
+            return { ...item, children: [...(item.children || []), ...newStructure] };
+          }
+          if (item.children) {
+            return { ...item, children: appendToNode(item.children, targetId) };
+          }
+          return item;
+        });
+      };
+      setMenuItems(prev => appendToNode(prev, importTargetId));
+    } else {
+      // Append to root
+      setMenuItems((prevItems) => [...prevItems, ...newStructure]);
+    }
     setImportModalActive(false);
+    setImportTargetId(null);
+  };
+
+  const openImportModal = (targetId = null) => {
+    setImportTargetId(targetId);
+    setImportModalActive(true);
   };
 
   return (
@@ -319,7 +355,7 @@ export default function MenuPage() {
       title="Özel Menü Oluşturucu"
       primaryAction={{ content: "Yapıyı Kaydet", onAction: handleSave, loading: isSaving, icon: SaveIcon }}
       secondaryActions={[
-        { content: "Mevcut Menüden Aktar", icon: ImportIcon, onAction: () => setImportModalActive(true) }
+        { content: "Mevcut Menüden Aktar", icon: ImportIcon, onAction: () => openImportModal(null) }
       ]}
     >
       <Layout>
@@ -337,6 +373,20 @@ export default function MenuPage() {
             </Banner>
           </Box>
 
+          <Box paddingBlockEnd="400">
+            <Card>
+              <BlockStack gap="400">
+                <TextField
+                  label="Menü Başlığı"
+                  value={menuTitle}
+                  onChange={setMenuTitle}
+                  autoComplete="off"
+                  helpText="Bu başlık sadece referans amaçlıdır, mağazada görünmez."
+                />
+              </BlockStack>
+            </Card>
+          </Box>
+
           <Card>
             <BlockStack gap="400">
               {menuItems.length === 0 && (
@@ -344,7 +394,7 @@ export default function MenuPage() {
                   <BlockStack align="center" inlineAlign="center" gap="400">
                     <Text variant="headingMd" as="h3">Henüz bir yapı yok</Text>
                     <InlineStack gap="300">
-                      <Button onClick={() => setImportModalActive(true)} icon={ImportIcon}>Shopify Menüsü İçe Aktar</Button>
+                      <Button onClick={() => openImportModal(null)} icon={ImportIcon}>Shopify Menüsü İçe Aktar</Button>
                       <Button onClick={handleAddItem} variant="primary" icon={PlusIcon}>Yeni Ekle</Button>
                     </InlineStack>
                   </BlockStack>
@@ -358,6 +408,7 @@ export default function MenuPage() {
                     onChange={(newItem) => handleChangeItem(index, newItem)}
                     onDelete={() => handleDeleteItem(index)}
                     onOpenPicker={(itm) => handleOpenPicker(itm)}
+                    onOpenImport={(id) => openImportModal(id)}
                   />
                   <Box paddingBlock="400"><Divider /></Box>
                 </div>
