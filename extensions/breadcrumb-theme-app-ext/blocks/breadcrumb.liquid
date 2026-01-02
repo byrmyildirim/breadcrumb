@@ -112,7 +112,7 @@
       {%- assign best_depth = 0 -%}
       {%- assign path_html = "" -%}
       
-      {%- if custom_menu != blank -%}
+      {%- if block.settings.use_app_menu and custom_menu != blank -%}
          {%- comment -%} --- CUSTOM MENU LOGIC (6 Levels) --- {%- endcomment -%}
          
          {%- for col in product.collections -%}
@@ -320,11 +320,18 @@
   "target": "section",
   "settings": [
     {
+      "type": "checkbox",
+      "id": "use_app_menu",
+      "label": "Gelişmiş Uygulama Menüsünü Kullan",
+      "default": true,
+      "info": "İşaretlenirse, Breadcrumb Pro uygulamasında oluşturduğunuz özel menü yapısı kullanılır. İşaretlenmezse aşağıdaki seçili menü kullanılır."
+    },
+    {
       "type": "link_list",
       "id": "menu",
-      "label": "Menü Seçin",
+      "label": "Alternatif Menü (Opsiyonel)",
       "default": "main-menu",
-      "info": "Kategori hiyerarşisi için kullanılacak navigasyon menüsü"
+      "info": "Sadece yukarıdaki seçenek kapalıysa veya özel menü boşsa kullanılır."
     },
     {
       "type": "text",
