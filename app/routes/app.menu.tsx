@@ -48,22 +48,26 @@ export const loader = async ({ request }) => {
   try {
     const menusQuery = await admin.graphql(`
       query {
-        menus(first: 20) {
+        menus(first: 50) {
           nodes {
             id
             title
-            items {
+            items(first: 50) {
               title
               url
-              items {
+              items(first: 50) {
                 title
                 url
-                items {
+                items(first: 50) {
                   title
                   url
-                  items {
+                  items(first: 50) {
                     title
                     url
+                    items(first: 50) {
+                      title
+                      url
+                    }
                   }
                 }
               }
