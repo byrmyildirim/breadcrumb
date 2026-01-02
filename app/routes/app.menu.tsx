@@ -578,8 +578,58 @@ export default function MenuPage() {
     setItems([...items, newItem]);
   };
 
+  // Ensure the tree structure is valid based on visual depth before saving
+  const enforceHierarchy = (currentItems) => {
+    // We clone to avoid mutation during iterate (though we map)
+    // We strictly assume: Parent of item at index i is the nearest preceding item with depth < item.depth
+    // Actually strict rule: Parent must have depth == item.depth - 1
+    // If there is a gap (e.g. 0 -> 2), we force depth down.
+
+    // We'll reset depths to be valid too? 
+    // Yes, a valid tree cannot have depth jumps > 1.
+
+    const validatedItems = [];
+
+    currentItems.forEach((item, index) => {
+      // 1. Constraint Depth
+      // First item must be 0
+      let validDepth = item.depth;
+      if (index === 0) {
+        validDepth = 0;
+      } else {
+        const prev = validatedItems[index - 1];
+        // Max depth is prev.depth + 1
+        if (validDepth > prev.depth + 1) {
+          validDepth = prev.depth + 1;
+        }
+        // Min depth is 0
+        if (validDepth < 0) validDepth = 0;
+      }
+
+      // 2. Find Parent
+      let parentId = null;
+      if (validDepth > 0) {
+        // Find closest item above with depth == validDepth - 1
+        for (let k = index - 1; k >= 0; k--) {
+          if (validatedItems[k].depth === validDepth - 1) {
+            parentId = validatedItems[k].id;
+            break;
+          }
+        }
+      }
+
+      validatedItems.push({ ...item, depth: validDepth, parentId });
+    });
+
+    return validatedItems;
+  };
+
   const handleSave = () => {
-    const tree = buildTree(items);
+    const cleanItems = enforceHierarchy(items);
+    // Optimistically update state to reflect cleaned structure (e.g. fix visual gaps)
+    setItems(cleanItems);
+
+    const tree = buildTree(cleanItems);
     submit({ menuJson: JSON.stringify(tree) }, { method: "post" });
   };
 
