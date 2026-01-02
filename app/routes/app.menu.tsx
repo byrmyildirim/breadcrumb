@@ -392,85 +392,127 @@ export default function MenuPage() {
     const { active, over, delta } = event;
     setActiveId(null);
 
-    if (active && over && active.id !== over.id) {
-      // Reordering logic
-      const oldIndex = items.findIndex(i => i.id === active.id);
-      const newIndex = items.findIndex(i => i.id === over.id);
+    // If dropped outside or no change effectively (ignoring depth for a moment)
+    if (!active || !over) return;
 
-      let newItems = arrayMove(items, oldIndex, newIndex);
+    const activeId = active.id;
+    const overId = over.id;
 
-      // Handle Nesting (Projection)
-      // Calculate new depth based on drag offset (delta.x)
-      const activeItem = items[oldIndex];
-      const dragDepth = Math.round(delta.x / indentationWidth);
-      let projectedDepth = activeItem.depth + dragDepth;
+    // 1. Find the active item and its subtree block
+    const oldIndex = items.findIndex(i => i.id === activeId);
+    if (oldIndex === -1) return;
 
-      // Constrain Depth
-      const previousItem = newItems[newIndex - 1];
-      const nextItem = newItems[newIndex + 1];
+    const activeItem = items[oldIndex];
 
-      const maxDepth = previousItem ? previousItem.depth + 1 : 0;
-
-      if (projectedDepth > maxDepth) projectedDepth = maxDepth;
-      if (projectedDepth < 0) projectedDepth = 0;
-
-      // Find new Parent
-      let newParentId = null;
-      if (projectedDepth > 0) {
-        // Look upwards from newIndex to find the first item with depth === projectedDepth - 1
-        for (let i = newIndex - 1; i >= 0; i--) {
-          if (newItems[i].depth === projectedDepth - 1) {
-            newParentId = newItems[i].id;
-            break;
-          }
-        }
-      }
-
-      // Update the moved item
-      newItems[newIndex] = { ...newItems[newIndex], depth: projectedDepth, parentId: newParentId };
-
-      // Update children logic? 
-      // If I drag a parent, its children should move with it? 
-      // Flattened list approach requires updating children depths/indexes manually if we want "drag subtree".
-      // For simplicity in V1: Just drag single item. (Or implementing subtree drag is complex).
-      // Actually user expects subtree drag usually. 
-      // FOR NOW: Let's assume reorder is enough, nesting is calculated. 
-
-      // To support moving children with parent in flat list:
-      // 1. Identify all descendants of activeItem in `items`.
-      // 2. Move them all together with activeItem to `newIndex`.
-
-      setItems(newItems);
-    } else if (active && !over) {
-      // Dragged outside? Cancel.
-    } else if (active && over && active.id === over.id) {
-      // Just dropped in place, check for indentation change (nesting only movement)
-      const oldIndex = items.findIndex(i => i.id === active.id);
-      const activeItem = items[oldIndex];
-      const dragDepth = Math.round(delta.x / indentationWidth);
-
-      if (dragDepth !== 0) {
-        let newItems = [...items];
-        let projectedDepth = activeItem.depth + dragDepth;
-        const previousItem = items[oldIndex - 1];
-        const maxDepth = previousItem ? previousItem.depth + 1 : 0;
-
-        if (projectedDepth > maxDepth) projectedDepth = maxDepth;
-        if (projectedDepth < 0) projectedDepth = 0;
-
-        let newParentId = null;
-        if (projectedDepth > 0) {
-          for (let i = oldIndex - 1; i >= 0; i--) {
-            if (newItems[i].depth === projectedDepth - 1) {
-              newParentId = newItems[i].id;
-              break;
-            }
-          }
-        }
-        newItems[oldIndex] = { ...activeItem, depth: projectedDepth, parentId: newParentId };
-        setItems(newItems);
+    // Identify Subtree: All valid items immediately following activeItem with depth > activeItem.depth
+    let subtreeCount = 0;
+    for (let i = oldIndex + 1; i < items.length; i++) {
+      if (items[i].depth > activeItem.depth) {
+        subtreeCount++;
+      } else {
+        break;
       }
     }
+
+    // 2. Determine Target Location
+    // We are essentially moving the block [oldIndex, oldIndex + 1 + subtreeCount]
+    // To a new positions.
+    // If activeId !== overId, we are reordering.
+
+    // Logic for reordering with dnd-kit's "over":
+    // "over" is the item we are hovering over.
+    // If we move the block, where does it go relative to "over"?
+    // Standard Sortable logic: 
+    // If moving down (oldIndex < overIndex), usually goes AFTER over.
+    // If moving up (oldIndex > overIndex), usually goes BEFORE over.
+
+    let overIndex = items.findIndex(i => i.id === overId);
+    // Note: overIndex might be inside our own subtree if we drag into ourselves (should be impossible with standard sensors, but safety check)
+    if (overIndex > oldIndex && overIndex <= oldIndex + subtreeCount) {
+      // Dragging into own child? Invalid operation usually.
+      return;
+    }
+
+    // Determine "Insertion Index" in the list *assuming the block is removed*.
+    // It's easier to think: We remove the block. Then we insert it.
+    // But we need to know where "over" ends up after removal.
+
+    // Let's create `validItems` = items without the moving block.
+    const movingBlock = items.slice(oldIndex, oldIndex + 1 + subtreeCount);
+    const remainingItems = [...items];
+    remainingItems.splice(oldIndex, 1 + subtreeCount);
+
+    // Find 'over' in remainingItems (if active !== over)
+    let insertionIndex = -1;
+
+    if (activeId === overId) {
+      // Dropped in place (vertically). Insertion index is same as oldIndex (relative to removed list.. wait)
+      // If we removed it from oldIndex, we put it back at oldIndex.
+      insertionIndex = oldIndex;
+    } else {
+      // Find index of overId in remainingItems
+      const overIndexInRemaining = remainingItems.findIndex(i => i.id === overId);
+
+      if (overIndexInRemaining === -1) {
+        // Should not happen unless over was in moving block
+        return;
+      }
+
+      // Decide before or after
+      // If we moved down (oldIndex < originalOverIndex), we probably want to appear AFTER the over item.
+      // If we moved up, we want to appear AT the over item index (pushing it down).
+
+      // Let's look at original indices
+      const originalOverIndex = items.findIndex(i => i.id === overId);
+
+      if (oldIndex < originalOverIndex) {
+        // Moved down. Insert after over.
+        insertionIndex = overIndexInRemaining + 1;
+      } else {
+        // Moved up. Insert at over.
+        insertionIndex = overIndexInRemaining;
+      }
+    }
+
+    // 3. depth Projection
+    const dragDepth = Math.round(delta.x / indentationWidth);
+    let projectedDepth = activeItem.depth + dragDepth;
+
+    // Constrain depth
+    // Look at previous item at insertion point
+    const prevItem = remainingItems[insertionIndex - 1];
+    const maxDepth = prevItem ? prevItem.depth + 1 : 0;
+
+    if (projectedDepth > maxDepth) projectedDepth = maxDepth;
+    if (projectedDepth < 0) projectedDepth = 0;
+
+    // Calculate Diff
+    const depthDiff = projectedDepth - activeItem.depth;
+
+    // 4. Update Block
+    // Find new parent for head
+    let newParentId = null;
+    if (projectedDepth > 0) {
+      for (let i = insertionIndex - 1; i >= 0; i--) {
+        if (remainingItems[i].depth === projectedDepth - 1) {
+          newParentId = remainingItems[i].id;
+          break;
+        }
+      }
+    }
+
+    const updatedBlock = movingBlock.map((item, idx) => {
+      if (idx === 0) {
+        return { ...item, depth: projectedDepth, parentId: newParentId };
+      }
+      return { ...item, depth: item.depth + depthDiff };
+    });
+
+    // 5. Merge
+    const newItems = [...remainingItems];
+    newItems.splice(insertionIndex, 0, ...updatedBlock);
+
+    setItems(newItems);
   };
 
   const handleEdit = (id, field, value) => {
