@@ -523,13 +523,33 @@ export default function MenuPage() {
       if (item.id === id) {
         const updates = { [field]: value };
         if (field === 'handle') {
-          // auto update url
+          // Smart URL detection
           let handle = value;
+          let url = value;
+
+          // Case 1: Full collection URL pasted
           if (value.includes('/collections/')) {
-            handle = value.split('/collections/')[1].split('/')[0];
+            handle = value.split('/collections/')[1].split('/')[0].split('?')[0];
+            url = `/collections/${handle}`;
           }
+          // Case 2: Page URL (e.g., /pages/bisiklet or pages/bisiklet)
+          else if (value.includes('/pages/') || value.startsWith('pages/')) {
+            handle = value.replace(/^\/?pages\//, '');
+            url = `/pages/${handle}`;
+          }
+          // Case 3: Absolute URL (external link)
+          else if (value.startsWith('http://') || value.startsWith('https://')) {
+            handle = value;
+            url = value;
+          }
+          // Case 4: Just a handle (assume collection)
+          else {
+            handle = value.replace(/^\//, ''); // Remove leading slash if present
+            url = `/collections/${handle}`;
+          }
+
           updates.handle = handle;
-          updates.url = `/collections/${handle}`;
+          updates.url = url;
         }
         return { ...item, ...updates };
       }
