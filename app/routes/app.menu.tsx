@@ -523,32 +523,30 @@ export default function MenuPage() {
       if (item.id === id) {
         const updates = { [field]: value };
         if (field === 'handle') {
-          // Smart URL detection
-          let handle = value;
+          // Smart URL detection - preserve user input, only compute URL
           let url = value;
 
           // Case 1: Full collection URL pasted
           if (value.includes('/collections/')) {
-            handle = value.split('/collections/')[1].split('/')[0].split('?')[0];
+            const handle = value.split('/collections/')[1].split('/')[0].split('?')[0];
             url = `/collections/${handle}`;
           }
           // Case 2: Page URL (e.g., /pages/bisiklet or pages/bisiklet)
-          else if (value.includes('/pages/') || value.startsWith('pages/')) {
-            handle = value.replace(/^\/?pages\//, '');
+          else if (value.includes('/pages/') || value.includes('pages/')) {
+            const handle = value.replace(/^.*pages\//, '');
             url = `/pages/${handle}`;
           }
           // Case 3: Absolute URL (external link)
-          else if (value.startsWith('http://') || value.startsWith('https://')) {
-            handle = value;
+          else if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('#')) {
             url = value;
           }
           // Case 4: Just a handle (assume collection)
-          else {
-            handle = value.replace(/^\//, ''); // Remove leading slash if present
-            url = `/collections/${handle}`;
+          else if (value.trim() !== '') {
+            url = `/collections/${value.replace(/^\//, '')}`;
           }
 
-          updates.handle = handle;
+          // IMPORTANT: Keep original value user typed (don't modify handle)
+          updates.handle = value;
           updates.url = url;
         }
         return { ...item, ...updates };
