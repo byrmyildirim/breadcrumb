@@ -247,6 +247,31 @@ function MenuItemRow({ item, onChange, onDelete, depth = 0, onOpenPicker }) {
   );
 }
 
+// --- HELPER: Flatten Items for Select ---
+const getFlattenedOptions = (items, prefix = "") => {
+  let options = [];
+  for (const item of items) {
+    options.push({ label: prefix + item.title, value: item.id });
+    if (item.children && item.children.length > 0) {
+      options = options.concat(getFlattenedOptions(item.children, prefix + "-- "));
+    }
+  }
+  return options;
+};
+
+// --- HELPER: Add Items to Specific Parent ---
+const addItemsToParent = (items, parentId, newChildren) => {
+  return items.map(item => {
+    if (item.id === parentId) {
+      return { ...item, children: [...(item.children || []), ...newChildren] };
+    }
+    if (item.children) {
+      return { ...item, children: addItemsToParent(item.children, parentId, newChildren) };
+    }
+    return item;
+  });
+};
+
 // --- MAIN PAGE COMPONENT ---
 export default function MenuPage() {
   const { initialMenu, availableMenus } = useLoaderData();
@@ -257,6 +282,7 @@ export default function MenuPage() {
 
   const [menuItems, setMenuItems] = useState(initialMenu || []);
   const [importModalActive, setImportModalActive] = useState(false);
+  const [importTargetId, setImportTargetId] = useState(""); // "" means Root
 
   const isSaving = nav.state === "submitting";
 
@@ -310,9 +336,22 @@ export default function MenuPage() {
 
   const handleImportMenu = (shopifyMenu) => {
     const newStructure = shopifyMenu.items.map(parseShopifyMenuItem);
-    setMenuItems([...menuItems, ...newStructure]);
+
+    if (importTargetId === "") {
+      // Append to Root
+      setMenuItems([...menuItems, ...newStructure]);
+    } else {
+      // Append to Specific Parent
+      const updatedItems = addItemsToParent(menuItems, importTargetId, newStructure);
+      setMenuItems(updatedItems);
+    }
     setImportModalActive(false);
   };
+
+  const targetOptions = [
+    { label: "Ana Dizin (En Üst)", value: "" },
+    ...getFlattenedOptions(menuItems)
+  ];
 
   return (
     <Page
@@ -332,8 +371,7 @@ export default function MenuPage() {
 
           <Box paddingBlockEnd="400">
             <Banner tone="info">
-              <p>Burada oluşturduğunuz yapı <strong>sınırsız derinliktedir</strong>. 6-7 seviyeye kadar alt alta kategori oluşturabilirsiniz.</p>
-              <p>Koleksiyon seçmek için büyüteç ikonunu kullanın veya "Mevcut Menüden Aktar" ile başlayın.</p>
+              <p>Burada oluşturduğunuz yapı <strong>sınırsız derinliktedir</strong>. Önce "Yeni Ekle" ile ana başlıkları oluşturun (örn: Spor Kategorileri), sonra "İçe Aktar" ile o başlığın altına menüleri ekleyin.</p>
             </Banner>
           </Box>
 
@@ -379,7 +417,17 @@ export default function MenuPage() {
       >
         <Modal.Section>
           <BlockStack gap="400">
-            <Text as="p">Mevcut bir menünüzü seçin. İçindeki tüm bağlantılar otomatik olarak buraya aktarılacaktır.</Text>
+            <Text as="p">Hangi menüyü, nereye aktarmak istiyorsunuz?</Text>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <RequestSelect
+                label="Aktarılacak Hedef Konum"
+                options={targetOptions}
+                value={importTargetId}
+                onChange={setImportTargetId}
+              />
+            </div>
+
             {availableMenus.length === 0 && (
               <Box padding="400" background="bg-surface-critical-subdued">
                 <Text as="p" tone="critical">Hiç menü bulunamadı.</Text>
@@ -394,7 +442,7 @@ export default function MenuPage() {
               <Box key={menu.id} padding="200" background="bg-surface-secondary" borderRadius="200">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="span" fontWeight="bold">{menu.title}</Text>
-                  <Button onClick={() => handleImportMenu(menu)}>İçe Aktar</Button>
+                  <Button onClick={() => handleImportMenu(menu)}>Buraya İçe Aktar</Button>
                 </InlineStack>
               </Box>
             ))}
@@ -403,5 +451,34 @@ export default function MenuPage() {
       </Modal>
 
     </Page>
+  );
+}
+
+// Wrapper for Select to avoid import issues if any
+const RequestSelect = ({ label, options, value, onChange }) => {
+  return (
+    <div className="Polaris-FormLayout__Item">
+      <div className="Polaris-Labelled__LabelWrapper">
+        <div className="Polaris-Label">
+          <label className="Polaris-Label__Text">{label}</label>
+        </div>
+      </div>
+      <div className="Polaris-Select">
+        <select className="Polaris-Select__Input" value={value} onChange={e => onChange(e.target.value)}>
+          {options.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <div className="Polaris-Select__Content" aria-hidden="true">
+          <span className="Polaris-Select__SelectedOption">{options.find(o => o.value === value)?.label}</span>
+          <span className="Polaris-Select__Icon">
+            <span className="Polaris-Icon">
+              <svg viewBox="0 0 20 20" className="Polaris-Icon__Svg" focusable="false" aria-hidden="true"><path d="M7.676 9h4.648c.563 0 .879-.603.53-1.014l-2.323-2.746a.708.708 0 0 0-1.062 0l-2.324 2.746c-.347.411-.032 1.014.531 1.014Zm4.648 2h-4.648c-.563 0-.878.603-.53 1.014l2.323 2.746c.27.32.792.32 1.062 0l2.323-2.746c.349-.411.033-1.014-.53-1.014Z"></path></svg>
+            </span>
+          </span>
+        </div>
+        <div className="Polaris-Select__Backdrop"></div>
+      </div>
+    </div>
   );
 }
