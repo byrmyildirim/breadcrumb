@@ -48,26 +48,22 @@ export const loader = async ({ request }) => {
   try {
     const menusQuery = await admin.graphql(`
       query {
-        menus(first: 50) {
+        menus(first: 100) {
           nodes {
             id
             title
-            items(first: 50) {
+            items {
               title
               url
-              items(first: 50) {
+              items {
                 title
                 url
-                items(first: 50) {
+                items {
                   title
                   url
-                  items(first: 50) {
+                  items {
                     title
                     url
-                    items(first: 50) {
-                      title
-                      url
-                    }
                   }
                 }
               }
@@ -660,27 +656,15 @@ export default function MenuPage() {
 
   // --- IMPORT LOGIC ---
   const parseShopifyMenuItem = (item) => {
-    // Smart handle extraction from any URL type
     let handle = "";
-    let url = item.url || "";
-
-    if (url.includes('/collections/')) {
-      handle = url.split('/collections/')[1].split('/')[0].split('?')[0];
-    } else if (url.includes('/pages/')) {
-      handle = '/pages/' + url.split('/pages/')[1].split('/')[0].split('?')[0];
-    } else if (url.includes('/products/')) {
-      handle = url.split('/products/')[1].split('/')[0].split('?')[0];
-    } else if (url.startsWith('http') || url.startsWith('#')) {
-      handle = url; // Keep full URL for external/anchor links
-    } else if (url) {
-      handle = url; // Keep as-is for other URLs
+    if (item.url && item.url.includes('/collections/')) {
+      handle = item.url.split('/collections/')[1].split('/')[0];
     }
-
     return {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: item.title || "Başlıksız",
+      id: Date.now().toString() + Math.random().toString(),
+      title: item.title,
       handle: handle,
-      url: url,
+      url: item.url,
       children: item.items ? item.items.map(parseShopifyMenuItem) : []
     };
   };
