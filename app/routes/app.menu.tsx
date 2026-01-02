@@ -660,15 +660,27 @@ export default function MenuPage() {
 
   // --- IMPORT LOGIC ---
   const parseShopifyMenuItem = (item) => {
+    // Smart handle extraction from any URL type
     let handle = "";
-    if (item.url && item.url.includes('/collections/')) {
-      handle = item.url.split('/collections/')[1].split('/')[0];
+    let url = item.url || "";
+
+    if (url.includes('/collections/')) {
+      handle = url.split('/collections/')[1].split('/')[0].split('?')[0];
+    } else if (url.includes('/pages/')) {
+      handle = '/pages/' + url.split('/pages/')[1].split('/')[0].split('?')[0];
+    } else if (url.includes('/products/')) {
+      handle = url.split('/products/')[1].split('/')[0].split('?')[0];
+    } else if (url.startsWith('http') || url.startsWith('#')) {
+      handle = url; // Keep full URL for external/anchor links
+    } else if (url) {
+      handle = url; // Keep as-is for other URLs
     }
+
     return {
-      id: Date.now().toString() + Math.random().toString(),
-      title: item.title,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      title: item.title || "Başlıksız",
       handle: handle,
-      url: item.url,
+      url: url,
       children: item.items ? item.items.map(parseShopifyMenuItem) : []
     };
   };
