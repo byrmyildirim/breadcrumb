@@ -61,44 +61,157 @@
   {%- case t -%}
 
     {%- when 'collection' -%}
-      {%- comment -%} COLLECTION PAGE: Find this collection in menu and show parents {%- endcomment -%}
+      {%- comment -%} COLLECTION PAGE: Find this collection in custom menu and show parents {%- endcomment -%}
+      {%- assign custom_menu = shop.metafields.breadcrumb.custom_menu.value -%}
+      {%- assign col_handle = collection.handle -%}
       {%- assign found = false -%}
+      {%- assign path_html = "" -%}
       
-      {%- for level1 in menu.links -%}
-        {%- if level1.url == collection.url -%}
+      {%- if block.settings.use_app_menu and custom_menu != blank -%}
+        {%- comment -%} --- CUSTOM MENU LOGIC (6 Levels) --- {%- endcomment -%}
+        
+        {%- for l1 in custom_menu -%}
+          {%- if l1.handle == col_handle -%}
+            {%- assign found = true -%}
+            {%- break -%}
+          {%- endif -%}
+          
+          {%- if l1.children != blank -%}
+            {%- for l2 in l1.children -%}
+              {%- if l2.handle == col_handle -%}
+                {%- assign found = true -%}
+                {%- capture path_html -%}
+                  <a href="{{ l1.url }}">{{ l1.title }}</a>
+                  <span class="sep">{{ sep }}</span>
+                {%- endcapture -%}
+                {%- break -%}
+              {%- endif -%}
+              
+              {%- if l2.children != blank -%}
+                {%- for l3 in l2.children -%}
+                  {%- if l3.handle == col_handle -%}
+                    {%- assign found = true -%}
+                    {%- capture path_html -%}
+                      <a href="{{ l1.url }}">{{ l1.title }}</a>
+                      <span class="sep">{{ sep }}</span>
+                      <a href="{{ l2.url }}">{{ l2.title }}</a>
+                      <span class="sep">{{ sep }}</span>
+                    {%- endcapture -%}
+                    {%- break -%}
+                  {%- endif -%}
+                  
+                  {%- if l3.children != blank -%}
+                    {%- for l4 in l3.children -%}
+                      {%- if l4.handle == col_handle -%}
+                        {%- assign found = true -%}
+                        {%- capture path_html -%}
+                          <a href="{{ l1.url }}">{{ l1.title }}</a>
+                          <span class="sep">{{ sep }}</span>
+                          <a href="{{ l2.url }}">{{ l2.title }}</a>
+                          <span class="sep">{{ sep }}</span>
+                          <a href="{{ l3.url }}">{{ l3.title }}</a>
+                          <span class="sep">{{ sep }}</span>
+                        {%- endcapture -%}
+                        {%- break -%}
+                      {%- endif -%}
+                      
+                      {%- if l4.children != blank -%}
+                        {%- for l5 in l4.children -%}
+                          {%- if l5.handle == col_handle -%}
+                            {%- assign found = true -%}
+                            {%- capture path_html -%}
+                              <a href="{{ l1.url }}">{{ l1.title }}</a>
+                              <span class="sep">{{ sep }}</span>
+                              <a href="{{ l2.url }}">{{ l2.title }}</a>
+                              <span class="sep">{{ sep }}</span>
+                              <a href="{{ l3.url }}">{{ l3.title }}</a>
+                              <span class="sep">{{ sep }}</span>
+                              <a href="{{ l4.url }}">{{ l4.title }}</a>
+                              <span class="sep">{{ sep }}</span>
+                            {%- endcapture -%}
+                            {%- break -%}
+                          {%- endif -%}
+                          
+                          {%- if l5.children != blank -%}
+                            {%- for l6 in l5.children -%}
+                              {%- if l6.handle == col_handle -%}
+                                {%- assign found = true -%}
+                                {%- capture path_html -%}
+                                  <a href="{{ l1.url }}">{{ l1.title }}</a>
+                                  <span class="sep">{{ sep }}</span>
+                                  <a href="{{ l2.url }}">{{ l2.title }}</a>
+                                  <span class="sep">{{ sep }}</span>
+                                  <a href="{{ l3.url }}">{{ l3.title }}</a>
+                                  <span class="sep">{{ sep }}</span>
+                                  <a href="{{ l4.url }}">{{ l4.title }}</a>
+                                  <span class="sep">{{ sep }}</span>
+                                  <a href="{{ l5.url }}">{{ l5.title }}</a>
+                                  <span class="sep">{{ sep }}</span>
+                                {%- endcapture -%}
+                                {%- break -%}
+                              {%- endif -%}
+                            {%- endfor -%}
+                          {%- endif -%}
+                          {%- if found -%}{%- break -%}{%- endif -%}
+                        {%- endfor -%}
+                      {%- endif -%}
+                      {%- if found -%}{%- break -%}{%- endif -%}
+                    {%- endfor -%}
+                  {%- endif -%}
+                  {%- if found -%}{%- break -%}{%- endif -%}
+                {%- endfor -%}
+              {%- endif -%}
+              {%- if found -%}{%- break -%}{%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- if found -%}{%- break -%}{%- endif -%}
+        {%- endfor -%}
+        
+        {%- if found -%}
+          {{ path_html }}
           <span class="current">{{ collection.title }}</span>
-          {%- assign found = true -%}
-          {%- break -%}
+        {%- else -%}
+          <span class="current">{{ collection.title }}</span>
         {%- endif -%}
         
-        {%- for level2 in level1.links -%}
-          {%- if level2.url == collection.url -%}
-            <a href="{{ level1.url }}">{{ level1.title }}</a>
-            <span class="sep">{{ sep }}</span>
+      {%- else -%}
+        {%- comment -%} --- FALLBACK TO STANDARD SHOPIFY MENU (3 Levels) --- {%- endcomment -%}
+        {%- for level1 in menu.links -%}
+          {%- if level1.url == collection.url -%}
             <span class="current">{{ collection.title }}</span>
             {%- assign found = true -%}
             {%- break -%}
           {%- endif -%}
           
-          {%- for level3 in level2.links -%}
-            {%- if level3.url == collection.url -%}
+          {%- for level2 in level1.links -%}
+            {%- if level2.url == collection.url -%}
               <a href="{{ level1.url }}">{{ level1.title }}</a>
-              <span class="sep">{{ sep }}</span>
-              <a href="{{ level2.url }}">{{ level2.title }}</a>
               <span class="sep">{{ sep }}</span>
               <span class="current">{{ collection.title }}</span>
               {%- assign found = true -%}
               {%- break -%}
             {%- endif -%}
+            
+            {%- for level3 in level2.links -%}
+              {%- if level3.url == collection.url -%}
+                <a href="{{ level1.url }}">{{ level1.title }}</a>
+                <span class="sep">{{ sep }}</span>
+                <a href="{{ level2.url }}">{{ level2.title }}</a>
+                <span class="sep">{{ sep }}</span>
+                <span class="current">{{ collection.title }}</span>
+                {%- assign found = true -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- if found -%}{%- break -%}{%- endif -%}
           {%- endfor -%}
           {%- if found -%}{%- break -%}{%- endif -%}
         {%- endfor -%}
-        {%- if found -%}{%- break -%}{%- endif -%}
-      {%- endfor -%}
-      
-      {%- unless found -%}
-        <span class="current">{{ collection.title }}</span>
-      {%- endunless -%}
+        
+        {%- unless found -%}
+          <span class="current">{{ collection.title }}</span>
+        {%- endunless -%}
+      {%- endif -%}
 
     {%- when 'product' -%}
       {%- comment -%} 
