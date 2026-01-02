@@ -39,8 +39,15 @@ export const loader = async ({ request }) => {
     const menusJson = await menusQuery.json();
     console.log("DEBUG_MENUS_JSON:", JSON.stringify(menusJson, null, 2));
     availableMenus = menusJson.data?.menus?.nodes || [];
+    // DEBUG: Capture info to show on frontend if needed
+    debugInfo = {
+      status: "success",
+      data: menusJson,
+      scopes: process.env.SCOPES
+    };
   } catch (error) {
     console.error("Failed to fetch menus:", error);
+    debugInfo = { status: "error", message: error.message, stack: error.stack };
   }
 
   // 2. Fetch Saved Custom Menu Metafield
@@ -368,7 +375,15 @@ export default function MenuPage() {
         <Modal.Section>
           <BlockStack gap="400">
             <Text as="p">Mevcut bir menünüzü seçin. İçindeki tüm bağlantılar otomatik olarak buraya aktarılacaktır.</Text>
-            {availableMenus.length === 0 && <Text as="p" tone="critical">Hiç menü bulunamadı.</Text>}
+            {availableMenus.length === 0 && (
+              <Box padding="400" background="bg-surface-critical-subdued">
+                <Text as="p" tone="critical">Hiç menü bulunamadı.</Text>
+                <Box paddingBlockStart="200">
+                  <Text as="p" variant="bodySm">Teknik Detay (Debug):</Text>
+                  <pre style={{ whiteSpace: "pre-wrap", fontSize: "10px" }}>{JSON.stringify(useLoaderData().debugInfo, null, 2)}</pre>
+                </Box>
+              </Box>
+            )}
 
             {availableMenus.map(menu => (
               <Box key={menu.id} padding="200" background="bg-surface-secondary" borderRadius="200">
