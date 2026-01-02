@@ -79,10 +79,10 @@ export const loader = async ({ request }) => {
     debugInfo = { status: "error", message: error.message };
   }
 
-  // 2. Fetch Saved Custom Menu Metafield
+  // 2. Fetch Saved Custom Menu Metafield (from SHOP, not AppInstallation)
   const metafieldQuery = await admin.graphql(
     `query {
-      currentAppInstallation {
+      shop {
         metafield(namespace: "breadcrumb", key: "custom_menu") {
           value
         }
@@ -91,7 +91,7 @@ export const loader = async ({ request }) => {
   );
 
   const mfJson = await metafieldQuery.json();
-  const metafieldValue = mfJson.data?.currentAppInstallation?.metafield?.value;
+  const metafieldValue = mfJson.data?.shop?.metafield?.value;
 
   let initialMenu = [];
   if (metafieldValue) {
