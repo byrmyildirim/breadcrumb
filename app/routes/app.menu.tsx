@@ -42,7 +42,8 @@ export const loader = async ({ request }) => {
       }
     `);
     const menusJson = await menusQuery.json();
-    console.log("DEBUG_MENUS_JSON:", JSON.stringify(menusJson, null, 2));
+    // excessive logging causing rate limits
+    // console.log("DEBUG_MENUS_JSON:", JSON.stringify(menusJson, null, 2));
     availableMenus = menusJson.data?.menus?.nodes || [];
     // DEBUG: Capture info to show on frontend if needed
     debugInfo = {
