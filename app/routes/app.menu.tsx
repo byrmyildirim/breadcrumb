@@ -111,15 +111,18 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const menuJson = formData.get("menuJson");
 
-  const appQuery = await admin.graphql(`query { currentAppInstallation { id } }`);
-  const appResult = await appQuery.json();
-  const appId = appResult.data.currentAppInstallation.id;
+  // Get the SHOP ID (not App Installation) so Liquid can access via shop.metafields
+  const shopQuery = await admin.graphql(`query { shop { id } }`);
+  const shopResult = await shopQuery.json();
+  const shopId = shopResult.data.shop.id;
 
   const response = await admin.graphql(
-    `mutation CreateAppDataMetafield($metafieldsSetInput: [MetafieldsSetInput!]!) {
+    `mutation CreateShopMetafield($metafieldsSetInput: [MetafieldsSetInput!]!) {
       metafieldsSet(metafields: $metafieldsSetInput) {
         metafields {
           id
+          namespace
+          key
         }
         userErrors {
           field
@@ -131,7 +134,7 @@ export const action = async ({ request }) => {
       variables: {
         metafieldsSetInput: [
           {
-            ownerId: appId,
+            ownerId: shopId,
             namespace: "breadcrumb",
             key: "custom_menu",
             type: "json",
