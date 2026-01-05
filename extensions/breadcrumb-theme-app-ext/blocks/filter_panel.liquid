@@ -545,10 +545,10 @@ class FilterPanel {
     this.toggleBtn = document.getElementById('FilterToggleBtn');
     this.abortController = null;
     
-    // Track checkbox states manually to survive DOM updates
-    this.selectedFilters = new Map();
+    // Track checkbox states as array of {name, value} objects
+    this.selectedFilters = [];
     
-    // Flag to track if user has interacted with checkboxes
+    // Flag to track if user has interacted
     this.hasInteracted = false;
 
     this.initEvents();
@@ -570,15 +570,20 @@ class FilterPanel {
     this.form.addEventListener('change', (e) => {
       if (e.target.type === 'checkbox') {
         const name = e.target.name;
-        const val = e.target.value;
-        const key = name + '_' + val;
-
-        // Mark that user has interacted
+        const value = e.target.value;
+        
         this.hasInteracted = true;
 
-        // Update local state
-        if (e.target.checked) this.selectedFilters.set(key, true);
-        else this.selectedFilters.delete(key);
+        if (e.target.checked) {
+          // Add to array if not exists
+          const exists = this.selectedFilters.some(f => f.name === name && f.value === value);
+          if (!exists) {
+            this.selectedFilters.push({name, value});
+          }
+        } else {
+          // Remove from array
+          this.selectedFilters = this.selectedFilters.filter(f => !(f.name === name && f.value === value));
+        }
 
         this.updateFilterCounts();
       }
@@ -605,44 +610,51 @@ class FilterPanel {
     this.panel.addEventListener('click', (e) => {
       const header = e.target.closest('.filter-accordion-header');
       if (header) {
-        const item = header.parentElement;
-        item.classList.toggle('is-open');
+        header.parentElement.classList.toggle('is-open');
       }
     });
   }
 
   togglePanel() {
-    const isOpen = this.panel.classList.contains('is-open');
-    if (isOpen) this.closePanel();
+    if (this.panel.classList.contains('is-open')) this.closePanel();
     else this.openPanel();
   }
 
   openPanel() {
     this.panel.classList.add('is-open');
     if (window.innerWidth <= 768) {
-        document.querySelector('.filter-mobile-header').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+      document.querySelector('.filter-mobile-header').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
   }
 
   closePanel() {
     this.panel.classList.remove('is-open');
     if (window.innerWidth <= 768) {
-        document.querySelector('.filter-mobile-header').style.display = 'none';
-        document.body.style.overflow = '';
+      document.querySelector('.filter-mobile-header').style.display = 'none';
+      document.body.style.overflow = '';
     }
   }
 
   getSearchParams() {
-    const formData = new FormData(this.form);
-    const searchParams = new URLSearchParams(formData);
+    const searchParams = new URLSearchParams();
+    
+    // Add checkbox selections from our state array
+    this.selectedFilters.forEach(filter => {
+      searchParams.append(filter.name, filter.value);
+    });
+    
+    // Add price inputs
+    const minPrice = this.form.querySelector('input[name*="price"][name*="gte"]');
+    const maxPrice = this.form.querySelector('input[name*="price"][name*="lte"]');
+    if (minPrice && minPrice.value) searchParams.set(minPrice.name, minPrice.value);
+    if (maxPrice && maxPrice.value) searchParams.set(maxPrice.name, maxPrice.value);
+    
     return searchParams.toString();
   }
 
   async updateFilterCounts() {
-    if (this.abortController) {
-      this.abortController.abort();
-    }
+    if (this.abortController) this.abortController.abort();
     this.abortController = new AbortController();
 
     this.panel.classList.add('is-loading');
@@ -650,48 +662,41 @@ class FilterPanel {
     const params = this.getSearchParams();
     const sectionElement = this.container.closest('[id^="shopify-section-"]');
     const sectionId = sectionElement ? sectionElement.id.replace('shopify-section-', '') : '';
-    const url = `${window.location.pathname}?${params}&section_id=${sectionId}&_=${new Date().getTime()}`;
+    
+    // Build clean URL
+    let url = window.location.pathname;
+    if (params) {
+      url += '?' + params + '&section_id=' + sectionId;
+    } else {
+      url += '?section_id=' + sectionId;
+    }
+    url += '&_=' + Date.now();
 
     try {
       const response = await fetch(url, { signal: this.abortController.signal });
       if (!response.ok) throw new Error('Fetch failed');
 
       const html = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      const doc = new DOMParser().parseFromString(html, 'text/html');
       
       const newWrapper = doc.querySelector('.filter-content-wrapper');
       const currentWrapper = this.form.querySelector('.filter-content-wrapper');
       
       if (newWrapper && currentWrapper) {
-         // Save open accordions
-         const openLabels = [];
-         currentWrapper.querySelectorAll('.filter-accordion-item.is-open').forEach(item => {
-             const label = item.getAttribute('data-filter-label');
-             if(label) openLabels.push(label);
-         });
+        // Save open accordions
+        const openLabels = Array.from(currentWrapper.querySelectorAll('.filter-accordion-item.is-open'))
+          .map(item => item.getAttribute('data-filter-label'))
+          .filter(Boolean);
 
-         currentWrapper.innerHTML = newWrapper.innerHTML;
+        currentWrapper.innerHTML = newWrapper.innerHTML;
 
-         // Restore open accordions
-         openLabels.forEach(label => {
-             const newItem = currentWrapper.querySelector(`.filter-accordion-item[data-filter-label="${label}"]`);
-             if (newItem) newItem.classList.add('is-open');
-         });
+        // Restore open accordions
+        openLabels.forEach(label => {
+          const item = currentWrapper.querySelector(`.filter-accordion-item[data-filter-label="${label}"]`);
+          if (item) item.classList.add('is-open');
+        });
 
-         // CRITICAL FIX: Restore checkbox state from LOCAL map if exists
-         // The fetch response might return 'checked' based on server logic, 
-         // but local interaction is the source of truth for pending changes.
-         // Actually, relying on server response 'checked' attribute is safer usually,
-         // but if Shopify returns the OLD state (race condition), we might need this.
-         // For now, let's trust the server response first, but ensure we don't lose clicks.
-         // Wait, the issue "can't uncheck" usually happens because the new HTML comes back 
-         // with checked="checked" because the URL didn't change (we didn't navigate).
-         // Correct. Since we are deferred, the server thinks the filter is STILL ACTIVE.
-         // So it returns HTML with checked=true.
-         // WE MUST MANUALLY OVERRIDE CHECKBOXES BASED ON CURRENT FORM STATE.
-         
-         this.restoreCheckboxStates();
+        this.restoreCheckboxStates();
       }
     } catch (error) {
       if (error.name !== 'AbortError') console.error('Filter error:', error);
@@ -701,40 +706,38 @@ class FilterPanel {
   }
 
   restoreCheckboxStates() {
-    // Walk through all checkboxes in the new DOM
     const checkboxes = this.form.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(box => {
-        const key = box.name + '_' + box.value;
-        if (this.selectedFilters.has(key)) {
-            box.checked = true;
-        } else {
-            // If user has interacted, force uncheck items not in our map
-            // This handles the single-item deselect case
-            if (this.hasInteracted) {
-               box.checked = false; 
-            }
-        }
+      const isSelected = this.selectedFilters.some(f => f.name === box.name && f.value === box.value);
+      if (isSelected) {
+        box.checked = true;
+      } else if (this.hasInteracted) {
+        box.checked = false;
+      }
     });
   }
 
   applyFilters() {
     const params = this.getSearchParams();
-    window.location.href = `${window.location.pathname}?${params}`;
+    if (params) {
+      window.location.href = window.location.pathname + '?' + params;
+    } else {
+      window.location.href = window.location.pathname;
+    }
   }
 
   clearFilters() {
-     window.location.href = window.location.pathname;
+    window.location.href = window.location.pathname;
   }
 }
 
-// Initial Map Population
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    const panel = new FilterPanel();
-    // Pre-fill selected filters map based on what's rendered initially
-    document.querySelectorAll('#FilterForm input[type="checkbox"]:checked').forEach(box => {
-      const key = box.name + '_' + box.value;
-      panel.selectedFilters.set(key, true);
-    });
+  const panel = new FilterPanel();
+  // Pre-fill state from initially checked boxes
+  document.querySelectorAll('#FilterForm input[type="checkbox"]:checked').forEach(box => {
+    panel.selectedFilters.push({name: box.name, value: box.value});
+  });
 });
 </script>
 
