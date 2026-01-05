@@ -32,3 +32,21 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+model ProductFeed {
+  id              String   @id @default(cuid())
+  shop            String
+  name            String   // Feed name like "Test", "Google Ana Feed"
+  feedType        String   @default("google") // "google" or "meta"
+  language        String   @default("tr") // Feed language
+  collectionId    String?  // Optional collection filter (null = all products)
+  collectionTitle String?  // Collection title for display
+  stockOnly       Boolean  @default(false) // Only include in-stock products
+  productCount    Int      @default(0) // Cached product count
+  lastGenerated   DateTime? // Last time feed was generated
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([shop])
+}
+
