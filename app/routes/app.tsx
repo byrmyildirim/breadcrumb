@@ -25,6 +25,7 @@ export default function App() {
           Anasayfa
         </Link>
         <Link to="/app/menu">Özel Menü Oluşturucu</Link>
+        <Link to="/app/filter">Filtre Uygulaması</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
