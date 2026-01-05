@@ -1,16 +1,14 @@
 {% comment %}
   Horizontal Dropdown Filter Panel - Improved Version
-  - Fixed layout issues
-  - Mobile accordion design
-  - Better responsive behavior
+  Features:
+  - Desktop: Multi-column grid layout
+  - Mobile: Accordion style collapsible sections
+  - Responsive design
 {% endcomment %}
 
 <style>
-  /* ========================================
-     FILTER PANEL - BASE STYLES
-     ======================================== */
-  
-  .fp-container {
+  /* ========== BASE STYLES ========== */
+  .filter-panel-container {
     width: 100%;
     margin-bottom: 20px;
     position: relative;
@@ -18,35 +16,36 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
-  /* Top Bar */
-  .fp-topbar {
+  /* ========== TOP BAR ========== */
+  .filter-panel-topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid #e5e5e5;
     gap: 16px;
+    flex-wrap: wrap;
   }
 
-  .fp-left {
+  .filter-panel-left {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  .fp-right {
+  .filter-panel-right {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  /* Toggle Button */
-  .fp-toggle-btn {
+  /* Filter Toggle Button */
+  .filter-toggle-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background: #1a1a1a;
+    background-color: #1a1a1a;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -55,19 +54,19 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background-color 0.2s;
   }
 
-  .fp-toggle-btn:hover {
-    background: #333;
+  .filter-toggle-btn:hover {
+    background-color: #333;
   }
 
-  .fp-toggle-btn svg {
+  .filter-toggle-btn svg {
     width: 16px;
     height: 16px;
   }
 
-  .fp-badge {
+  .filter-badge {
     background: #f57c00;
     color: #fff;
     padding: 2px 8px;
@@ -76,347 +75,122 @@
   }
 
   /* Product Count */
-  .fp-count {
+  .filter-product-count {
     font-size: 14px;
     color: #666;
   }
 
-  .fp-count strong {
+  .filter-product-count strong {
     color: #1a1a1a;
     font-weight: 600;
   }
 
-  /* Sort Select */
-  .fp-sort {
+  /* Sort Dropdown */
+  .filter-sort-select {
     padding: 10px 36px 10px 14px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
     appearance: none;
     cursor: pointer;
     min-width: 180px;
   }
 
-  .fp-sort:focus {
+  .filter-sort-select:focus {
     outline: none;
     border-color: #1a1a1a;
   }
 
-  /* ========================================
-     DROPDOWN PANEL - DESKTOP
-     ======================================== */
-  
-  .fp-panel {
+  /* ========== DROPDOWN PANEL ========== */
+  .filter-dropdown-panel {
     display: none;
     background: #fff;
     border: 1px solid #e5e5e5;
     border-top: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    z-index: 1000;
   }
 
-  .fp-panel.is-open {
+  .filter-dropdown-panel.is-open {
     display: block;
-    max-height: 600px;
-    overflow: visible;
-    animation: fpSlideDown 0.3s ease;
+    animation: slideDown 0.2s ease-out;
   }
 
-  @keyframes fpSlideDown {
-    from { opacity: 0; transform: translateY(-10px); }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Filter Grid - Desktop */
-  .fp-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0;
-    padding: 24px;
+  /* ========== DESKTOP: GRID COLUMNS ========== */
+  @media (min-width: 769px) {
+    .filter-columns-desktop {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      padding: 0;
+    }
+
+    .filter-column {
+      padding: 20px 16px;
+      border-right: 1px solid #f0f0f0;
+      min-height: 300px;
+    }
+
+    .filter-column:last-child {
+      border-right: none;
+    }
+
+    .filter-columns-mobile {
+      display: none;
+    }
   }
 
-  /* Filter Column */
-  .fp-column {
-    padding: 0 16px;
-    border-right: 1px solid #f0f0f0;
-  }
-
-  .fp-column:last-child {
-    border-right: none;
-  }
-
-  .fp-column-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    cursor: default;
-  }
-
-  .fp-column-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1a1a1a;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #1a1a1a;
-  }
-
-  /* Filter List */
-  .fp-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 250px;
-    overflow-y: auto;
-  }
-
-  .fp-list::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .fp-list::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 2px;
-  }
-
-  /* Filter Item */
-  .fp-item {
-    margin-bottom: 4px;
-  }
-
-  .fp-item a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    font-size: 13px;
-    color: #333;
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-
-  .fp-item a:hover {
-    color: #f57c00;
-  }
-
-  .fp-item.active a {
-    color: #f57c00;
-    font-weight: 600;
-  }
-
-  /* Checkbox */
-  .fp-checkbox {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #ccc;
-    border-radius: 2px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: #fff;
-    transition: all 0.15s;
-  }
-
-  .fp-item.active .fp-checkbox {
-    background: #1a1a1a;
-    border-color: #1a1a1a;
-  }
-
-  .fp-check-icon {
-    width: 10px;
-    height: 10px;
-    stroke: #fff;
-    stroke-width: 3;
-    opacity: 0;
-  }
-
-  .fp-item.active .fp-check-icon {
-    opacity: 1;
-  }
-
-  .fp-item-count {
-    color: #999;
-    font-size: 12px;
-    margin-left: auto;
-  }
-
-  /* Show More */
-  .fp-show-more {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 11px;
-    color: #f57c00;
-    text-transform: uppercase;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .fp-show-more:hover {
-    text-decoration: underline;
-  }
-
-  /* Price Section */
-  .fp-price-info {
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 12px;
-  }
-
-  .fp-price-inputs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .fp-price-input {
-    width: 80px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    text-align: center;
-  }
-
-  .fp-price-input:focus {
-    outline: none;
-    border-color: #1a1a1a;
-  }
-
-  .fp-price-sep {
-    color: #999;
-  }
-
-  /* Actions */
-  .fp-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    border-top: 1px solid #e5e5e5;
-    background: #fafafa;
-  }
-
-  .fp-btn-clear {
-    padding: 10px 24px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    text-decoration: none;
-    color: #333;
-    transition: border-color 0.15s;
-  }
-
-  .fp-btn-clear:hover {
-    border-color: #1a1a1a;
-  }
-
-  .fp-btn-apply {
-    padding: 10px 24px;
-    background: #1a1a1a;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .fp-btn-apply:hover {
-    background: #333;
-  }
-
-  /* Active Tags */
-  .fp-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 0;
-  }
-
-  .fp-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #333;
-    text-decoration: none;
-  }
-
-  .fp-tag-remove {
-    opacity: 0.6;
-    transition: opacity 0.15s;
-  }
-
-  .fp-tag-remove:hover {
-    opacity: 1;
-  }
-
-  .fp-tag-clear {
-    background: #1a1a1a;
-    color: #fff;
-  }
-
-  /* ========================================
-     MOBILE STYLES - ACCORDION
-     ======================================== */
-  
+  /* ========== MOBILE: ACCORDION ========== */
   @media (max-width: 768px) {
-    .fp-topbar {
+    .filter-columns-desktop {
+      display: none;
+    }
+
+    .filter-columns-mobile {
+      display: block;
+    }
+
+    .filter-panel-topbar {
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
     }
 
-    .fp-left {
+    .filter-panel-left {
       justify-content: space-between;
     }
 
-    .fp-right {
+    .filter-panel-right {
       width: 100%;
     }
 
-    .fp-sort {
+    .filter-sort-select {
       width: 100%;
       min-width: auto;
     }
 
-    /* Mobile Panel */
-    .fp-panel {
+    .filter-dropdown-panel {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      max-height: none;
       z-index: 9999;
       overflow-y: auto;
       border: none;
       box-shadow: none;
     }
 
-    .fp-panel.is-open {
-      animation: fpSlideUp 0.3s ease;
-    }
-
-    @keyframes fpSlideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
-
-    /* Mobile Header */
-    .fp-mobile-header {
+    .filter-mobile-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -428,126 +202,321 @@
       z-index: 10;
     }
 
-    .fp-mobile-title {
+    .filter-mobile-title {
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 600;
     }
 
-    .fp-mobile-close {
+    .filter-mobile-close {
       width: 32px;
       height: 32px;
+      border: none;
+      background: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 24px;
     }
 
-    /* ACCORDION GRID */
-    .fp-grid {
-      display: block;
-      padding: 0;
-    }
-
-    .fp-column {
-      padding: 0;
-      border-right: none;
+    /* Accordion Item */
+    .filter-accordion-item {
       border-bottom: 1px solid #e5e5e5;
     }
 
-    .fp-column-header {
+    .filter-accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 16px;
-      margin-bottom: 0;
-      cursor: pointer;
       background: #fff;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .fp-column-header::after {
-      content: '+';
-      font-size: 20px;
-      font-weight: 300;
-      color: #666;
+    .filter-accordion-header:hover {
+      background: #f9f9f9;
+    }
+
+    .filter-accordion-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-accordion-icon {
+      width: 20px;
+      height: 20px;
       transition: transform 0.2s;
     }
 
-    .fp-column.is-expanded .fp-column-header::after {
-      content: '−';
+    .filter-accordion-item.is-open .filter-accordion-icon {
+      transform: rotate(180deg);
     }
 
-    .fp-column-title {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .fp-column-body {
+    .filter-accordion-content {
       display: none;
       padding: 0 16px 16px;
-      background: #fafafa;
+      background: #fff;
     }
 
-    .fp-column.is-expanded .fp-column-body {
+    .filter-accordion-item.is-open .filter-accordion-content {
       display: block;
-      animation: fpAccordionOpen 0.2s ease;
     }
+  }
 
-    @keyframes fpAccordionOpen {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+  /* ========== COLUMN CONTENT ========== */
+  .filter-column-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a1a1a;
+    display: inline-block;
+  }
 
-    .fp-list {
-      max-height: none;
-    }
+  /* Filter Items List */
+  .filter-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
+  }
 
-    /* Mobile Actions - Sticky Bottom */
-    .fp-actions {
+  .filter-items-list::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .filter-items-list::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 2px;
+  }
+
+  /* Filter Item */
+  .filter-item {
+    margin-bottom: 4px;
+  }
+
+  .filter-item a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .filter-item a:hover {
+    color: #f57c00;
+  }
+
+  .filter-item.is-active a {
+    color: #f57c00;
+    font-weight: 500;
+  }
+
+  /* Checkbox Style */
+  .filter-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #ccc;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #fff;
+    transition: all 0.15s;
+  }
+
+  .filter-item.is-active .filter-checkbox {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+  }
+
+  .filter-checkbox-icon {
+    width: 10px;
+    height: 10px;
+    stroke: #fff;
+    stroke-width: 3;
+    opacity: 0;
+  }
+
+  .filter-item.is-active .filter-checkbox-icon {
+    opacity: 1;
+  }
+
+  .filter-item-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Filter Count */
+  .filter-item-count {
+    color: #f57c00;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Show More Link */
+  .filter-show-more {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #f57c00;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .filter-show-more:hover {
+    text-decoration: underline;
+  }
+
+  /* ========== PRICE SECTION ========== */
+  .filter-price-display {
+    font-size: 12px;
+    color: #f57c00;
+    margin-bottom: 12px;
+  }
+
+  .filter-price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-price-field {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .filter-price-currency {
+    padding: 8px 10px;
+    background: #f5f5f5;
+    font-size: 13px;
+    color: #666;
+    border-right: 1px solid #e5e5e5;
+  }
+
+  .filter-price-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: none;
+    font-size: 13px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .filter-price-input:focus {
+    outline: none;
+  }
+
+  .filter-price-separator {
+    color: #999;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+
+  /* ========== ACTIONS ========== */
+  .filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #e5e5e5;
+    background: #fafafa;
+  }
+
+  @media (max-width: 768px) {
+    .filter-actions {
       position: sticky;
       bottom: 0;
       background: #fff;
-      border-top: 1px solid #e5e5e5;
-      padding: 16px;
-    }
-
-    .fp-btn-clear,
-    .fp-btn-apply {
-      flex: 1;
-      text-align: center;
-    }
-
-    /* Hide desktop mobile header on desktop */
-    .fp-mobile-header {
-      display: flex;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
     }
   }
 
-  @media (min-width: 769px) {
-    .fp-mobile-header {
-      display: none;
-    }
-
-    .fp-column-body {
-      display: block !important;
-    }
-
-    .fp-column-header::after {
-      display: none;
-    }
+  .filter-clear-btn {
+    padding: 12px 24px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    color: #333;
   }
 
-  /* Tablet - 4 columns */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .fp-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
+  .filter-clear-btn:hover {
+    border-color: #1a1a1a;
   }
 
-  /* Large Desktop - 6 columns */
-  @media (min-width: 1200px) {
-    .fp-grid {
-      grid-template-columns: repeat(6, 1fr);
-    }
+  .filter-apply-btn {
+    padding: 12px 24px;
+    background: #f57c00;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .filter-apply-btn:hover {
+    background: #e06c00;
+  }
+
+  /* ========== ACTIVE FILTER TAGS ========== */
+  .filter-active-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .filter-active-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #333;
+    text-decoration: none;
+  }
+
+  .filter-active-tag-remove {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  .filter-active-tag-remove:hover {
+    opacity: 1;
+  }
+
+  .filter-clear-all-tag {
+    background: #1a1a1a;
+    color: #fff;
   }
 </style>
 
@@ -567,37 +536,40 @@
   {% endfor %}
 {% endfor %}
 
-{% comment %} Product count {% endcomment %}
+{% comment %} Product/Result count {% endcomment %}
 {% assign result_count = results.products_count | default: collection.all_products_count %}
 {% if request.page_type == 'search' %}
   {% assign result_count = search.results_count %}
 {% endif %}
 
-<div class="fp-container" id="FPContainer">
+<div class="filter-panel-container" id="FilterPanelContainer">
   
   <!-- Top Bar -->
-  <div class="fp-topbar">
-    <div class="fp-left">
-      <button class="fp-toggle-btn" id="FPToggleBtn" aria-expanded="false">
+  <div class="filter-panel-topbar">
+    <div class="filter-panel-left">
+      <button class="filter-toggle-btn" id="FilterToggleBtn" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="4" y1="6" x2="20" y2="6"></line>
           <line x1="4" y1="12" x2="20" y2="12"></line>
           <line x1="4" y1="18" x2="20" y2="18"></line>
+          <circle cx="8" cy="6" r="2" fill="currentColor"></circle>
+          <circle cx="16" cy="12" r="2" fill="currentColor"></circle>
+          <circle cx="10" cy="18" r="2" fill="currentColor"></circle>
         </svg>
         FİLTRELER
         {% if active_filter_count > 0 %}
-          <span class="fp-badge">{{ active_filter_count }}</span>
+          <span class="filter-badge">{{ active_filter_count }}</span>
         {% endif %}
       </button>
 
-      <span class="fp-count">
+      <span class="filter-product-count">
         <strong>{{ result_count }}</strong> Ürün
       </span>
     </div>
 
-    <div class="fp-right">
+    <div class="filter-panel-right">
       {% if request.page_type == 'collection' %}
-        <select class="fp-sort" onchange="fpHandleSort(this)">
+        <select class="filter-sort-select" id="FilterSortSelect" onchange="handleSortChange(this)">
           <option value="">SIRALAMA SEÇİNİZ</option>
           <option value="title-ascending" {% if collection.sort_by == 'title-ascending' %}selected{% endif %}>İsme Göre (A-Z)</option>
           <option value="title-descending" {% if collection.sort_by == 'title-descending' %}selected{% endif %}>İsme Göre (Z-A)</option>
@@ -610,81 +582,90 @@
     </div>
   </div>
 
-  <!-- Active Tags -->
+  <!-- Active Filter Tags -->
   {% if active_filter_count > 0 %}
-    <div class="fp-tags">
+    <div class="filter-active-tags">
       {% for filter in results.filters %}
         {% for value in filter.values %}
           {% if value.active %}
-            <a href="{{ value.url_to_remove }}" class="fp-tag">
+            <span class="filter-active-tag">
               {{ value.label }}
-              <svg class="fp-tag-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </a>
+              <a href="{{ value.url_to_remove }}" class="filter-active-tag-remove" title="Kaldır">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </a>
+            </span>
           {% endif %}
         {% endfor %}
       {% endfor %}
-      <a href="{{ collection.url }}" class="fp-tag fp-tag-clear">Tümünü Temizle</a>
+      <a href="{{ collection.url }}" class="filter-active-tag filter-clear-all-tag">
+        Tümünü Temizle
+      </a>
     </div>
   {% endif %}
 
   <!-- Dropdown Panel -->
-  <div class="fp-panel" id="FPPanel">
+  <div class="filter-dropdown-panel" id="FilterDropdownPanel">
     
     <!-- Mobile Header -->
-    <div class="fp-mobile-header">
-      <span class="fp-mobile-title">Filtreler</span>
-      <button class="fp-mobile-close" onclick="fpClosePanel()">×</button>
+    <div class="filter-mobile-header" style="display:none;">
+      <span class="filter-mobile-title">Filtreler</span>
+      <button class="filter-mobile-close" id="FilterMobileClose">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
-    <div class="fp-grid">
+    <!-- Desktop: Grid Columns -->
+    <div class="filter-columns-desktop">
       {% for filter in results.filters %}
         {% if filter.type == 'list' %}
-          <div class="fp-column" data-filter="{{ filter.param_name }}">
-            <div class="fp-column-header" onclick="fpToggleAccordion(this)">
-              <span class="fp-column-title">{{ filter.label | upcase }}</span>
-            </div>
-            <div class="fp-column-body">
-              <ul class="fp-list" data-list="{{ filter.param_name }}">
-                {% assign show_count = block.settings.visible_items | default: 10 %}
-                {% for value in filter.values %}
-                  <li class="fp-item {% if value.active %}active{% endif %}" {% if forloop.index > show_count %}data-extra="true" style="display:none;"{% endif %}>
-                    <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
-                      <span class="fp-checkbox">
-                        <svg class="fp-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </span>
-                      <span>{{ value.label }}</span>
-                      <span class="fp-item-count">({{ value.count }})</span>
-                    </a>
-                  </li>
-                {% endfor %}
-              </ul>
-              {% if filter.values.size > show_count %}
-                <span class="fp-show-more" onclick="fpToggleMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</span>
-              {% endif %}
-            </div>
+          <div class="filter-column">
+            <span class="filter-column-title">{{ filter.label | upcase }}</span>
+            <ul class="filter-items-list" data-filter-id="{{ filter.param_name }}">
+              {% assign visible_count = 0 %}
+              {% for value in filter.values %}
+                {% assign visible_count = visible_count | plus: 1 %}
+                <li class="filter-item {% if value.active %}is-active{% endif %}" {% if visible_count > 8 %}style="display:none;" data-hidden="true"{% endif %}>
+                  <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
+                    <span class="filter-checkbox">
+                      <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span class="filter-item-label">{{ value.label }}</span>
+                    <span class="filter-item-count">({{ value.count }})</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if filter.values.size > 8 %}
+              <a class="filter-show-more" onclick="toggleShowMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</a>
+            {% endif %}
           </div>
 
         {% elsif filter.type == 'price_range' %}
-          <div class="fp-column" data-filter="price">
-            <div class="fp-column-header" onclick="fpToggleAccordion(this)">
-              <span class="fp-column-title">{{ filter.label | upcase }}</span>
+          <div class="filter-column">
+            <span class="filter-column-title">{{ filter.label | upcase }}</span>
+            <div class="filter-price-display">
+              En yüksek fiyat: {{ filter.range_max | money }}
             </div>
-            <div class="fp-column-body">
-              <div class="fp-price-info">En yüksek fiyat: {{ filter.range_max | money }}</div>
-              <div class="fp-price-inputs">
-                <span>₺</span>
-                <input type="number" class="fp-price-input" id="FPPriceMin" 
-                       value="{{ filter.min_value.value | money_without_currency | default: '' }}" 
+            <div class="filter-price-inputs">
+              <div class="filter-price-field">
+                <span class="filter-price-currency">₺</span>
+                <input type="number" class="filter-price-input" id="PriceMin" 
+                       value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
                        min="0" placeholder="0">
-                <span class="fp-price-sep">-</span>
-                <span>₺</span>
-                <input type="number" class="fp-price-input" id="FPPriceMax" 
-                       value="{{ filter.max_value.value | money_without_currency | default: '' }}" 
+              </div>
+              <span class="filter-price-separator">-</span>
+              <div class="filter-price-field">
+                <span class="filter-price-currency">₺</span>
+                <input type="number" class="filter-price-input" id="PriceMax" 
+                       value="{{ filter.max_value.value | money_without_currency }}" 
                        placeholder="{{ filter.range_max | money_without_currency }}">
               </div>
             </div>
@@ -693,86 +674,194 @@
       {% endfor %}
     </div>
 
+    <!-- Mobile: Accordion -->
+    <div class="filter-columns-mobile">
+      {% for filter in results.filters %}
+        {% if filter.type == 'list' %}
+          <div class="filter-accordion-item">
+            <div class="filter-accordion-header" onclick="toggleAccordion(this)">
+              <span class="filter-accordion-title">{{ filter.label | upcase }}</span>
+              <svg class="filter-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+            <div class="filter-accordion-content">
+              <ul class="filter-items-list">
+                {% for value in filter.values %}
+                  <li class="filter-item {% if value.active %}is-active{% endif %}">
+                    <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
+                      <span class="filter-checkbox">
+                        <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                      <span class="filter-item-label">{{ value.label }}</span>
+                      <span class="filter-item-count">({{ value.count }})</span>
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+        {% elsif filter.type == 'price_range' %}
+          <div class="filter-accordion-item">
+            <div class="filter-accordion-header" onclick="toggleAccordion(this)">
+              <span class="filter-accordion-title">{{ filter.label | upcase }}</span>
+              <svg class="filter-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+            <div class="filter-accordion-content">
+              <div class="filter-price-display">
+                En yüksek fiyat: {{ filter.range_max | money }}
+              </div>
+              <div class="filter-price-inputs">
+                <div class="filter-price-field">
+                  <span class="filter-price-currency">₺</span>
+                  <input type="number" class="filter-price-input" id="PriceMinMobile" 
+                         value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
+                         min="0" placeholder="0">
+                </div>
+                <span class="filter-price-separator">-</span>
+                <div class="filter-price-field">
+                  <span class="filter-price-currency">₺</span>
+                  <input type="number" class="filter-price-input" id="PriceMaxMobile" 
+                         value="{{ filter.max_value.value | money_without_currency }}" 
+                         placeholder="{{ filter.range_max | money_without_currency }}">
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
     <!-- Actions -->
-    <div class="fp-actions">
-      <a href="{{ collection.url }}" class="fp-btn-clear">Filtreleri Temizle</a>
-      <button class="fp-btn-apply" onclick="fpApplyPrice()">Uygula</button>
+    <div class="filter-actions">
+      <a href="{{ collection.url }}" class="filter-clear-btn">Filtreleri Temizle</a>
+      <button class="filter-apply-btn" onclick="applyPriceFilter()">Uygula</button>
     </div>
   </div>
 
 </div>
 
 <script>
-(function() {
-  const container = document.getElementById('FPContainer');
-  const panel = document.getElementById('FPPanel');
-  const toggleBtn = document.getElementById('FPToggleBtn');
+  (function() {
+    const container = document.getElementById('FilterPanelContainer');
+    const toggleBtn = document.getElementById('FilterToggleBtn');
+    const panel = document.getElementById('FilterDropdownPanel');
+    const mobileHeader = document.querySelector('.filter-mobile-header');
+    const mobileClose = document.getElementById('FilterMobileClose');
 
-  // Toggle panel
-  toggleBtn.addEventListener('click', function() {
-    const isOpen = panel.classList.contains('is-open');
-    if (isOpen) {
-      fpClosePanel();
-    } else {
-      panel.classList.add('is-open');
-      this.setAttribute('aria-expanded', 'true');
-      document.body.style.overflow = window.innerWidth <= 768 ? 'hidden' : '';
+    // Check if mobile
+    function isMobile() {
+      return window.innerWidth <= 768;
     }
-  });
 
-  // Close on outside click (desktop only)
-  document.addEventListener('click', function(e) {
-    if (window.innerWidth > 768 && !container.contains(e.target) && panel.classList.contains('is-open')) {
-      fpClosePanel();
-    }
-  });
-
-  // Close panel function
-  window.fpClosePanel = function() {
-    panel.classList.remove('is-open');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  };
-
-  // Accordion toggle (mobile)
-  window.fpToggleAccordion = function(header) {
-    if (window.innerWidth > 768) return;
-    const column = header.parentElement;
-    column.classList.toggle('is-expanded');
-  };
-
-  // Show more
-  window.fpToggleMore = function(btn, filterId) {
-    const list = document.querySelector(`[data-list="${filterId}"]`);
-    const extras = list.querySelectorAll('[data-extra="true"]');
-    const isHidden = extras[0]?.style.display === 'none';
-    
-    extras.forEach(item => {
-      item.style.display = isHidden ? '' : 'none';
+    // Toggle filter panel
+    toggleBtn.addEventListener('click', function() {
+      const isOpen = panel.classList.contains('is-open');
+      
+      if (isOpen) {
+        closePanel();
+      } else {
+        openPanel();
+      }
     });
-    btn.textContent = isHidden ? 'DAHA AZ GÖSTER' : 'DAHA FAZLA GÖSTER';
-  };
 
-  // Sort handler
-  window.fpHandleSort = function(select) {
-    if (!select.value) return;
+    function openPanel() {
+      panel.classList.add('is-open');
+      toggleBtn.setAttribute('aria-expanded', 'true');
+      
+      if (isMobile()) {
+        mobileHeader.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closePanel() {
+      panel.classList.remove('is-open');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      
+      if (isMobile()) {
+        mobileHeader.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    // Mobile close button
+    if (mobileClose) {
+      mobileClose.addEventListener('click', closePanel);
+    }
+
+    // Close panel when clicking outside (desktop only)
+    document.addEventListener('click', function(e) {
+      if (!isMobile() && !container.contains(e.target) && panel.classList.contains('is-open')) {
+        closePanel();
+      }
+    });
+
+    // Handle resize
+    window.addEventListener('resize', function() {
+      if (!isMobile() && panel.classList.contains('is-open')) {
+        mobileHeader.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    });
+  })();
+
+  // Accordion toggle
+  function toggleAccordion(header) {
+    const item = header.parentElement;
+    item.classList.toggle('is-open');
+  }
+
+  // Show more items
+  function toggleShowMore(btn, filterId) {
+    const list = document.querySelector(`[data-filter-id="${filterId}"]`);
+    const hiddenItems = list.querySelectorAll('[data-hidden="true"]');
+    const isShowing = btn.textContent.includes('AZ');
+    
+    hiddenItems.forEach(item => {
+      item.style.display = isShowing ? 'none' : '';
+    });
+    
+    btn.textContent = isShowing ? 'DAHA FAZLA GÖSTER' : 'DAHA AZ GÖSTER';
+  }
+
+  // Sort change handler
+  function handleSortChange(select) {
+    const sortValue = select.value;
+    if (!sortValue) return;
+    
     const url = new URL(window.location.href);
-    url.searchParams.set('sort_by', select.value);
+    url.searchParams.set('sort_by', sortValue);
     window.location.href = url.toString();
-  };
+  }
 
   // Apply price filter
-  window.fpApplyPrice = function() {
-    const min = document.getElementById('FPPriceMin')?.value;
-    const max = document.getElementById('FPPriceMax')?.value;
+  function applyPriceFilter() {
+    const isMobile = window.innerWidth <= 768;
+    const minPrice = document.getElementById(isMobile ? 'PriceMinMobile' : 'PriceMin')?.value;
+    const maxPrice = document.getElementById(isMobile ? 'PriceMaxMobile' : 'PriceMax')?.value;
+    
     const url = new URL(window.location.href);
     
-    if (min) url.searchParams.set('filter.v.price.gte', (parseFloat(min) * 100).toString());
-    if (max) url.searchParams.set('filter.v.price.lte', (parseFloat(max) * 100).toString());
+    if (minPrice && parseFloat(minPrice) > 0) {
+      url.searchParams.set('filter.v.price.gte', (parseFloat(minPrice) * 100).toString());
+    } else {
+      url.searchParams.delete('filter.v.price.gte');
+    }
+    
+    if (maxPrice && parseFloat(maxPrice) > 0) {
+      url.searchParams.set('filter.v.price.lte', (parseFloat(maxPrice) * 100).toString());
+    } else {
+      url.searchParams.delete('filter.v.price.lte');
+    }
     
     window.location.href = url.toString();
-  };
-})();
+  }
 </script>
 
 {% schema %}
@@ -781,14 +870,31 @@
   "target": "section",
   "settings": [
     {
+      "type": "checkbox",
+      "id": "show_product_count",
+      "label": "Ürün sayısını göster",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort",
+      "label": "Sıralama seçeneğini göster",
+      "default": true
+    },
+    {
       "type": "range",
       "id": "visible_items",
-      "label": "Görünen öğe sayısı",
+      "label": "Her kolonda görünen öğe sayısı",
       "min": 5,
       "max": 20,
       "step": 1,
-      "default": 10,
-      "info": "Her filtre kolonunda başlangıçta görünen öğe sayısı"
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Vurgu rengi",
+      "default": "#f57c00"
     }
   ]
 }
