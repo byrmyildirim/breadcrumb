@@ -50,3 +50,12 @@ model ProductFeed {
   @@index([shop])
 }
 
+
+model MegaMenu {
+  id        String   @id @default(cuid())
+  shop      String   @unique
+  config    String   // JSON string of menu configuration
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

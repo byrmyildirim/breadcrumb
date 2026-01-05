@@ -1,0 +1,373 @@
+<style>
+/* ============================
+   MEGA MENU – FULL OPTIMIZED STYLE
+   ============================ */
+
+/* ANA WRAPPER */
+.mega-wrapper {
+  width: 100%;
+  position: relative;
+  z-index: 40;
+  background: white; /* Ensure visibility */
+}
+
+
+/* ============================
+   ÜST MENÜ (ORTALANMIŞ)
+   ============================ */
+.mega-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0 px;
+  padding: 14px 0;
+}
+
+.mega-top-item {
+    position: relative;
+ padding: 0 16px;
+  font-size: 15px;
+  font-weight: 400;
+  cursor: pointer;
+  text-decoration: none;
+  color: #111;
+}
+
+.mega-top-item:hover {
+  text-decoration: underline;
+}
+.mega-top-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background-color: #ddd;
+}
+
+/* ============================
+   MEGA PANEL
+   ============================ */
+.mega-panel {
+  display: none;
+  width: 100%;
+  background: white;
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  border-top: none;
+  padding: 28px 36px;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+  
+  /* App Block Specific: Ensure it overlays correctly if placed in header */
+  position: absolute;
+  left: 0;
+  z-index: 999;
+}
+
+.mega-panel.active {
+  display: block;
+}
+
+
+/* ============================
+   GRID YAPI
+   Sol: 30% görsel — Sağ: 70% kolonlar
+   ============================ */
+.mega-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 28% 72%;
+  gap: 40px;
+  align-items: start; /* BOŞLUK SORUNUNU ÇÖZEN KISIM */
+}
+
+
+/* ============================
+   SOL GÖRSEL — ABSOLUTE POSITION
+   (Grid yüksekliğini BOZMAMASI için)
+   ============================ */
+.mega-image {
+  position: relative;
+  min-height: 280px; /* Görsel çok küçükse hizalama bozulmasın */
+}
+
+.mega-image img {
+  width: 100%;
+  height: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 8px; /* Slight polish */
+}
+
+
+/* ============================
+   SAĞ TARAF — 4 KOLON
+   ============================ */
+.mega-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 32px;
+}
+
+
+/* ============================
+   KOLON (PARENT)
+   ============================ */
+.mega-col {
+  margin: 0;
+  padding: 0;
+}
+
+
+/* ============================
+   PARENT BAŞLIK + ÇİZGİ
+   ============================ */
+.mega-col-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.mega-col-title a {
+  color: #222;
+  text-decoration: none;
+}
+
+/* OK İKONU */
+.mega-col-title .arrow {
+  font-size: 12px;
+  margin-left: 6px;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+
+.mega-col.open .arrow {
+  transform: rotate(180deg);
+}
+
+
+/* ============================
+   CHILD (ALT MENÜ) LİNKLERİ
+   ============================ */
+.mega-col-links {
+  display: none; /* Varsayılan: kapalı */
+  margin: 4px 0 0 0;
+  padding: 0;
+}
+
+.mega-col-links a {
+  display: block;
+  text-decoration: none;
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.mega-col-links a:hover {
+  text-decoration: underline;
+}
+
+
+/* ============================
+   AÇILMIŞ KOLON
+   ============================ */
+.mega-col.open .mega-col-links {
+  display: block;
+}
+/* MOBİLDE MEGA MENÜYÜ TAMAMEN GİZLE */
+@media (max-width: 768px) {
+  #mega-{{ block.id }} {
+    display: none !important;
+  }
+}
+</style>
+
+{% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
+{% assign use_custom_root = block.settings.use_custom_root %}
+
+{% if use_custom_root %}
+  {% assign nav_items = shop.metafields.breadcrumb.custom_menu.value %}
+{% else %}
+  {% assign nav_handle = block.settings.main_menu %}
+  {% assign nav_items = linklists[nav_handle].links %}
+{% endif %}
+
+<div class="mega-wrapper" id="mega-{{ block.id }}">
+
+  <!-- ÜST MENÜ -->
+  <div class="mega-top">
+    {% for link in nav_items %}
+      <a
+        class="mega-top-item"
+        data-key="{{ link.title | handleize }}"
+        href="{{ link.url }}"
+      >
+        {{ link.title }}
+      </a>
+    {% endfor %}
+  </div>
+
+
+  <!-- HER BLOCK = BİR MEGA PANEL (Dinamik Metafield'dan geliyor) -->
+  {% for link in nav_items %}
+    {% comment %} Metafield configinden eşleşen veriyi bul {% endcomment %}
+    {% assign matching_config = nil %}
+    {% for item in mega_config %}
+      {% if item.triggerTitle == link.title %}
+        {% assign matching_config = item %}
+        {% break %}
+      {% endif %}
+    {% endfor %}
+
+    {% if matching_config %}
+       {% assign use_custom_sub = false %}
+       {% if matching_config.submenuHandle == 'custom_menu_special' %}
+          {% assign use_custom_sub = true %}
+          {% assign root_items = shop.metafields.breadcrumb.custom_menu.value %}
+          
+          {% comment %} Fallback: Try to find by title if generic custom menu is selected {% endcomment %}
+          {% for candidate in root_items %}
+            {% if candidate.title == link.title %}
+               {% assign sub_level_items = candidate.children %}
+               {% break %}
+            {% endif %}
+          {% endfor %}
+
+       {% elsif matching_config.submenuHandle contains 'custom_special:' %}
+          {% assign use_custom_sub = true %}
+          {% assign target_title = matching_config.submenuHandle | remove: 'custom_special:' %}
+          {% assign root_items = shop.metafields.breadcrumb.custom_menu.value %}
+          
+          {% comment %} Find specific node by title {% endcomment %}
+          {% assign sub_level_items = root_items %}
+          {% for candidate in root_items %}
+             {% if candidate.title == target_title %}
+                {% assign sub_level_items = candidate.children %}
+                {% break %}
+             {% endif %}
+          {% endfor %}
+
+       {% else %}
+          {% assign root_items = linklists[matching_config.submenuHandle].links %}
+          {% assign sub_level_items = root_items %}
+       {% endif %}
+
+       <div class="mega-panel" data-key="{{ link.title | handleize }}">
+          <div class="mega-grid">
+
+            <!-- SOL GÖRSEL -->
+            <div class="mega-image">
+              {% if matching_config.imageUrl != blank %}
+                <img src="{{ matching_config.imageUrl }}">
+              {% endif %}
+            </div>
+
+            <!-- SAĞ: 4 KOLON -->
+            <div class="mega-cols">
+              {% for parent in sub_level_items %}
+                  
+                  {% comment %} Normalize children to 'sub_links' {% endcomment %}
+                  {% assign sub_links = parent.links %}
+                  {% if parent.children %}
+                    {% assign sub_links = parent.children %}
+                  {% endif %}
+
+                  <div class="mega-col-title">
+                    <a href="{{ parent.url }}">{{ parent.title }}</a>
+
+                    {% if sub_links.size > 0 %}
+                      <span class="arrow">▼</span>
+                    {% endif %}
+                  </div>
+
+                  {% if sub_links.size > 0 %}
+                    <div class="mega-col-links">
+                      {% for child in sub_links %}
+                         <a href="{{ child.url }}">{{ child.title }}</a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                </div>
+              {% endfor %}
+
+            </div>
+
+          </div>
+        </div>
+    {% endif %}
+  {% endfor %}
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const wrapper = document.getElementById("mega-{{ block.id }}");
+  if (!wrapper) return;
+
+  const topItems = wrapper.querySelectorAll(".mega-top-item");
+  const panels = wrapper.querySelectorAll(".mega-panel");
+
+  /* PANEL AÇMA */
+  function openPanel(key) {
+    panels.forEach(p => {
+      p.classList.toggle("active", p.dataset.key === key);
+    });
+  }
+
+  topItems.forEach(item => {
+    item.addEventListener("mouseenter", () => {
+      openPanel(item.dataset.key);
+    });
+  });
+
+  wrapper.addEventListener("mouseleave", () => {
+    panels.forEach(p => p.classList.remove("active"));
+  });
+
+  /* ALT MENÜ OK AÇ/KAPA */
+  wrapper.querySelectorAll(".mega-col-title .arrow").forEach(arrow => {
+    arrow.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.closest(".mega-col").classList.toggle("open");
+    });
+  });
+
+});
+</script>
+
+{% schema %}
+{
+  "name": "Mega Menu (App)",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "use_custom_root",
+      "label": "Uygulama Özel Menüsünü Kullan",
+      "default": false,
+      "info": "İşaretlenirse, 'Özel Menü Oluşturucu' sayfasındaki menüyü ana menü olarak kullanır. (Ana Menü seçimi geçersiz olur)"
+    },
+    {
+      "type": "link_list",
+      "id": "main_menu",
+      "label": "Ana Menü (Shopify)",
+      "info": "Sadece yukarıdaki kutucuk işaretli DEĞİLSE kullanılır."
+    }
+  ]
+}
+{% endschema %}

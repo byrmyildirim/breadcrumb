@@ -27,6 +27,7 @@ export default function App() {
         <Link to="/app/menu">Özel Menü Oluşturucu</Link>
         <Link to="/app/filter">Filtre Uygulaması</Link>
         <Link to="/app/feeds">XML Feed Oluşturucu</Link>
+        <Link to="/app/megamenu">Mega Menü</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
