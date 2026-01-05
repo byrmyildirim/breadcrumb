@@ -1,10 +1,11 @@
 {% comment %}
-  Horizontal Dropdown Filter Panel - Improved Version
+  Horizontal Dropdown Filter Panel - AJAX Version
   Features:
-  - Desktop: Multi-column grid layout
-  - Mobile: Accordion style collapsible sections
-  - Responsive design
-  - Configurable Colors
+  - Form-based filtering
+  - AJAX updates for filter counts/availability without page reload
+  - Deferred application (Apply button triggers navigation)
+  - Desktop: Grid layout
+  - Mobile: Accordion layout
 {% endcomment %}
 
 <style>
@@ -34,13 +35,6 @@
     gap: 16px;
   }
 
-  .filter-panel-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  /* Filter Toggle Button */
   .filter-toggle-btn {
     display: inline-flex;
     align-items: center;
@@ -62,11 +56,6 @@
     background-color: #333;
   }
 
-  .filter-toggle-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
   .filter-badge {
     background: {{ block.settings.accent_color | default: '#f57c00' }};
     color: #fff;
@@ -75,35 +64,8 @@
     font-size: 11px;
   }
 
-  /* Product Count */
-  .filter-product-count {
-    font-size: 14px;
-    color: #666;
-  }
-
   .filter-product-count strong {
-    color: #1a1a1a;
     font-weight: 600;
-  }
-
-  /* Sort Dropdown */
-  .filter-sort-select {
-    padding: 10px 36px 10px 14px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    background-color: #fff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    appearance: none;
-    cursor: pointer;
-    min-width: 180px;
-  }
-
-  .filter-sort-select:focus {
-    outline: none;
-    border-color: #1a1a1a;
   }
 
   /* ========== DROPDOWN PANEL ========== */
@@ -114,70 +76,70 @@
     border-top: none;
     box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     z-index: 1000;
+    padding-bottom: 60px; /* Space for fixed bottom bar on mobile */
   }
 
   .filter-dropdown-panel.is-open {
     display: block;
-    animation: slideDown 0.2s ease-out;
   }
 
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* Overlay for loading state */
+  .filter-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.7);
+    z-index: 1001;
+    display: none;
+    justify-content: center;
+    align-items: center;
   }
 
-  /* ========== DESKTOP: GRID COLUMNS ========== */
+  .filter-dropdown-panel.is-loading .filter-loading-overlay {
+    display: flex;
+  }
+
+  .filter-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid {{ block.settings.accent_color | default: '#f57c00' }};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* ========== DESKTOP LAYOUT ========== */
   @media (min-width: 769px) {
     .filter-columns-desktop {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 0;
-      padding: 0;
+      align-items: start;
     }
 
     .filter-column {
       padding: 20px 16px;
       border-right: 1px solid #f0f0f0;
-      min-height: 300px;
+      min-height: 250px;
     }
-
-    .filter-column:last-child {
-      border-right: none;
-    }
-
-    .filter-columns-mobile {
-      display: none;
-    }
+    
+    .filter-columns-mobile { display: none; }
+    
+    /* Remove padding bottom on desktop */
+    .filter-dropdown-panel { padding-bottom: 0; }
   }
 
-  /* ========== MOBILE: ACCORDION ========== */
+  /* ========== MOBILE LAYOUT ========== */
   @media (max-width: 768px) {
-    .filter-columns-desktop {
-      display: none;
-    }
-
-    .filter-columns-mobile {
-      display: block;
-    }
-
-    .filter-panel-topbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-    }
-
-    .filter-panel-left {
-      justify-content: space-between;
-    }
-
-    .filter-panel-right {
-      width: 100%;
-    }
-
-    .filter-sort-select {
-      width: 100%;
-      min-width: auto;
-    }
+    .filter-columns-desktop { display: none; }
+    .filter-columns-mobile { display: block; }
 
     .filter-dropdown-panel {
       position: fixed;
@@ -188,7 +150,6 @@
       z-index: 9999;
       overflow-y: auto;
       border: none;
-      box-shadow: none;
     }
 
     .filter-mobile-header {
@@ -200,146 +161,103 @@
       background: #fff;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
     }
 
-    .filter-mobile-title {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .filter-mobile-close {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Accordion Item */
-    .filter-accordion-item {
-      border-bottom: 1px solid #e5e5e5;
-    }
-
+    .filter-accordion-item { border-bottom: 1px solid #e5e5e5; }
+    
     .filter-accordion-header {
+      padding: 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
-      background: #fff;
       cursor: pointer;
-      user-select: none;
-    }
-
-    .filter-accordion-header:hover {
-      background: #f9f9f9;
-    }
-
-    .filter-accordion-title {
-      font-size: 14px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .filter-accordion-icon {
-      width: 20px;
-      height: 20px;
-      transition: transform 0.2s;
-    }
-
-    .filter-accordion-item.is-open .filter-accordion-icon {
-      transform: rotate(180deg);
     }
 
     .filter-accordion-content {
       display: none;
       padding: 0 16px 16px;
-      background: #fff;
     }
 
-    .filter-accordion-item.is-open .filter-accordion-content {
-      display: block;
-    }
+    .filter-accordion-item.is-open .filter-accordion-content { display: block; }
   }
 
-  /* ========== COLUMN CONTENT ========== */
+  /* ========== FILTER ITEMS ========== */
   .filter-column-title {
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1a1a1a;
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 2px solid #1a1a1a;
     display: inline-block;
   }
 
-  /* Filter Items List */
   .filter-items-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 250px;
+    max-height: 300px;
     overflow-y: auto;
   }
+  
+  /* Scrollbar Styling */
+  .filter-items-list::-webkit-scrollbar { width: 4px; }
+  .filter-items-list::-webkit-scrollbar-track { background: #f1f1f1; }
+  .filter-items-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+  .filter-items-list::-webkit-scrollbar-thumb:hover { background: #999; }
 
-  .filter-items-list::-webkit-scrollbar {
-    width: 3px;
-  }
-
-  .filter-items-list::-webkit-scrollbar-thumb {
-    background: #ddd;
-    border-radius: 2px;
-  }
-
-  /* Filter Item */
-  .filter-item {
-    margin-bottom: 4px;
-  }
-
-  .filter-item a {
+  .filter-label {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 13px;
-    color: #333;
-    text-decoration: none;
     padding: 6px 0;
     cursor: pointer;
-    transition: color 0.15s;
+    font-size: 13px;
+    color: #333;
+    transition: color 0.2s;
   }
 
-  .filter-item a:hover {
+  .filter-label:hover {
     color: {{ block.settings.accent_color | default: '#f57c00' }};
   }
 
-  .filter-item.is-active a {
-    color: {{ block.settings.accent_color | default: '#f57c00' }};
-    font-weight: 500;
+  .filter-label.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
-  /* Checkbox Style */
-  .filter-checkbox {
+  /* Hidden Native Checkbox */
+  .filter-native-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  /* Custom Checkbox */
+  .filter-checkbox-styled {
     width: 16px;
     height: 16px;
-    border: 1.5px solid #ccc;
+    border: 1px solid #ccc;
     border-radius: 3px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
     background: #fff;
-    transition: all 0.15s;
+    transition: all 0.2s;
+    flex-shrink: 0;
   }
 
-  .filter-item.is-active .filter-checkbox {
+  /* Checked State */
+  .filter-native-checkbox:checked + .filter-checkbox-styled {
     background: #1a1a1a;
     border-color: #1a1a1a;
+  }
+
+  .filter-native-checkbox:checked ~ .filter-text {
+    font-weight: 600;
   }
 
   .filter-checkbox-icon {
@@ -350,92 +268,52 @@
     opacity: 0;
   }
 
-  .filter-item.is-active .filter-checkbox-icon {
+  .filter-native-checkbox:checked + .filter-checkbox-styled .filter-checkbox-icon {
     opacity: 1;
   }
 
-  .filter-item-label {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Filter Count */
-  .filter-item-count {
-    color: {{ block.settings.accent_color | default: '#f57c00' }};
+  .filter-count {
     font-size: 12px;
-    flex-shrink: 0;
+    color: #999;
+    margin-left: auto;
   }
 
-  /* Show More Link */
-  .filter-show-more {
-    display: inline-block;
-    margin-top: 10px;
-    font-size: 12px;
-    color: {{ block.settings.accent_color | default: '#f57c00' }};
-    text-decoration: none;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .filter-show-more:hover {
-    text-decoration: underline;
-  }
-
-  /* ========== PRICE SECTION ========== */
-  .filter-price-display {
-    font-size: 12px;
-    color: {{ block.settings.accent_color | default: '#f57c00' }};
-    margin-bottom: 12px;
-  }
-
+  /* Price Range */
   .filter-price-inputs {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
-
+  
   .filter-price-field {
     display: flex;
-    align-items: center;
-    flex: 1;
-    border: 1px solid #e5e5e5;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    overflow: hidden;
+    flex: 1;
   }
 
   .filter-price-currency {
-    padding: 8px 10px;
+    padding: 8px;
     background: #f5f5f5;
+    border-right: 1px solid #ddd;
     font-size: 13px;
     color: #666;
-    border-right: 1px solid #e5e5e5;
   }
 
   .filter-price-input {
-    flex: 1;
-    padding: 8px 10px;
     border: none;
-    font-size: 13px;
+    padding: 8px;
     width: 100%;
-    text-align: center;
+    font-size: 13px;
   }
+  
+  .filter-price-input:focus { outline: none; }
 
-  .filter-price-input:focus {
-    outline: none;
-  }
-
-  .filter-price-separator {
-    color: #999;
-    font-size: 14px;
-    padding: 0 4px;
-  }
-
-  /* ========== ACTIONS ========== */
+  /* ========== ACTIONS BAR ========== */
   .filter-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 12px;
     padding: 16px 20px;
     border-top: 1px solid #e5e5e5;
@@ -451,96 +329,47 @@
     }
   }
 
-  .filter-clear-btn {
-    padding: 12px 24px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-decoration: none;
-    color: #333;
-  }
-
-  .filter-clear-btn:hover {
-    border-color: #1a1a1a;
-  }
-
   .filter-apply-btn {
-    padding: 12px 24px;
+    padding: 12px 30px;
     background: {{ block.settings.accent_color | default: '#f57c00' }};
     color: #fff;
     border: none;
     border-radius: 4px;
-    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s;
+    font-size: 14px;
   }
-
+  
   .filter-apply-btn:hover {
-    background: {{ block.settings.accent_color | color_darken: 10 | default: '#e06c00' }};
+    opacity: 0.9;
   }
 
-  /* ========== ACTIVE FILTER TAGS ========== */
-  .filter-active-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 0;
-  }
-
-  .filter-active-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #333;
-    text-decoration: none;
-  }
-
-  .filter-active-tag-remove {
-    width: 14px;
-    height: 14px;
+  .filter-clear-btn {
+    text-decoration: underline;
+    font-size: 13px;
+    color: #666;
     cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.15s;
+  }
+  
+    /* Show More Link */
+  .filter-show-more {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 12px;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 500;
   }
 
-  .filter-active-tag-remove:hover {
-    opacity: 1;
-  }
-
-  .filter-clear-all-tag {
-    background: #1a1a1a;
-    color: #fff;
+  .filter-show-more:hover {
+    text-decoration: underline;
   }
 </style>
 
-{% comment %} Get filter data {% endcomment %}
 {% assign results = collection %}
 {% if request.page_type == 'search' %}
   {% assign results = search %}
-{% endif %}
-
-{% comment %} Count active filters {% endcomment %}
-{% assign active_filter_count = 0 %}
-{% for filter in results.filters %}
-  {% for value in filter.values %}
-    {% if value.active %}
-      {% assign active_filter_count = active_filter_count | plus: 1 %}
-    {% endif %}
-  {% endfor %}
-{% endfor %}
-
-{% comment %} Product/Result count {% endcomment %}
-{% assign result_count = results.products_count | default: collection.all_products_count %}
-{% if request.page_type == 'search' %}
-  {% assign result_count = search.results_count %}
 {% endif %}
 
 <div class="filter-panel-container" id="FilterPanelContainer">
@@ -548,8 +377,8 @@
   <!-- Top Bar -->
   <div class="filter-panel-topbar">
     <div class="filter-panel-left">
-      <button class="filter-toggle-btn" id="FilterToggleBtn" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="filter-toggle-btn" id="FilterToggleBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="4" y1="6" x2="20" y2="6"></line>
           <line x1="4" y1="12" x2="20" y2="12"></line>
           <line x1="4" y1="18" x2="20" y2="18"></line>
@@ -558,311 +387,368 @@
           <circle cx="10" cy="18" r="2" fill="currentColor"></circle>
         </svg>
         FİLTRELER
-        {% if active_filter_count > 0 %}
-          <span class="filter-badge">{{ active_filter_count }}</span>
-        {% endif %}
       </button>
 
       <span class="filter-product-count">
-        <strong>{{ result_count }}</strong> Ürün
+        <strong>{{ results.results_count | default: results.products_count }}</strong> Ürün
       </span>
-    </div>
-
-    <div class="filter-panel-right">
-      {% if request.page_type == 'collection' %}
-        <select class="filter-sort-select" id="FilterSortSelect" onchange="handleSortChange(this)">
-          <option value="">SIRALAMA SEÇİNİZ</option>
-          <option value="title-ascending" {% if collection.sort_by == 'title-ascending' %}selected{% endif %}>İsme Göre (A-Z)</option>
-          <option value="title-descending" {% if collection.sort_by == 'title-descending' %}selected{% endif %}>İsme Göre (Z-A)</option>
-          <option value="price-ascending" {% if collection.sort_by == 'price-ascending' %}selected{% endif %}>Fiyata Göre (Düşük-Yüksek)</option>
-          <option value="price-descending" {% if collection.sort_by == 'price-descending' %}selected{% endif %}>Fiyata Göre (Yüksek-Düşük)</option>
-          <option value="created-descending" {% if collection.sort_by == 'created-descending' %}selected{% endif %}>En Yeniler</option>
-          <option value="best-selling" {% if collection.sort_by == 'best-selling' %}selected{% endif %}>Çok Satanlar</option>
-        </select>
-      {% endif %}
     </div>
   </div>
 
-  <!-- Active Filter Tags -->
-  {% if active_filter_count > 0 %}
-    <div class="filter-active-tags">
-      {% for filter in results.filters %}
-        {% for value in filter.values %}
-          {% if value.active %}
-            <span class="filter-active-tag">
-              {{ value.label }}
-              <a href="{{ value.url_to_remove }}" class="filter-active-tag-remove" title="Kaldır">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </a>
-            </span>
-          {% endif %}
-        {% endfor %}
-      {% endfor %}
-      <a href="{{ collection.url }}" class="filter-active-tag filter-clear-all-tag">
-        Tümünü Temizle
-      </a>
+  <!-- Main Form -->
+  <form id="FilterForm" class="filter-dropdown-panel">
+    <!-- Loading Overlay -->
+    <div class="filter-loading-overlay">
+      <div class="filter-spinner"></div>
     </div>
-  {% endif %}
 
-  <!-- Dropdown Panel -->
-  <div class="filter-dropdown-panel" id="FilterDropdownPanel">
-    
     <!-- Mobile Header -->
     <div class="filter-mobile-header" style="display:none;">
-      <span class="filter-mobile-title">Filtreler</span>
-      <button class="filter-mobile-close" id="FilterMobileClose">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <span style="font-weight:700; font-size:16px;">Filtreler</span>
+      <button type="button" id="FilterMobileClose" style="background:none; border:none; padding:5px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
     </div>
 
-    <!-- Desktop: Grid Columns -->
-    <div class="filter-columns-desktop">
-      {% for filter in results.filters %}
-        {% if filter.type == 'list' %}
+    <div class="filter-content-wrapper">
+      
+      {% comment %} DESKTOP GRID {% endcomment %}
+      <div class="filter-columns-desktop">
+        {% for filter in results.filters %}
           <div class="filter-column">
-            <span class="filter-column-title">{{ filter.label | upcase }}</span>
-            <ul class="filter-items-list" data-filter-id="{{ filter.param_name }}">
-              {% assign visible_count = 0 %}
-              {% for value in filter.values %}
-                {% assign visible_count = visible_count | plus: 1 %}
-                <li class="filter-item {% if value.active %}is-active{% endif %}" {% if visible_count > 8 %}style="display:none;" data-hidden="true"{% endif %}>
-                  <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
-                    <span class="filter-checkbox">
-                      <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </span>
-                    <span class="filter-item-label">{{ value.label }}</span>
-                    <span class="filter-item-count">({{ value.count }})</span>
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
-            {% if filter.values.size > 8 %}
-              <a class="filter-show-more" onclick="toggleShowMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</a>
-            {% endif %}
-          </div>
-
-        {% elsif filter.type == 'price_range' %}
-          <div class="filter-column">
-            <span class="filter-column-title">{{ filter.label | upcase }}</span>
-            <div class="filter-price-display">
-              En yüksek fiyat: {{ filter.range_max | money }}
-            </div>
-            <div class="filter-price-inputs">
-              <div class="filter-price-field">
-                <span class="filter-price-currency">₺</span>
-                <input type="number" class="filter-price-input" id="PriceMin" 
-                       value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
-                       min="0" placeholder="0">
-              </div>
-              <span class="filter-price-separator">-</span>
-              <div class="filter-price-field">
-                <span class="filter-price-currency">₺</span>
-                <input type="number" class="filter-price-input" id="PriceMax" 
-                       value="{{ filter.max_value.value | money_without_currency }}" 
-                       placeholder="{{ filter.range_max | money_without_currency }}">
-              </div>
-            </div>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    <!-- Mobile: Accordion -->
-    <div class="filter-columns-mobile">
-      {% for filter in results.filters %}
-        {% if filter.type == 'list' %}
-          <div class="filter-accordion-item">
-            <div class="filter-accordion-header" onclick="toggleAccordion(this)">
-              <span class="filter-accordion-title">{{ filter.label | upcase }}</span>
-              <svg class="filter-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m6 9 6 6 6-6"/>
-              </svg>
-            </div>
-            <div class="filter-accordion-content">
-              <ul class="filter-items-list">
+            <div class="filter-column-title">{{ filter.label }}</div>
+            
+            {% if filter.type == 'list' %}
+              <ul class="filter-items-list" data-filter-name="{{ filter.label }}">
                 {% for value in filter.values %}
-                  <li class="filter-item {% if value.active %}is-active{% endif %}">
-                    <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
-                      <span class="filter-checkbox">
+                  <li {% if forloop.index > 8 %}class="hidden-item" style="display:none;"{% endif %}>
+                    <label class="filter-label {% if value.count == 0 and value.active == false %}disabled{% endif %}">
+                      <input type="checkbox" 
+                             name="{{ value.param_name }}" 
+                             value="{{ value.value }}"
+                             class="filter-native-checkbox"
+                             {% if value.active %}checked{% endif %}
+                             {% if value.count == 0 and value.active == false %}disabled{% endif %}>
+                      
+                      <span class="filter-checkbox-styled">
                         <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <polyline points="20 6 9 17 4 12"></polyline>
+                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       </span>
-                      <span class="filter-item-label">{{ value.label }}</span>
-                      <span class="filter-item-count">({{ value.count }})</span>
-                    </a>
+                      <span class="filter-text">{{ value.label }}</span>
+                      <span class="filter-count">({{ value.count }})</span>
+                    </label>
                   </li>
                 {% endfor %}
               </ul>
-            </div>
-          </div>
+              {% if filter.values.size > 8 %}
+                 <a class="filter-show-more" onclick="toggleShowMore(this)">DAHA FAZLA GÖSTER</a>
+              {% endif %}
 
-        {% elsif filter.type == 'price_range' %}
-          <div class="filter-accordion-item">
-            <div class="filter-accordion-header" onclick="toggleAccordion(this)">
-              <span class="filter-accordion-title">{{ filter.label | upcase }}</span>
-              <svg class="filter-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            {% elsif filter.type == 'price_range' %}
+               <div class="filter-price-inputs">
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.min_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="0"
+                          min="0"
+                          value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+                 <span>-</span>
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.max_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                          min="0"
+                          value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+               </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      {% comment %} MOBILE ACCORDION {% endcomment %}
+      <div class="filter-columns-mobile">
+        {% for filter in results.filters %}
+          <div class="filter-accordion-item" data-filter-label="{{ filter.label }}">
+            <div class="filter-accordion-header">
+              {{ filter.label }}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="m6 9 6 6 6-6"/>
               </svg>
             </div>
             <div class="filter-accordion-content">
-              <div class="filter-price-display">
-                En yüksek fiyat: {{ filter.range_max | money }}
-              </div>
-              <div class="filter-price-inputs">
-                <div class="filter-price-field">
-                  <span class="filter-price-currency">₺</span>
-                  <input type="number" class="filter-price-input" id="PriceMinMobile" 
-                         value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
-                         min="0" placeholder="0">
-                </div>
-                <span class="filter-price-separator">-</span>
-                <div class="filter-price-field">
-                  <span class="filter-price-currency">₺</span>
-                  <input type="number" class="filter-price-input" id="PriceMaxMobile" 
-                         value="{{ filter.max_value.value | money_without_currency }}" 
-                         placeholder="{{ filter.range_max | money_without_currency }}">
-                </div>
-              </div>
+              {% if filter.type == 'list' %}
+                <ul class="filter-items-list">
+                  {% for value in filter.values %}
+                    <li>
+                      <label class="filter-label">
+                        <input type="checkbox" 
+                               name="{{ value.param_name }}" 
+                               value="{{ value.value }}"
+                               class="filter-native-checkbox"
+                               {% if value.active %}checked{% endif %}>
+                        <span class="filter-checkbox-styled">
+                          <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                           <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </span>
+                        <span class="filter-text">{{ value.label }}</span>
+                        <span class="filter-count">({{ value.count }})</span>
+                      </label>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% elsif filter.type == 'price_range' %}
+                 <!-- Price Input Same as Desktop -->
+                 <div class="filter-price-inputs">
+                   <div class="filter-price-field">
+                     <span class="filter-price-currency">₺</span>
+                     <input type="number" name="{{ filter.min_value.param_name }}" class="filter-price-input" placeholder="Min" value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
+                   </div>
+                   <div class="filter-price-field">
+                     <span class="filter-price-currency">₺</span>
+                     <input type="number" name="{{ filter.max_value.param_name }}" class="filter-price-input" placeholder="Max" value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
+                   </div>
+                 </div>
+              {% endif %}
             </div>
           </div>
-        {% endif %}
-      {% endfor %}
+        {% endfor %}
+      </div>
+
     </div>
 
     <!-- Actions -->
     <div class="filter-actions">
-      <a href="{{ collection.url }}" class="filter-clear-btn">Filtreleri Temizle</a>
-      <button class="filter-apply-btn" onclick="applyPriceFilter()">Uygula</button>
+      <span class="filter-clear-btn" id="FilterClearBtn">Temizle</span>
+      <button type="button" class="filter-apply-btn" id="FilterApplyBtn">UYGULA</button>
     </div>
-  </div>
-
+  </form>
 </div>
 
 <script>
-  (function() {
-    const container = document.getElementById('FilterPanelContainer');
-    const toggleBtn = document.getElementById('FilterToggleBtn');
-    const panel = document.getElementById('FilterDropdownPanel');
-    const mobileHeader = document.querySelector('.filter-mobile-header');
-    const mobileClose = document.getElementById('FilterMobileClose');
+class FilterPanel {
+  constructor() {
+    this.container = document.getElementById('FilterPanelContainer');
+    this.form = document.getElementById('FilterForm');
+    this.panel = document.querySelector('.filter-dropdown-panel');
+    this.toggleBtn = document.getElementById('FilterToggleBtn');
+    
+    this.initEvents();
+    this.initMobileEvents();
+  }
 
-    // Check if mobile
-    function isMobile() {
-      return window.innerWidth <= 768;
-    }
-
-    // Toggle filter panel
-    toggleBtn.addEventListener('click', function() {
-      const isOpen = panel.classList.contains('is-open');
-      
-      if (isOpen) {
-        closePanel();
-      } else {
-        openPanel();
+  initEvents() {
+    // Toggle Panel
+    this.toggleBtn.addEventListener('click', () => this.togglePanel());
+    
+    // Close on Outside Click (Desktop)
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth > 768 && 
+          this.panel.classList.contains('is-open') && 
+          !this.container.contains(e.target)) {
+        this.closePanel();
       }
     });
 
-    function openPanel() {
-      panel.classList.add('is-open');
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      
-      if (isMobile()) {
-        mobileHeader.style.display = 'flex';
+    // Form Change (The Core AJAX Logic)
+    this.form.addEventListener('change', (e) => {
+      // If it's a price input, debounce it slightly? 
+      // For now, trigger dynamic update immediately for checkboxes.
+      if (e.target.type === 'checkbox') {
+        this.updateFilterCounts();
+      }
+    });
+
+    // Price inputs: update on blur or enter
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('change', () => this.updateFilterCounts());
+    });
+
+    // Apply Button
+    document.getElementById('FilterApplyBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      this.applyFilters();
+    });
+
+    // Clear Button
+    document.getElementById('FilterClearBtn').addEventListener('click', () => {
+      this.clearFilters();
+    });
+  }
+
+  initMobileEvents() {
+    // Mobile Header Close
+    const closeBtn = document.getElementById('FilterMobileClose');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closePanel());
+
+    // Accordion Logic
+    this.panel.addEventListener('click', (e) => {
+      const header = e.target.closest('.filter-accordion-header');
+      if (header) {
+        const item = header.parentElement;
+        item.classList.toggle('is-open');
+      }
+    });
+  }
+
+  togglePanel() {
+    const isOpen = this.panel.classList.contains('is-open');
+    if (isOpen) this.closePanel();
+    else this.openPanel();
+  }
+
+  openPanel() {
+    this.panel.classList.add('is-open');
+    if (window.innerWidth <= 768) {
+        document.querySelector('.filter-mobile-header').style.display = 'flex';
         document.body.style.overflow = 'hidden';
-      }
+    }
+  }
+
+  closePanel() {
+    this.panel.classList.remove('is-open');
+    if (window.innerWidth <= 768) {
+        document.querySelector('.filter-mobile-header').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+  }
+
+  // Generate Query String from Form
+  getSearchParams() {
+    const formData = new FormData(this.form);
+    const searchParams = new URLSearchParams(formData);
+    
+    // Clean up empty params
+    const keys = [...searchParams.keys()];
+    for (const key of keys) {
+        const val = searchParams.get(key);
+        if (val === '') searchParams.delete(key);
+    }
+    return searchParams.toString();
+  }
+
+  // FETCH: Update Filter Panel CONTENT via AJAX
+  async updateFilterCounts() {
+    this.panel.classList.add('is-loading');
+    
+    const params = this.getSearchParams();
+    const sectionId = 'filter_panel'; // Ensure this matches filename without extension usually, or dynamic section ID
+    // We need the ACTUAL section ID. If this block is inside a section, getting section_id param is tricky.
+    // In Theme App Extensions, it's safer to use the 'section_id' parameter of the current section if possible, 
+    // or rely on Shopify's Section Rendering API.
+    // However, for Theme App Ext blocks, we might be inside a dedicated section or dynamic.
+    // Let's try to fetch current URL + params + section_id.
+    
+    // Finding the section ID of this block's parent section
+    // In liquid we can't easily get the section ID for AJAX unless we render it.
+    // HACK: We will assume the script is running inside the section container.
+    // But this is a block. 
+    // If we can't get the section ID easily, we might need to assume a name or parse it.
+    // Let's look for a parent element with ID 'shopify-section-...'
+    const sectionElement = this.container.closest('[id^="shopify-section-"]');
+    let sectionIdParam = '';
+    if (sectionElement) {
+        sectionIdParam = sectionElement.id.replace('shopify-section-', '');
     }
 
-    function closePanel() {
-      panel.classList.remove('is-open');
-      toggleBtn.setAttribute('aria-expanded', 'false');
+    const url = `${window.location.pathname}?${params}&section_id=${sectionIdParam}`;
+
+    try {
+      const response = await fetch(url);
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
       
-      if (isMobile()) {
-        mobileHeader.style.display = 'none';
-        document.body.style.overflow = '';
+      // Update the Form Content only (preserve wrapper to keep it open)
+      const newContent = doc.getElementById('FilterForm').innerHTML;
+      
+      // Save scroll position of inner lists?
+      // Complex. For now, just replace innerHTML.
+      
+      // We must be careful not to kill the "Apply" button listeners etc. 
+      // But since we are replacing innerHTML, we might lose listeners bound to internal elements?
+      // Actually my listeners are bound to 'this.form' (delegation) or IDs.
+      // Re-assigning innerHTML kills listeners. We need to re-bind or use pure delegation.
+      // Let's preserve the Actions bar or re-attach.
+      
+      // Better strategy: Replace only the 'filter-content-wrapper'. 
+      // Leave buttons alone.
+      const newWrapper = doc.querySelector('.filter-content-wrapper');
+      const currentWrapper = this.form.querySelector('.filter-content-wrapper');
+      
+      if (newWrapper && currentWrapper) {
+         // Keep track of open accordions
+         const openAccordions = [];
+         currentWrapper.querySelectorAll('.filter-accordion-item.is-open').forEach((item, index) => {
+             // Identify by label or index
+             const label = item.getAttribute('data-filter-label');
+             if(label) openAccordions.push(label);
+         });
+
+         currentWrapper.innerHTML = newWrapper.innerHTML;
+
+         // Restore open accordions
+         openAccordions.forEach(label => {
+             const newItem = currentWrapper.querySelector(`.filter-accordion-item[data-filter-label="${label}"]`);
+             if (newItem) newItem.classList.add('is-open');
+         });
+         
+         // Re-run show more logic
+         this.refreshShowMoreButtons();
       }
+      
+    } catch (error) {
+      console.error('Filter update failed', error);
+    } finally {
+      this.panel.classList.remove('is-loading');
     }
-
-    // Mobile close button
-    if (mobileClose) {
-      mobileClose.addEventListener('click', closePanel);
-    }
-
-    // Close panel when clicking outside (desktop only)
-    document.addEventListener('click', function(e) {
-      if (!isMobile() && !container.contains(e.target) && panel.classList.contains('is-open')) {
-        closePanel();
-      }
-    });
-
-    // Handle resize
-    window.addEventListener('resize', function() {
-      if (!isMobile() && panel.classList.contains('is-open')) {
-        mobileHeader.style.display = 'none';
-        document.body.style.overflow = '';
-      }
-    });
-  })();
-
-  // Accordion toggle
-  function toggleAccordion(header) {
-    const item = header.parentElement;
-    item.classList.toggle('is-open');
   }
 
-  // Show more items
-  function toggleShowMore(btn, filterId) {
-    const list = document.querySelector(`[data-filter-id="${filterId}"]`);
-    const hiddenItems = list.querySelectorAll('[data-hidden="true"]');
-    const isShowing = btn.textContent.includes('AZ');
-    
-    hiddenItems.forEach(item => {
-      item.style.display = isShowing ? 'none' : '';
-    });
-    
-    btn.textContent = isShowing ? 'DAHA FAZLA GÖSTER' : 'DAHA AZ GÖSTER';
+  refreshShowMoreButtons() {
+    // Re-attach any specific listeners if needed, usually onclick="toggleShowMore" handles it inline.
   }
 
-  // Sort change handler
-  function handleSortChange(select) {
-    const sortValue = select.value;
-    if (!sortValue) return;
-    
-    const url = new URL(window.location.href);
-    url.searchParams.set('sort_by', sortValue);
-    window.location.href = url.toString();
+  applyFilters() {
+    const params = this.getSearchParams();
+    window.location.href = `${window.location.pathname}?${params}`;
   }
 
-  // Apply price filter
-  function applyPriceFilter() {
-    const isMobile = window.innerWidth <= 768;
-    const minPrice = document.getElementById(isMobile ? 'PriceMinMobile' : 'PriceMin')?.value;
-    const maxPrice = document.getElementById(isMobile ? 'PriceMaxMobile' : 'PriceMax')?.value;
-    
-    const url = new URL(window.location.href);
-    
-    if (minPrice && parseFloat(minPrice) > 0) {
-      url.searchParams.set('filter.v.price.gte', (parseFloat(minPrice) * 100).toString());
-    } else {
-      url.searchParams.delete('filter.v.price.gte');
-    }
-    
-    if (maxPrice && parseFloat(maxPrice) > 0) {
-      url.searchParams.set('filter.v.price.lte', (parseFloat(maxPrice) * 100).toString());
-    } else {
-      url.searchParams.delete('filter.v.price.lte');
-    }
-    
-    window.location.href = url.toString();
+  clearFilters() {
+     window.location.href = window.location.pathname;
   }
+}
+
+// Helper for 'Show More'
+window.toggleShowMore = function(btn) {
+  const list = btn.previousElementSibling; // ul
+  const hiddenItems = list.querySelectorAll('.hidden-item');
+  const isShowingAll = btn.getAttribute('data-expanded') === 'true';
+  
+  if (isShowingAll) {
+    hiddenItems.forEach(item => item.style.display = 'none');
+    btn.textContent = 'DAHA FAZLA GÖSTER';
+    btn.setAttribute('data-expanded', 'false');
+  } else {
+    hiddenItems.forEach(item => item.style.display = '');
+    btn.textContent = 'DAHA AZ GÖSTER';
+    btn.setAttribute('data-expanded', 'true');
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  new FilterPanel();
+});
 </script>
 
 {% schema %}
@@ -871,30 +757,9 @@
   "target": "section",
   "settings": [
     {
-      "type": "checkbox",
-      "id": "show_product_count",
-      "label": "Ürün sayısını göster",
-      "default": true
-    },
-    {
-      "type": "checkbox",
-      "id": "show_sort",
-      "label": "Sıralama seçeneğini göster",
-      "default": true
-    },
-    {
-      "type": "range",
-      "id": "visible_items",
-      "label": "Her kolonda görünen öğe sayısı",
-      "min": 5,
-      "max": 20,
-      "step": 1,
-      "default": 8
-    },
-    {
       "type": "color",
       "id": "accent_color",
-      "label": "Vurgu rengi",
+      "label": "Vurgu Rengi",
       "default": "#f57c00"
     }
   ]
