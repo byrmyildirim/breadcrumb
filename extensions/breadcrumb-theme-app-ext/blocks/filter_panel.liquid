@@ -1,0 +1,689 @@
+{% comment %}
+  Horizontal Dropdown Filter Panel
+  Modern multi-column filter layout with collapsible panel
+{% endcomment %}
+
+<style>
+  /* Filter Panel Container */
+  .filter-panel-container {
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 100;
+  }
+
+  /* Top Bar */
+  .filter-panel-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e5e5;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-panel-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .filter-panel-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Filter Toggle Button */
+  .filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .filter-toggle-btn:hover {
+    background-color: #333;
+  }
+
+  .filter-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Product Count */
+  .filter-product-count {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .filter-product-count strong {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  /* Sort Dropdown */
+  .filter-sort-select {
+    padding: 10px 36px 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    appearance: none;
+    cursor: pointer;
+    min-width: 180px;
+  }
+
+  .filter-sort-select:focus {
+    outline: none;
+    border-color: #1a1a1a;
+  }
+
+  /* Dropdown Panel */
+  .filter-dropdown-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-top: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 1000;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .filter-dropdown-panel.is-open {
+    display: block;
+    animation: slideDown 0.25s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Filter Columns Grid */
+  .filter-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0;
+    padding: 20px;
+  }
+
+  /* Filter Column */
+  .filter-column {
+    padding: 0 16px;
+    border-right: 1px solid #f0f0f0;
+  }
+
+  .filter-column:last-child {
+    border-right: none;
+  }
+
+  .filter-column-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a1a1a;
+    display: inline-block;
+  }
+
+  /* Filter Items List */
+  .filter-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .filter-items-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .filter-items-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
+
+  /* Filter Item */
+  .filter-item {
+    margin-bottom: 6px;
+  }
+
+  .filter-item a,
+  .filter-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .filter-item a:hover,
+  .filter-item label:hover {
+    color: #f57c00;
+  }
+
+  .filter-item.is-active a {
+    color: #f57c00;
+    font-weight: 600;
+  }
+
+  /* Checkbox Style */
+  .filter-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #fff;
+    transition: all 0.15s;
+  }
+
+  .filter-item.is-active .filter-checkbox {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+  }
+
+  .filter-checkbox-icon {
+    width: 10px;
+    height: 10px;
+    stroke: #fff;
+    stroke-width: 3;
+    opacity: 0;
+  }
+
+  .filter-item.is-active .filter-checkbox-icon {
+    opacity: 1;
+  }
+
+  /* Filter Count */
+  .filter-item-count {
+    color: #999;
+    font-size: 12px;
+    margin-left: auto;
+  }
+
+  /* Price Section */
+  .filter-price-section {
+    padding: 0 16px;
+    min-width: 200px;
+  }
+
+  .filter-price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .filter-price-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .filter-price-input:focus {
+    outline: none;
+    border-color: #1a1a1a;
+  }
+
+  .filter-price-separator {
+    color: #999;
+    font-size: 14px;
+  }
+
+  /* Price Slider */
+  .filter-price-slider {
+    margin-top: 16px;
+  }
+
+  .filter-price-range {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e5e5;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  .filter-price-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .filter-price-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
+  }
+
+  /* Show More Link */
+  .filter-show-more {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #f57c00;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .filter-show-more:hover {
+    text-decoration: underline;
+  }
+
+  /* Apply/Clear Buttons */
+  .filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #e5e5e5;
+    background: #fafafa;
+  }
+
+  .filter-clear-btn {
+    padding: 10px 24px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-clear-btn:hover {
+    border-color: #1a1a1a;
+  }
+
+  .filter-apply-btn {
+    padding: 10px 24px;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .filter-apply-btn:hover {
+    background: #333;
+  }
+
+  /* Active Filter Tags */
+  .filter-active-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .filter-active-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .filter-active-tag-remove {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  .filter-active-tag-remove:hover {
+    opacity: 1;
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .filter-columns {
+      grid-template-columns: 1fr 1fr;
+      padding: 16px;
+    }
+
+    .filter-column {
+      padding: 0 12px;
+      margin-bottom: 20px;
+      border-right: none;
+    }
+
+    .filter-panel-topbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filter-panel-left,
+    .filter-panel-right {
+      justify-content: space-between;
+    }
+
+    .filter-sort-select {
+      min-width: auto;
+      flex: 1;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .filter-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+{% comment %} Get filter data {% endcomment %}
+{% assign results = collection %}
+{% if request.page_type == 'search' %}
+  {% assign results = search %}
+{% endif %}
+
+{% comment %} Count active filters {% endcomment %}
+{% assign active_filter_count = 0 %}
+{% for filter in results.filters %}
+  {% for value in filter.values %}
+    {% if value.active %}
+      {% assign active_filter_count = active_filter_count | plus: 1 %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{% comment %} Product/Result count {% endcomment %}
+{% assign result_count = results.products_count | default: collection.all_products_count %}
+{% if request.page_type == 'search' %}
+  {% assign result_count = search.results_count %}
+{% endif %}
+
+<div class="filter-panel-container" id="FilterPanelContainer">
+  
+  <!-- Top Bar -->
+  <div class="filter-panel-topbar">
+    <div class="filter-panel-left">
+      <button class="filter-toggle-btn" id="FilterToggleBtn" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="6" x2="20" y2="6"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="18" x2="20" y2="18"></line>
+          <circle cx="8" cy="6" r="2" fill="currentColor"></circle>
+          <circle cx="16" cy="12" r="2" fill="currentColor"></circle>
+          <circle cx="10" cy="18" r="2" fill="currentColor"></circle>
+        </svg>
+        FİLTRELER
+        {% if active_filter_count > 0 %}
+          <span style="background:#f57c00;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">{{ active_filter_count }}</span>
+        {% endif %}
+      </button>
+
+      <span class="filter-product-count">
+        <strong>{{ result_count }}</strong> Ürün
+      </span>
+    </div>
+
+    <div class="filter-panel-right">
+      {% if request.page_type == 'collection' %}
+        <select class="filter-sort-select" id="FilterSortSelect" onchange="handleSortChange(this)">
+          <option value="">SIRALAMA SEÇİNİZ</option>
+          <option value="title-ascending" {% if collection.sort_by == 'title-ascending' %}selected{% endif %}>İsme Göre (A-Z)</option>
+          <option value="title-descending" {% if collection.sort_by == 'title-descending' %}selected{% endif %}>İsme Göre (Z-A)</option>
+          <option value="price-ascending" {% if collection.sort_by == 'price-ascending' %}selected{% endif %}>Fiyata Göre (Düşük-Yüksek)</option>
+          <option value="price-descending" {% if collection.sort_by == 'price-descending' %}selected{% endif %}>Fiyata Göre (Yüksek-Düşük)</option>
+          <option value="created-descending" {% if collection.sort_by == 'created-descending' %}selected{% endif %}>En Yeniler</option>
+          <option value="best-selling" {% if collection.sort_by == 'best-selling' %}selected{% endif %}>Çok Satanlar</option>
+        </select>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Active Filter Tags -->
+  {% if active_filter_count > 0 %}
+    <div class="filter-active-tags">
+      {% for filter in results.filters %}
+        {% for value in filter.values %}
+          {% if value.active %}
+            <span class="filter-active-tag">
+              {{ value.label }}
+              <a href="{{ value.url_to_remove }}" class="filter-active-tag-remove" title="Kaldır">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </a>
+            </span>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+      <a href="{{ collection.url }}" class="filter-active-tag" style="background:#1a1a1a;color:#fff;">
+        Tümünü Temizle
+      </a>
+    </div>
+  {% endif %}
+
+  <!-- Dropdown Panel -->
+  <div class="filter-dropdown-panel" id="FilterDropdownPanel">
+    <div class="filter-columns">
+      
+      {% for filter in results.filters %}
+        {% if filter.type == 'list' %}
+          <div class="filter-column">
+            <span class="filter-column-title">{{ filter.label | upcase }}</span>
+            <ul class="filter-items-list" data-filter-id="{{ filter.param_name }}">
+              {% assign visible_count = 0 %}
+              {% for value in filter.values %}
+                {% assign visible_count = visible_count | plus: 1 %}
+                <li class="filter-item {% if value.active %}is-active{% endif %}" {% if visible_count > 10 %}style="display:none;" data-hidden="true"{% endif %}>
+                  <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
+                    <span class="filter-checkbox">
+                      <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span>{{ value.label }}</span>
+                    <span class="filter-item-count">({{ value.count }})</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if filter.values.size > 10 %}
+              <a class="filter-show-more" onclick="toggleShowMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</a>
+            {% endif %}
+          </div>
+
+        {% elsif filter.type == 'price_range' %}
+          <div class="filter-column filter-price-section">
+            <span class="filter-column-title">{{ filter.label | upcase }}</span>
+            
+            <form class="filter-price-slider" id="PriceFilterForm">
+              {% assign min_price = filter.min_value.value | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
+              {% assign max_price = filter.max_value.value | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
+              {% assign range_min = filter.range_min | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
+              {% assign range_max = filter.range_max | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
+              
+              <div class="filter-price-display">
+                <span>En yüksek fiyat: {{ filter.range_max | money }}</span>
+              </div>
+              
+              <div class="filter-price-inputs">
+                <span>₺</span>
+                <input type="number" class="filter-price-input" id="PriceMin" 
+                       value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
+                       min="0" placeholder="0.00">
+                <span class="filter-price-separator">-</span>
+                <span>₺</span>
+                <input type="number" class="filter-price-input" id="PriceMax" 
+                       value="{{ filter.max_value.value | money_without_currency | default: filter.range_max | money_without_currency }}" 
+                       placeholder="{{ filter.range_max | money_without_currency }}">
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+    </div>
+
+    <!-- Actions -->
+    <div class="filter-actions">
+      <a href="{{ collection.url }}" class="filter-clear-btn">Filtreleri Temizle</a>
+      <button class="filter-apply-btn" onclick="applyPriceFilter()">Uygula</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Toggle filter panel
+  document.getElementById('FilterToggleBtn').addEventListener('click', function() {
+    const panel = document.getElementById('FilterDropdownPanel');
+    const btn = this;
+    const isOpen = panel.classList.contains('is-open');
+    
+    if (isOpen) {
+      panel.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      panel.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  });
+
+  // Close panel when clicking outside
+  document.addEventListener('click', function(e) {
+    const container = document.getElementById('FilterPanelContainer');
+    const panel = document.getElementById('FilterDropdownPanel');
+    
+    if (!container.contains(e.target) && panel.classList.contains('is-open')) {
+      panel.classList.remove('is-open');
+      document.getElementById('FilterToggleBtn').setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Show more items
+  function toggleShowMore(btn, filterId) {
+    const list = document.querySelector(`[data-filter-id="${filterId}"]`);
+    const hiddenItems = list.querySelectorAll('[data-hidden="true"]');
+    
+    hiddenItems.forEach(item => {
+      if (item.style.display === 'none') {
+        item.style.display = '';
+        btn.textContent = 'DAHA AZ GÖSTER';
+      } else {
+        item.style.display = 'none';
+        btn.textContent = 'DAHA FAZLA GÖSTER';
+      }
+    });
+  }
+
+  // Sort change handler
+  function handleSortChange(select) {
+    const sortValue = select.value;
+    if (!sortValue) return;
+    
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort_by', sortValue);
+    window.location.href = url.toString();
+  }
+
+  // Apply price filter
+  function applyPriceFilter() {
+    const minPrice = document.getElementById('PriceMin').value;
+    const maxPrice = document.getElementById('PriceMax').value;
+    
+    const url = new URL(window.location.href);
+    
+    if (minPrice) {
+      url.searchParams.set('filter.v.price.gte', (parseFloat(minPrice) * 100).toString());
+    }
+    if (maxPrice) {
+      url.searchParams.set('filter.v.price.lte', (parseFloat(maxPrice) * 100).toString());
+    }
+    
+    window.location.href = url.toString();
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Filter Panel",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_product_count",
+      "label": "Ürün sayısını göster",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort",
+      "label": "Sıralama seçeneğini göster",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "visible_items",
+      "label": "Her kolonda görünen öğe sayısı",
+      "min": 5,
+      "max": 20,
+      "step": 1,
+      "default": 10
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Vurgu rengi",
+      "default": "#f57c00"
+    }
+  ]
+}
+{% endschema %}
