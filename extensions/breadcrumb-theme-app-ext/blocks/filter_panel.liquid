@@ -449,7 +449,27 @@
               {% endif %}
 
             {% elsif filter.type == 'price_range' %}
-               {% render 'price-range-inputs', filter: filter %}
+               <div class="filter-price-inputs">
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.min_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="0"
+                          min="0"
+                          value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+                 <span style="color:#999;">-</span>
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.max_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                          min="0"
+                          value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+               </div>
             {% endif %}
           </div>
         {% endfor %}
@@ -526,7 +546,10 @@ class FilterPanel {
     this.abortController = null;
     
     // Track checkbox states manually to survive DOM updates
-    this.selectedFilters = new Map(); 
+    this.selectedFilters = new Map();
+    
+    // Flag to track if user has interacted with checkboxes
+    this.hasInteracted = false;
 
     this.initEvents();
     this.initMobileEvents();
@@ -549,6 +572,9 @@ class FilterPanel {
         const name = e.target.name;
         const val = e.target.value;
         const key = name + '_' + val;
+
+        // Mark that user has interacted
+        this.hasInteracted = true;
 
         // Update local state
         if (e.target.checked) this.selectedFilters.set(key, true);
@@ -682,14 +708,9 @@ class FilterPanel {
         if (this.selectedFilters.has(key)) {
             box.checked = true;
         } else {
-            // If it's NOT in our local map, but we've started tracking, force uncheck.
-            // But be careful about initial load.
-            // Actually, we should initialize the map on load.
-            
-            // Strategy: Since we are in "Deferred" mode, the Server HTML will always reflect
-            // the INITIAL page load state. It won't know about our temp clicks.
-            // So we must fully rely on client-side state for the visual checkboxes.
-            if (this.selectedFilters.size > 0) {
+            // If user has interacted, force uncheck items not in our map
+            // This handles the single-item deselect case
+            if (this.hasInteracted) {
                box.checked = false; 
             }
         }
