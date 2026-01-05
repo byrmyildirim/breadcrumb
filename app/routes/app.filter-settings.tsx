@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
@@ -12,12 +12,14 @@ import {
     InlineStack,
     Icon,
     Banner,
+    TextField,
+    Modal,
+    ButtonGroup,
 } from "@shopify/polaris";
-import { DragHandleIcon } from "@shopify/polaris-icons";
+import { DragHandleIcon, EditIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
-// Drag-drop kütüphanesi olmadan basit sıralama
 interface FilterItem {
     id: string;
     label: string;
@@ -29,7 +31,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { admin } = await authenticate.admin(request);
 
     try {
-        // Mevcut ayarı çek
+        // 1. Metafield Definition Kontrolü (Storefront Access için)
+        // Eğer tanım yoksa oluşturulmalı, ama loader side-effect yapmamalı.
+        // Action'da halledeceğiz.
+
+        // 2. Mevcut ayarı çek
         const response = await admin.graphql(
             `#graphql
         query getFilterOrder {
@@ -72,7 +78,49 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const shopId = formData.get("shopId") as string;
         const filterOrder = formData.get("filterOrder") as string;
 
-        await admin.graphql(
+        // 1. Metafield Definition Oluştur/Güncelle (Storefront Access Ver)
+        // Bu işlem her kayıtta yapılabilir veya check edilebilir.
+        // Güvenlik ve garanti için definition create mutation'ı deneyelim.
+        // Hata verirse (zaten varsa) update deneriz veya yoksayarız.
+
+        const definitionMutation = await admin.graphql(
+            `#graphql
+            mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {
+              metafieldDefinitionCreate(definition: $definition) {
+                createdDefinition {
+                  id
+                }
+                userErrors {
+                  field
+                  message
+                  code
+                }
+              }
+            }`,
+            {
+                variables: {
+                    definition: {
+                        name: "Filter Panel Order",
+                        namespace: "filter_panel",
+                        key: "filter_order",
+                        description: "Order configuration for filter panel",
+                        type: "json",
+                        ownerType: "SHOP",
+                        access: {
+                            storefront: "PUBLIC_READ" // Storefront erişimi için KRİTİK
+                        }
+                    }
+                }
+            }
+        );
+
+        const defResult = await definitionMutation.json();
+        console.log("Metafield Def Result:", JSON.stringify(defResult));
+
+        // Eğer zaten varsa (TAKEN hatası) sorun yok, devam et.
+
+        // 2. Metafield Değerini Kaydet
+        const response = await admin.graphql(
             `#graphql
         mutation setFilterOrder($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) {
@@ -97,13 +145,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
         );
 
-        return json({ status: "success", message: "Filtre sıralaması kaydedildi!" });
+        const result = await response.json();
+        console.log("Save Result:", JSON.stringify(result));
+
+        return json({ status: "success", message: "Filtre sıralaması güncellendi ve storefront erişimi açıldı!" });
     }
 
     return json({ status: "error", message: "Bilinmeyen işlem" });
 };
 
-// Varsayılan filtre listesi (Shopify'dan gelen tipik filtreler)
 const DEFAULT_FILTERS: FilterItem[] = [
     { id: "availability", label: "STOK", param_name: "filter.v.availability", enabled: true },
     { id: "price", label: "FİYAT", param_name: "filter.v.price", enabled: true },
@@ -120,17 +170,22 @@ export default function FilterSettings() {
     const submit = useSubmit();
     const nav = useNavigation();
 
-    // Kaydedilmiş sıralama varsa onu kullan, yoksa varsayılanı
     const [filters, setFilters] = useState<FilterItem[]>(
         savedOrder.length > 0 ? savedOrder : DEFAULT_FILTERS
     );
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+    // Manual Add/Edit Modal
+    const [modalActive, setModalActive] = useState(false);
+    const [editingItem, setEditingItem] = useState<FilterItem | null>(null); // null means new item
+    const [formLabel, setFormLabel] = useState("");
+    const [formParam, setFormParam] = useState("");
+
     const isLoading = nav.state === "submitting";
 
     useEffect(() => {
         if (actionData?.status === "success") {
-            // Toast göster - App Bridge kullanılabilir
+            // Toast logic removed for simplicity
         }
     }, [actionData]);
 
@@ -175,6 +230,53 @@ export default function FilterSettings() {
         setFilters(newFilters);
     };
 
+    const deleteFilter = (index: number) => {
+        const newFilters = [...filters];
+        newFilters.splice(index, 1);
+        setFilters(newFilters);
+    };
+
+    const openEditModal = (item: FilterItem) => {
+        setEditingItem(item);
+        setFormLabel(item.label);
+        setFormParam(item.param_name);
+        setModalActive(true);
+    };
+
+    const openAddModal = () => {
+        setEditingItem(null);
+        setFormLabel("");
+        setFormParam("");
+        setModalActive(true);
+    };
+
+    const handleModalClose = () => {
+        setModalActive(false);
+        setEditingItem(null);
+    };
+
+    const handleModalSave = () => {
+        if (editingItem) {
+            // Edit existing
+            const newFilters = filters.map(f =>
+                f.id === editingItem.id
+                    ? { ...f, label: formLabel, param_name: formParam }
+                    : f
+            );
+            setFilters(newFilters);
+        } else {
+            // Add new
+            const newFilter: FilterItem = {
+                id: `manual_${Date.now()}`,
+                label: formLabel,
+                param_name: formParam,
+                enabled: true
+            };
+            setFilters([...filters, newFilter]);
+        }
+        handleModalClose();
+    };
+
     const handleSave = () => {
         submit(
             {
@@ -191,22 +293,41 @@ export default function FilterSettings() {
     };
 
     return (
-        <Page>
-            <TitleBar title="Filtre Panel Ayarları" />
+        <Page
+            title="Filtre Panel Ayarları"
+            primaryAction={{
+                content: "Kaydet",
+                onAction: handleSave,
+                loading: isLoading,
+                /* @ts-ignore */
+                variant: "primary"
+            }}
+            secondaryActions={[
+                {
+                    content: "Yeni Filtre Ekle",
+                    icon: PlusIcon,
+                    onAction: openAddModal
+                }
+            ]}
+        >
             <BlockStack gap="500">
                 <Banner tone="info">
                     <p>
-                        Filtrelerin görüntülenme sırasını aşağıdan ayarlayabilirsiniz.
-                        Yukarı/aşağı oklarını kullanarak sıralamayı değiştirin veya
-                        sürükle-bırak yapın.
+                        <strong>Not:</strong> Shopify API kısıtlamaları nedeniyle Search & Discovery filtrelerini doğrudan çekemiyoruz.
+                        Eğer aşağıdaki listesi eksikse <strong>"Yeni Filtre Ekle"</strong> butonu ile eksik filtreleri ekleyebilirsiniz.
+                        Örneğin bir Metafield filtresi için başlık ve parametre adını (örn: <code>filter.p.m.custom.malzeme</code>) girmeniz gerekir.
+                    </p>
+                    <p>
+                        Sıralama değişikliğinin mağazada görünmesi için <strong>mutlaka "Kaydet" butonuna basınız.</strong>
                     </p>
                 </Banner>
 
                 <Card>
                     <BlockStack gap="400">
-                        <Text as="h2" variant="headingMd">
-                            Filtre Sıralaması
-                        </Text>
+                        <InlineStack align="space-between">
+                            <Text as="h2" variant="headingMd">Filtre Sıralaması</Text>
+                            <Button onClick={resetToDefault} size="slim">Varsayılana Dön</Button>
+                        </InlineStack>
 
                         <Box
                             background="bg-surface-secondary"
@@ -235,14 +356,19 @@ export default function FilterSettings() {
                                                     <div style={{ cursor: "grab", opacity: 0.5 }}>
                                                         <Icon source={DragHandleIcon} />
                                                     </div>
-                                                    <Text
-                                                        as="span"
-                                                        variant="bodyMd"
-                                                        fontWeight={filter.enabled ? "semibold" : "regular"}
-                                                        tone={filter.enabled ? undefined : "subdued"}
-                                                    >
-                                                        {filter.label}
-                                                    </Text>
+                                                    <BlockStack gap="050">
+                                                        <Text
+                                                            as="span"
+                                                            variant="bodyMd"
+                                                            fontWeight={filter.enabled ? "semibold" : "regular"}
+                                                            tone={filter.enabled ? undefined : "subdued"}
+                                                        >
+                                                            {filter.label}
+                                                        </Text>
+                                                        <Text as="span" variant="bodySm" tone="subdued">
+                                                            {filter.param_name}
+                                                        </Text>
+                                                    </BlockStack>
                                                     {!filter.enabled && (
                                                         <Text as="span" variant="bodySm" tone="subdued">
                                                             (Gizli)
@@ -250,7 +376,13 @@ export default function FilterSettings() {
                                                     )}
                                                 </InlineStack>
 
-                                                <InlineStack gap="200">
+                                                <ButtonGroup>
+                                                    <Button
+                                                        icon={EditIcon}
+                                                        variant="tertiary"
+                                                        onClick={() => openEditModal(filter)}
+                                                        accessibilityLabel="Düzenle"
+                                                    />
                                                     <Button
                                                         size="slim"
                                                         disabled={index === 0}
@@ -271,20 +403,20 @@ export default function FilterSettings() {
                                                     >
                                                         {filter.enabled ? "Gizle" : "Göster"}
                                                     </Button>
-                                                </InlineStack>
+                                                    <Button
+                                                        icon={DeleteIcon}
+                                                        variant="tertiary"
+                                                        tone="critical"
+                                                        onClick={() => deleteFilter(index)}
+                                                        accessibilityLabel="Sil"
+                                                    />
+                                                </ButtonGroup>
                                             </InlineStack>
                                         </div>
                                     </Box>
                                 ))}
                             </BlockStack>
                         </Box>
-
-                        <InlineStack align="end" gap="300">
-                            <Button onClick={resetToDefault}>Varsayılana Dön</Button>
-                            <Button variant="primary" onClick={handleSave} loading={isLoading}>
-                                Kaydet
-                            </Button>
-                        </InlineStack>
                     </BlockStack>
                 </Card>
 
@@ -294,6 +426,47 @@ export default function FilterSettings() {
                     </Banner>
                 )}
             </BlockStack>
+
+            <Modal
+                open={modalActive}
+                onClose={handleModalClose}
+                title={editingItem ? "Filtreyi Düzenle" : "Yeni Filtre Ekle"}
+                primaryAction={{
+                    content: "Kaydet",
+                    onAction: handleModalSave,
+                }}
+                secondaryActions={[
+                    {
+                        content: "İptal",
+                        onAction: handleModalClose,
+                    },
+                ]}
+            >
+                <Modal.Section>
+                    <BlockStack gap="400">
+                        <TextField
+                            label="Filtre Başlığı (Görünen Ad)"
+                            value={formLabel}
+                            onChange={setFormLabel}
+                            autoComplete="off"
+                            helpText="Mağazada müşterilerin göreceği başlık (Örn: MATERYAL)"
+                        />
+                        <TextField
+                            label="Parametre Adı (ID)"
+                            value={formParam}
+                            onChange={setFormParam}
+                            autoComplete="off"
+                            helpText={
+                                <>
+                                    Shopify filtre parametresi. Search & Discovery uygulamasından veya URL'den bulabilirsiniz.
+                                    <br />
+                                    Örnekler: <code>filter.p.vendor</code> (Marka), <code>filter.p.product_type</code> (Kategori), <code>filter.v.option.color</code> (Renk Varyantı), <code>filter.p.m.custom.alan_adi</code> (Metafield)
+                                </>
+                            }
+                        />
+                    </BlockStack>
+                </Modal.Section>
+            </Modal>
         </Page>
     );
 }
