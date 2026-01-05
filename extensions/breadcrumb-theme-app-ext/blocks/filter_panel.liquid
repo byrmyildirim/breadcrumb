@@ -1,9 +1,9 @@
 {% comment %}
-  Horizontal Dropdown Filter Panel - AJAX Version
+  Horizontal Dropdown Filter Panel - Advanced Version
   Features:
-  - Form-based filtering
-  - AJAX updates for filter counts/availability without page reload
-  - Deferred application (Apply button triggers navigation)
+  - Form-based filtering with AbortController for robust AJAX
+  - Hides unavailable (0 count) options
+  - Fixed bottom bar for Mobile
   - Desktop: Grid layout
   - Mobile: Accordion layout
 {% endcomment %}
@@ -76,7 +76,6 @@
     border-top: none;
     box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     z-index: 1000;
-    padding-bottom: 60px; /* Space for fixed bottom bar on mobile */
   }
 
   .filter-dropdown-panel.is-open {
@@ -99,20 +98,6 @@
 
   .filter-dropdown-panel.is-loading .filter-loading-overlay {
     display: flex;
-  }
-
-  .filter-spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid {{ block.settings.accent_color | default: '#f57c00' }};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
   }
 
   /* ========== DESKTOP LAYOUT ========== */
@@ -150,6 +135,8 @@
       z-index: 9999;
       overflow-y: auto;
       border: none;
+      /* Padding for bottom fixed bar */
+      padding-bottom: 80px; 
     }
 
     .filter-mobile-header {
@@ -175,12 +162,10 @@
       font-weight: 600;
     }
 
-    .filter-accordion-content {
-      display: none;
-      padding: 0 16px 16px;
+    .filter-content-wrapper {
+        min-height: 100%;
+        padding-bottom: 20px;
     }
-
-    .filter-accordion-item.is-open .filter-accordion-content { display: block; }
   }
 
   /* ========== FILTER ITEMS ========== */
@@ -202,11 +187,8 @@
     overflow-y: auto;
   }
   
-  /* Scrollbar Styling */
   .filter-items-list::-webkit-scrollbar { width: 4px; }
-  .filter-items-list::-webkit-scrollbar-track { background: #f1f1f1; }
   .filter-items-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
-  .filter-items-list::-webkit-scrollbar-thumb:hover { background: #999; }
 
   .filter-label {
     display: flex;
@@ -216,56 +198,48 @@
     cursor: pointer;
     font-size: 13px;
     color: #333;
-    transition: color 0.2s;
+    transition: color 0.1s;
   }
 
   .filter-label:hover {
     color: {{ block.settings.accent_color | default: '#f57c00' }};
   }
 
-  .filter-label.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Hidden Native Checkbox */
+  /* Hide native */
   .filter-native-checkbox {
     position: absolute;
     opacity: 0;
-    width: 0;
+    cursor: pointer;
     height: 0;
+    width: 0;
   }
 
-  /* Custom Checkbox */
+  /* Styled Checkbox */
   .filter-checkbox-styled {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #ccc;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #cfcfcf;
     border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #fff;
-    transition: all 0.2s;
     flex-shrink: 0;
+    transition: all 0.15s ease;
   }
 
-  /* Checked State */
   .filter-native-checkbox:checked + .filter-checkbox-styled {
     background: #1a1a1a;
     border-color: #1a1a1a;
   }
 
-  .filter-native-checkbox:checked ~ .filter-text {
-    font-weight: 600;
-  }
-
   .filter-checkbox-icon {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     stroke: #fff;
     stroke-width: 3;
     opacity: 0;
+    transition: opacity 0.1s;
   }
 
   .filter-native-checkbox:checked + .filter-checkbox-styled .filter-checkbox-icon {
@@ -278,36 +252,31 @@
     margin-left: auto;
   }
 
-  /* Price Range */
+  /* Price Fields */
   .filter-price-inputs {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  
   .filter-price-field {
     display: flex;
     border: 1px solid #ddd;
     border-radius: 4px;
     flex: 1;
   }
-
   .filter-price-currency {
     padding: 8px;
     background: #f5f5f5;
     border-right: 1px solid #ddd;
-    font-size: 13px;
     color: #666;
+    font-size: 13px;
   }
-
   .filter-price-input {
     border: none;
     padding: 8px;
     width: 100%;
     font-size: 13px;
   }
-  
-  .filter-price-input:focus { outline: none; }
 
   /* ========== ACTIONS BAR ========== */
   .filter-actions {
@@ -322,11 +291,18 @@
 
   @media (max-width: 768px) {
     .filter-actions {
-      position: sticky;
+      position: fixed;
       bottom: 0;
+      left: 0;
+      right: 0;
       background: #fff;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+      z-index: 10000;
+      padding: 16px;
+      justify-content: space-between; /* Spread clear and apply */
     }
+    
+    .filter-apply-btn { width: auto; flex: 1; margin-left:12px; }
   }
 
   .filter-apply-btn {
@@ -335,9 +311,12 @@
     color: #fff;
     border: none;
     border-radius: 4px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
   }
   
   .filter-apply-btn:hover {
@@ -350,8 +329,7 @@
     color: #666;
     cursor: pointer;
   }
-  
-    /* Show More Link */
+
   .filter-show-more {
     display: inline-block;
     margin-top: 10px;
@@ -359,12 +337,19 @@
     color: {{ block.settings.accent_color | default: '#f57c00' }};
     text-decoration: none;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
-
-  .filter-show-more:hover {
-    text-decoration: underline;
+  
+  /* Loading Spinner */
+  .filter-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid {{ block.settings.accent_color | default: '#f57c00' }};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 
 {% assign results = collection %}
@@ -374,7 +359,6 @@
 
 <div class="filter-panel-container" id="FilterPanelContainer">
   
-  <!-- Top Bar -->
   <div class="filter-panel-topbar">
     <div class="filter-panel-left">
       <button class="filter-toggle-btn" id="FilterToggleBtn">
@@ -395,9 +379,7 @@
     </div>
   </div>
 
-  <!-- Main Form -->
-  <form id="FilterForm" class="filter-dropdown-panel">
-    <!-- Loading Overlay -->
+  <form id="FilterForm" class="filter-dropdown-panel" onsubmit="return false;">
     <div class="filter-loading-overlay">
       <div class="filter-spinner"></div>
     </div>
@@ -415,33 +397,35 @@
 
     <div class="filter-content-wrapper">
       
-      {% comment %} DESKTOP GRID {% endcomment %}
+      <!-- DESKTOP -->
       <div class="filter-columns-desktop">
         {% for filter in results.filters %}
           <div class="filter-column">
             <div class="filter-column-title">{{ filter.label }}</div>
             
             {% if filter.type == 'list' %}
-              <ul class="filter-items-list" data-filter-name="{{ filter.label }}">
+              <ul class="filter-items-list">
                 {% for value in filter.values %}
-                  <li {% if forloop.index > 8 %}class="hidden-item" style="display:none;"{% endif %}>
-                    <label class="filter-label {% if value.count == 0 and value.active == false %}disabled{% endif %}">
-                      <input type="checkbox" 
-                             name="{{ value.param_name }}" 
-                             value="{{ value.value }}"
-                             class="filter-native-checkbox"
-                             {% if value.active %}checked{% endif %}
-                             {% if value.count == 0 and value.active == false %}disabled{% endif %}>
-                      
-                      <span class="filter-checkbox-styled">
-                        <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  {% comment %} HIDE UNAVAILABLE OPTIONS (Count 0 AND Not Active) {% endcomment %}
+                  {% unless value.count == 0 and value.active == false %}
+                    <li {% if forloop.index > 8 %}class="hidden-item" style="display:none;"{% endif %}>
+                      <label class="filter-label">
+                        <input type="checkbox" 
+                               name="{{ value.param_name }}" 
+                               value="{{ value.value }}"
+                               class="filter-native-checkbox"
+                               {% if value.active %}checked{% endif %}>
+                        
+                        <span class="filter-checkbox-styled">
+                          <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </span>
-                      <span class="filter-text">{{ value.label }}</span>
-                      <span class="filter-count">({{ value.count }})</span>
-                    </label>
-                  </li>
+                          </svg>
+                        </span>
+                        <span class="filter-text">{{ value.label }}</span>
+                        <span class="filter-count">({{ value.count }})</span>
+                      </label>
+                    </li>
+                  {% endunless %}
                 {% endfor %}
               </ul>
               {% if filter.values.size > 8 %}
@@ -449,33 +433,13 @@
               {% endif %}
 
             {% elsif filter.type == 'price_range' %}
-               <div class="filter-price-inputs">
-                 <div class="filter-price-field">
-                   <span class="filter-price-currency">₺</span>
-                   <input type="number" 
-                          name="{{ filter.min_value.param_name }}"
-                          class="filter-price-input" 
-                          placeholder="0"
-                          min="0"
-                          value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
-                 </div>
-                 <span>-</span>
-                 <div class="filter-price-field">
-                   <span class="filter-price-currency">₺</span>
-                   <input type="number" 
-                          name="{{ filter.max_value.param_name }}"
-                          class="filter-price-input" 
-                          placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
-                          min="0"
-                          value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
-                 </div>
-               </div>
+               {% render 'price-range-inputs', filter: filter %}
             {% endif %}
           </div>
         {% endfor %}
       </div>
 
-      {% comment %} MOBILE ACCORDION {% endcomment %}
+      <!-- MOBILE -->
       <div class="filter-columns-mobile">
         {% for filter in results.filters %}
           <div class="filter-accordion-item" data-filter-label="{{ filter.label }}">
@@ -489,26 +453,27 @@
               {% if filter.type == 'list' %}
                 <ul class="filter-items-list">
                   {% for value in filter.values %}
-                    <li>
-                      <label class="filter-label">
-                        <input type="checkbox" 
-                               name="{{ value.param_name }}" 
-                               value="{{ value.value }}"
-                               class="filter-native-checkbox"
-                               {% if value.active %}checked{% endif %}>
-                        <span class="filter-checkbox-styled">
-                          <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                           <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </span>
-                        <span class="filter-text">{{ value.label }}</span>
-                        <span class="filter-count">({{ value.count }})</span>
-                      </label>
-                    </li>
+                    {% unless value.count == 0 and value.active == false %}
+                      <li>
+                        <label class="filter-label">
+                          <input type="checkbox" 
+                                 name="{{ value.param_name }}" 
+                                 value="{{ value.value }}"
+                                 class="filter-native-checkbox"
+                                 {% if value.active %}checked{% endif %}>
+                          <span class="filter-checkbox-styled">
+                            <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                             <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </span>
+                          <span class="filter-text">{{ value.label }}</span>
+                          <span class="filter-count">({{ value.count }})</span>
+                        </label>
+                      </li>
+                    {% endunless %}
                   {% endfor %}
                 </ul>
-              {% elsif filter.type == 'price_range' %}
-                 <!-- Price Input Same as Desktop -->
+              {% elseif filter.type == 'price_range' %}
                  <div class="filter-price-inputs">
                    <div class="filter-price-field">
                      <span class="filter-price-currency">₺</span>
@@ -542,16 +507,15 @@ class FilterPanel {
     this.form = document.getElementById('FilterForm');
     this.panel = document.querySelector('.filter-dropdown-panel');
     this.toggleBtn = document.getElementById('FilterToggleBtn');
-    
+    this.abortController = null;
+
     this.initEvents();
     this.initMobileEvents();
   }
 
   initEvents() {
-    // Toggle Panel
     this.toggleBtn.addEventListener('click', () => this.togglePanel());
     
-    // Close on Outside Click (Desktop)
     document.addEventListener('click', (e) => {
       if (window.innerWidth > 768 && 
           this.panel.classList.contains('is-open') && 
@@ -560,38 +524,35 @@ class FilterPanel {
       }
     });
 
-    // Form Change (The Core AJAX Logic)
+    // CHANGE EVENT: Handle Checkbox Changes
     this.form.addEventListener('change', (e) => {
-      // If it's a price input, debounce it slightly? 
-      // For now, trigger dynamic update immediately for checkboxes.
       if (e.target.type === 'checkbox') {
+        // Ensure checked attribute matches for safety, though DOM is source of truth
+        if(e.target.checked) e.target.setAttribute('checked', 'checked');
+        else e.target.removeAttribute('checked');
+
         this.updateFilterCounts();
       }
     });
 
-    // Price inputs: update on blur or enter
     this.form.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('change', () => this.updateFilterCounts());
     });
 
-    // Apply Button
     document.getElementById('FilterApplyBtn').addEventListener('click', (e) => {
       e.preventDefault();
       this.applyFilters();
     });
 
-    // Clear Button
     document.getElementById('FilterClearBtn').addEventListener('click', () => {
       this.clearFilters();
     });
   }
 
   initMobileEvents() {
-    // Mobile Header Close
     const closeBtn = document.getElementById('FilterMobileClose');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closePanel());
 
-    // Accordion Logic
     this.panel.addEventListener('click', (e) => {
       const header = e.target.closest('.filter-accordion-header');
       if (header) {
@@ -623,99 +584,64 @@ class FilterPanel {
     }
   }
 
-  // Generate Query String from Form
   getSearchParams() {
     const formData = new FormData(this.form);
     const searchParams = new URLSearchParams(formData);
-    
-    // Clean up empty params
-    const keys = [...searchParams.keys()];
-    for (const key of keys) {
-        const val = searchParams.get(key);
-        if (val === '') searchParams.delete(key);
-    }
     return searchParams.toString();
   }
 
-  // FETCH: Update Filter Panel CONTENT via AJAX
   async updateFilterCounts() {
+    // Abort previous request if running
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    this.abortController = new AbortController();
+
     this.panel.classList.add('is-loading');
     
     const params = this.getSearchParams();
-    const sectionId = 'filter_panel'; // Ensure this matches filename without extension usually, or dynamic section ID
-    // We need the ACTUAL section ID. If this block is inside a section, getting section_id param is tricky.
-    // In Theme App Extensions, it's safer to use the 'section_id' parameter of the current section if possible, 
-    // or rely on Shopify's Section Rendering API.
-    // However, for Theme App Ext blocks, we might be inside a dedicated section or dynamic.
-    // Let's try to fetch current URL + params + section_id.
     
-    // Finding the section ID of this block's parent section
-    // In liquid we can't easily get the section ID for AJAX unless we render it.
-    // HACK: We will assume the script is running inside the section container.
-    // But this is a block. 
-    // If we can't get the section ID easily, we might need to assume a name or parse it.
-    // Let's look for a parent element with ID 'shopify-section-...'
+    // Attempt to find Section ID dynamically
     const sectionElement = this.container.closest('[id^="shopify-section-"]');
-    let sectionIdParam = '';
-    if (sectionElement) {
-        sectionIdParam = sectionElement.id.replace('shopify-section-', '');
-    }
-
-    const url = `${window.location.pathname}?${params}&section_id=${sectionIdParam}`;
+    const sectionId = sectionElement ? sectionElement.id.replace('shopify-section-', '') : '';
+    
+    // Add timestamp to prevent caching
+    const url = `${window.location.pathname}?${params}&section_id=${sectionId}&_=${new Date().getTime()}`;
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: this.abortController.signal });
+      if (!response.ok) throw new Error('Fetch failed');
+
       const html = await response.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       
-      // Update the Form Content only (preserve wrapper to keep it open)
-      const newContent = doc.getElementById('FilterForm').innerHTML;
-      
-      // Save scroll position of inner lists?
-      // Complex. For now, just replace innerHTML.
-      
-      // We must be careful not to kill the "Apply" button listeners etc. 
-      // But since we are replacing innerHTML, we might lose listeners bound to internal elements?
-      // Actually my listeners are bound to 'this.form' (delegation) or IDs.
-      // Re-assigning innerHTML kills listeners. We need to re-bind or use pure delegation.
-      // Let's preserve the Actions bar or re-attach.
-      
-      // Better strategy: Replace only the 'filter-content-wrapper'. 
-      // Leave buttons alone.
       const newWrapper = doc.querySelector('.filter-content-wrapper');
       const currentWrapper = this.form.querySelector('.filter-content-wrapper');
       
       if (newWrapper && currentWrapper) {
-         // Keep track of open accordions
-         const openAccordions = [];
-         currentWrapper.querySelectorAll('.filter-accordion-item.is-open').forEach((item, index) => {
-             // Identify by label or index
+         // Save open accordions state
+         const openLabels = [];
+         currentWrapper.querySelectorAll('.filter-accordion-item.is-open').forEach(item => {
              const label = item.getAttribute('data-filter-label');
-             if(label) openAccordions.push(label);
+             if(label) openLabels.push(label);
          });
 
          currentWrapper.innerHTML = newWrapper.innerHTML;
 
          // Restore open accordions
-         openAccordions.forEach(label => {
+         openLabels.forEach(label => {
              const newItem = currentWrapper.querySelector(`.filter-accordion-item[data-filter-label="${label}"]`);
              if (newItem) newItem.classList.add('is-open');
          });
-         
-         // Re-run show more logic
-         this.refreshShowMoreButtons();
       }
-      
     } catch (error) {
-      console.error('Filter update failed', error);
+      if (error.name !== 'AbortError') {
+        console.error('Filter update error:', error);
+      }
     } finally {
       this.panel.classList.remove('is-loading');
     }
-  }
-
-  refreshShowMoreButtons() {
-    // Re-attach any specific listeners if needed, usually onclick="toggleShowMore" handles it inline.
   }
 
   applyFilters() {
@@ -728,13 +654,12 @@ class FilterPanel {
   }
 }
 
-// Helper for 'Show More'
 window.toggleShowMore = function(btn) {
-  const list = btn.previousElementSibling; // ul
+  const list = btn.previousElementSibling;
   const hiddenItems = list.querySelectorAll('.hidden-item');
-  const isShowingAll = btn.getAttribute('data-expanded') === 'true';
+  const isExpanded = btn.getAttribute('data-expanded') === 'true';
   
-  if (isShowingAll) {
+  if (isExpanded) {
     hiddenItems.forEach(item => item.style.display = 'none');
     btn.textContent = 'DAHA FAZLA GÖSTER';
     btn.setAttribute('data-expanded', 'false');
@@ -745,7 +670,6 @@ window.toggleShowMore = function(btn) {
   }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
   new FilterPanel();
 });
