@@ -204,6 +204,25 @@ export default function MegaMenuPage() {
                                                     value={item.submenuHandle}
                                                     onChange={(val) => updateItem(index, "submenuHandle", val)}
                                                 />
+                                                {/* Preview selected submenu children */}
+                                                {item.submenuHandle && item.submenuHandle.startsWith('custom_special:') && (() => {
+                                                    const targetTitle = item.submenuHandle.replace('custom_special:', '');
+                                                    const foundItem = customMenuItems.find((c: any) => c.title === targetTitle);
+                                                    if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                        return (
+                                                            <div style={{ marginTop: '8px', padding: '8px', background: '#f6f6f7', borderRadius: '6px', fontSize: '12px' }}>
+                                                                <strong>Alt Menü İçeriği ({foundItem.children.length} öğe):</strong>
+                                                                <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                                                                    {foundItem.children.slice(0, 5).map((ch: any, i: number) => (
+                                                                        <li key={i}>{ch.title}</li>
+                                                                    ))}
+                                                                    {foundItem.children.length > 5 && <li>... ve {foundItem.children.length - 5} daha</li>}
+                                                                </ul>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <div style={{ marginTop: '8px', color: '#bf0711', fontSize: '12px' }}>⚠️ "{targetTitle}" bulunamadı veya çocuk öğe yok.</div>;
+                                                })()}
                                             </Box>
                                             <Box width="40%">
                                                 <TextField

@@ -144,25 +144,11 @@
   text-decoration: none;
 }
 
-/* OK İKONU */
-.mega-col-title .arrow {
-  font-size: 12px;
-  margin-left: 6px;
-  opacity: 0.7;
-  cursor: pointer;
-  transition: transform .2s ease;
-}
-
-.mega-col.open .arrow {
-  transform: rotate(180deg);
-}
-
-
 /* ============================
    CHILD (ALT MENÜ) LİNKLERİ
    ============================ */
 .mega-col-links {
-  display: none; /* Varsayılan: kapalı */
+  display: block; /* Her zaman açık olsun */
   margin: 4px 0 0 0;
   padding: 0;
 }
@@ -170,15 +156,21 @@
 .mega-col-links a {
   display: block;
   text-decoration: none;
-  color: #444;
-  font-size: 14px;
+  color: #666;
+  font-size: 13px;
   margin-bottom: 6px;
+  line-height: 1.4;
 }
 
 .mega-col-links a:hover {
   text-decoration: underline;
+  color: #000;
 }
 
+/* OK İKONU GİZLE (Masaüstü mega menüde gerek yok) */
+.mega-col-title .arrow {
+  display: none;
+}
 
 /* ============================
    AÇILMIŞ KOLON
@@ -264,6 +256,14 @@
           {% assign sub_level_items = root_items %}
        {% endif %}
 
+       
+       <!-- DEBUG INFO: -->
+       <!-- Handle: {{ matching_config.submenuHandle }} -->
+       <!-- Target Title: {{ target_title }} -->
+       <!-- Use Custom Sub: {{ use_custom_sub }} -->
+       <!-- Found Items: {{ sub_level_items.size }} -->
+       <!-- Is Array? {{ sub_level_items | json }} -->
+
        <div class="mega-panel" data-key="{{ link.title | handleize }}">
           <div class="mega-grid">
 
@@ -277,6 +277,7 @@
             <!-- SAĞ: 4 KOLON -->
             <div class="mega-cols">
               {% for parent in sub_level_items %}
+                <div class="mega-col">
                   
                   {% comment %} Normalize children to 'sub_links' {% endcomment %}
                   {% assign sub_links = parent.links %}
