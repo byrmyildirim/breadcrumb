@@ -4,6 +4,7 @@
   - Desktop: Multi-column grid layout
   - Mobile: Accordion style collapsible sections
   - Responsive design
+  - Configurable Colors
 {% endcomment %}
 
 <style>
@@ -67,7 +68,7 @@
   }
 
   .filter-badge {
-    background: #333;
+    background: {{ block.settings.accent_color | default: '#f57c00' }};
     color: #fff;
     padding: 2px 8px;
     border-radius: 10px;
@@ -314,12 +315,12 @@
   }
 
   .filter-item a:hover {
-    color: #1a1a1a;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
   }
 
   .filter-item.is-active a {
-    color: #1a1a1a;
-    font-weight: 600;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
+    font-weight: 500;
   }
 
   /* Checkbox Style */
@@ -362,7 +363,7 @@
 
   /* Filter Count */
   .filter-item-count {
-    color: #999;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
     font-size: 12px;
     flex-shrink: 0;
   }
@@ -372,8 +373,8 @@
     display: inline-block;
     margin-top: 10px;
     font-size: 12px;
-    color: #1a1a1a;
-    text-decoration: underline;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
+    text-decoration: none;
     cursor: pointer;
     font-weight: 500;
   }
@@ -385,7 +386,7 @@
   /* ========== PRICE SECTION ========== */
   .filter-price-display {
     font-size: 12px;
-    color: #666;
+    color: {{ block.settings.accent_color | default: '#f57c00' }};
     margin-bottom: 12px;
   }
 
@@ -468,7 +469,7 @@
 
   .filter-apply-btn {
     padding: 12px 24px;
-    background: #1a1a1a;
+    background: {{ block.settings.accent_color | default: '#f57c00' }};
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -479,7 +480,7 @@
   }
 
   .filter-apply-btn:hover {
-    background: #333;
+    background: {{ block.settings.accent_color | color_darken: 10 | default: '#e06c00' }};
   }
 
   /* ========== ACTIVE FILTER TAGS ========== */
@@ -686,7 +687,7 @@
               </svg>
             </div>
             <div class="filter-accordion-content">
-              <ul class="filter-items-list" data-filter-id="{{ filter.param_name }}">
+              <ul class="filter-items-list">
                 {% for value in filter.values %}
                   <li class="filter-item {% if value.active %}is-active{% endif %}">
                     <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
@@ -809,101 +810,6 @@
         document.body.style.overflow = '';
       }
     });
-
-    // ========== REORDER LOGIC ==========
-    // Metafield'den gelen sıralama verisi (JSON string olarak gelir)
-    const filterOrderData = `{{ shop.metafields.filter_panel.filter_order.value }}`;
-    
-    if (filterOrderData) {
-      try {
-        const orderConfig = JSON.parse(filterOrderData);
-        reorderFilters(orderConfig);
-      } catch (e) {
-        console.error('Filter order parse error:', e);
-      }
-    }
-
-    function reorderFilters(config) {
-      // 1. Desktop Columns
-      const desktopContainer = document.querySelector('.filter-columns-desktop');
-      if (desktopContainer) {
-        const columns = Array.from(desktopContainer.children);
-        const orderedColumns = sortElements(columns, config);
-        
-        desktopContainer.innerHTML = '';
-        orderedColumns.forEach(col => {
-          if (col) desktopContainer.appendChild(col);
-        });
-      }
-
-      // 2. Mobile Accordion Items
-      const mobileContainer = document.querySelector('.filter-columns-mobile');
-      if (mobileContainer) {
-        const items = Array.from(mobileContainer.children);
-        const orderedItems = sortElements(items, config);
-        
-        mobileContainer.innerHTML = '';
-        orderedItems.forEach(item => {
-          if (item) mobileContainer.appendChild(item);
-        });
-      }
-    }
-
-    function sortElements(elements, config) {
-      const elementMap = {}; // param_name -> element
-      const unmappedElements = [];
-
-      elements.forEach(el => {
-        // Desktop yapısında title içinde, Mobile yapısında header içinde param_name bulmamız lazım
-        // Ancak en garantisi, liquid içinde data-param-name attribute eklemektir.
-        // Şimdilik text içeriğinden eşleştirmeye çalışalım (Riskli ama hızlı çözüm)
-        // DAHA İYİSİ: Liquid loop'unda data-filter-id attribute'u ekleyelim.
-        // Aşağıdaki kod `data-filter-id` attribute'una güvenir.
-        
-        // Desktop'ta UL elementinde data-filter-id var, parent'ı olan .filter-column'u almamız lazım
-        // Mobile'da UL elementinde var, ama parent .filter-accordion-item
-        
-        const list = el.querySelector('.filter-items-list') || el.querySelector('.filter-price-display')?.parentElement; 
-        // Fiyat alanı list içermez, özel durum.
-        
-        let paramName = null;
-        
-        if (el.querySelector('.filter-items-list')) {
-           paramName = el.querySelector('.filter-items-list').getAttribute('data-filter-id');
-        } else {
-           // Fiyat vb. özel alanlar için manual kontrol veya data attribute
-           const title = el.querySelector('.filter-column-title, .filter-accordion-title')?.textContent?.trim();
-           if (title === 'FİYAT' || title === 'PRICE') paramName = 'filter.v.price';
-        }
-
-        if (paramName) {
-          elementMap[paramName] = el;
-        } else {
-          // Bulamazsa sona ekle
-          unmappedElements.push(el);
-        }
-      });
-
-      const sorted = [];
-      
-      config.forEach(item => {
-        if (item.enabled && elementMap[item.param_name]) {
-          sorted.push(elementMap[item.param_name]);
-          delete elementMap[item.param_name]; // Ekleneni sil
-        }
-      });
-
-      // Config'de olup da sayfada (collection'da) olmayan filtreler olabilir, onları atladık.
-      // Config'de olmayan ama sayfada olan yeni filtreler (unmapped + kalan map) sona eklenir.
-      
-      // Kalan map elemanlarını ekle (active: true varsayarak veya gizleyerek?)
-      // Varsayılan davranış: Listede yoksa sona ekle
-      Object.values(elementMap).forEach(el => sorted.push(el));
-      unmappedElements.forEach(el => sorted.push(el));
-
-      return sorted;
-    }
-
   })();
 
   // Accordion toggle
