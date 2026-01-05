@@ -53,6 +53,14 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
               productType
               handle
               status
+              tags
+              collections(first: 3) {
+                edges {
+                  node {
+                    title
+                  }
+                }
+              }
               featuredImage {
                 url
               }
@@ -122,6 +130,15 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 `;
 
     for (const product of filteredProducts) {
+        // Determine product type / breadcrumb
+        let productType = product.productType;
+        if (!productType && product.collections && product.collections.edges.length > 0) {
+            productType = product.collections.edges.map((e: any) => e.node.title).join(" > ");
+        }
+
+        // Get tags for custom label
+        const tags = product.tags ? product.tags.slice(0, 3).join(",") : "";
+
         for (const variantEdge of product.variants.edges) {
             const variant = variantEdge.node;
 
@@ -145,7 +162,9 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 <g:condition>new</g:condition>
 ${variant.barcode ? `<g:gtin>${escapeXml(variant.barcode)}</g:gtin>` : ""}
 ${variant.sku ? `<g:mpn>${escapeXml(variant.sku)}</g:mpn>` : ""}
-<g:product_type>${escapeXml(product.productType || "")}</g:product_type>
+<g:product_type>${escapeXml(productType || "")}</g:product_type>
+<g:custom_label_0>${escapeXml(productType || "")}</g:custom_label_0>
+<g:custom_label_1>${escapeXml(tags || "")}</g:custom_label_1>
 </item>
 `;
         }

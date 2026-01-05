@@ -4,40 +4,40 @@ import prisma from "../db.server";
 // Public endpoint: /feeds/meta/:feedId
 // Returns XML in Meta/Facebook Catalog format
 export const loader = async ({ params }: LoaderFunctionArgs) => {
-    const feedId = params.feedId;
+  const feedId = params.feedId;
 
-    if (!feedId) {
-        return new Response("Feed ID required", { status: 400 });
-    }
+  if (!feedId) {
+    return new Response("Feed ID required", { status: 400 });
+  }
 
-    // Get feed settings
-    const feed = await prisma.productFeed.findUnique({
-        where: { id: feedId },
-    });
+  // Get feed settings
+  const feed = await prisma.productFeed.findUnique({
+    where: { id: feedId },
+  });
 
-    if (!feed) {
-        return new Response("Feed not found", { status: 404 });
-    }
+  if (!feed) {
+    return new Response("Feed not found", { status: 404 });
+  }
 
-    // Get session for API access
-    const session = await prisma.session.findFirst({
-        where: { shop: feed.shop },
-    });
+  // Get session for API access
+  const session = await prisma.session.findFirst({
+    where: { shop: feed.shop },
+  });
 
-    if (!session?.accessToken) {
-        return new Response("Shop not authorized", { status: 401 });
-    }
+  if (!session?.accessToken) {
+    return new Response("Shop not authorized", { status: 401 });
+  }
 
-    // Fetch products from Shopify
-    const shopDomain = feed.shop;
-    const accessToken = session.accessToken;
+  // Fetch products from Shopify
+  const shopDomain = feed.shop;
+  const accessToken = session.accessToken;
 
-    let allProducts: any[] = [];
-    let hasNextPage = true;
-    let cursor = null;
+  let allProducts: any[] = [];
+  let hasNextPage = true;
+  let cursor = null;
 
-    while (hasNextPage && allProducts.length < 1000) {
-        const query = `
+  while (hasNextPage && allProducts.length < 1000) {
+    const query = `
       query GetProducts($cursor: String) {
         products(first: 50, after: $cursor) {
           pageInfo {
@@ -53,6 +53,14 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
               productType
               handle
               status
+              tags
+              collections(first: 3) {
+                edges {
+                  node {
+                    title
+                  }
+                }
+              }
               featuredImage {
                 url
               }
@@ -75,62 +83,71 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
       }
     `;
 
-        const response = await fetch(
-            `https://${shopDomain}/admin/api/2024-01/graphql.json`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Shopify-Access-Token": accessToken,
-                },
-                body: JSON.stringify({ query, variables: { cursor } }),
-            }
-        );
+    const response = await fetch(
+      `https://${shopDomain}/admin/api/2024-01/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken,
+        },
+        body: JSON.stringify({ query, variables: { cursor } }),
+      }
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (data.errors) {
-            console.error("GraphQL errors:", data.errors);
-            break;
-        }
-
-        const products = data.data.products.edges.map((edge: any) => edge.node);
-        allProducts = [...allProducts, ...products];
-
-        hasNextPage = data.data.products.pageInfo.hasNextPage;
-        cursor = data.data.products.pageInfo.endCursor;
+    if (data.errors) {
+      console.error("GraphQL errors:", data.errors);
+      break;
     }
 
-    // Filter products
-    let filteredProducts = allProducts.filter(p => p.status === "ACTIVE");
+    const products = data.data.products.edges.map((edge: any) => edge.node);
+    allProducts = [...allProducts, ...products];
 
-    if (feed.stockOnly) {
-        filteredProducts = filteredProducts.filter(p =>
-            p.variants.edges.some((v: any) => v.node.inventoryQuantity > 0)
-        );
-    }
+    hasNextPage = data.data.products.pageInfo.hasNextPage;
+    cursor = data.data.products.pageInfo.endCursor;
+  }
 
-    // Generate XML for Meta
-    const shopUrl = `https://${shopDomain.replace(".myshopify.com", ".com")}`;
+  // Filter products
+  let filteredProducts = allProducts.filter(p => p.status === "ACTIVE");
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+  if (feed.stockOnly) {
+    filteredProducts = filteredProducts.filter(p =>
+      p.variants.edges.some((v: any) => v.node.inventoryQuantity > 0)
+    );
+  }
+
+  // Generate XML for Meta
+  const shopUrl = `https://${shopDomain.replace(".myshopify.com", ".com")}`;
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:g="http://base.google.com/ns/1.0">
 <title>${escapeXml(feed.name)}</title>
 <link href="${shopUrl}"/>
 `;
 
-    for (const product of filteredProducts) {
-        for (const variantEdge of product.variants.edges) {
-            const variant = variantEdge.node;
+  for (const product of filteredProducts) {
+    // Determine product type / breadcrumb
+    let productType = product.productType;
+    if (!productType && product.collections && product.collections.edges.length > 0) {
+      productType = product.collections.edges.map((e: any) => e.node.title).join(" > ");
+    }
 
-            if (feed.stockOnly && variant.inventoryQuantity <= 0) continue;
+    // Get tags for custom label
+    const tags = product.tags ? product.tags.slice(0, 3).join(",") : "";
 
-            const variantId = variant.id.split("/").pop();
-            const availability = variant.inventoryQuantity > 0 ? "in stock" : "out of stock";
-            const imageUrl = product.featuredImage?.url || "";
-            const productUrl = `${shopUrl}/products/${product.handle}?variant=${variantId}`;
+    for (const variantEdge of product.variants.edges) {
+      const variant = variantEdge.node;
 
-            xml += `<entry>
+      if (feed.stockOnly && variant.inventoryQuantity <= 0) continue;
+
+      const variantId = variant.id.split("/").pop();
+      const availability = variant.inventoryQuantity > 0 ? "in stock" : "out of stock";
+      const imageUrl = product.featuredImage?.url || "";
+      const productUrl = `${shopUrl}/products/${product.handle}?variant=${variantId}`;
+
+      xml += `<entry>
 <g:id>${escapeXml(variantId)}</g:id>
 <g:title>${escapeXml(product.title)}${variant.title !== "Default Title" ? " - " + escapeXml(variant.title) : ""}</g:title>
 <g:description>${escapeXml(stripHtml(product.description || ""))}</g:description>
@@ -141,32 +158,34 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 <g:brand>${escapeXml(product.vendor || "")}</g:brand>
 <g:condition>new</g:condition>
 ${variant.sku ? `<g:retailer_product_group_id>${escapeXml(variant.sku)}</g:retailer_product_group_id>` : ""}
-<g:product_type>${escapeXml(product.productType || "")}</g:product_type>
+<g:product_type>${escapeXml(productType || "")}</g:product_type>
+<g:custom_label_0>${escapeXml(productType || "")}</g:custom_label_0>
+<g:custom_label_1>${escapeXml(tags || "")}</g:custom_label_1>
 </entry>
 `;
-        }
     }
+  }
 
-    xml += `</feed>`;
+  xml += `</feed>`;
 
-    return new Response(xml, {
-        headers: {
-            "Content-Type": "application/xml; charset=utf-8",
-            "Cache-Control": "public, max-age=3600",
-        },
-    });
+  return new Response(xml, {
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
 };
 
 function escapeXml(text: string): string {
-    if (!text) return "";
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&apos;");
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 function stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, "").trim();
+  return html.replace(/<[^>]*>/g, "").trim();
 }
