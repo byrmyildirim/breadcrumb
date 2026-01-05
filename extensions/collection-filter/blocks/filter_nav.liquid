@@ -1,0 +1,416 @@
+{{ 'style.css' | asset_url | stylesheet_tag }}
+
+{% comment %}
+  Mode: Automated Filter Extraction (Managed via App Dashboard)
+  Priority:
+  1. Menu Sub-Links (Navigation Mode - Hierarchy) -> Collections Only
+  2. App Settings (Metafield: filter_app.target_label)
+  3. Section Settings (Schema)
+  4. Default ("Kategori")
+{% endcomment %}
+
+{% assign app_setting_label = shop.metafields.filter_app.target_label %}
+{% assign schema_label = block.settings.target_filter_label %}
+{% assign target_filter_label = app_setting_label | default: schema_label | default: 'Kategori' %}
+
+{% comment %} Determine Context: Collection vs Search {% endcomment %}
+{% assign results = collection %}
+{% if request.page_type == 'search' %}
+  {% assign results = search %}
+{% endif %}
+
+{% assign has_sub_categories = false %}
+{% assign sub_categories = blank %}
+{% assign is_in_menu = false %}
+{% assign selected_menu = blank %}
+
+{% comment %} Smart Menu Logic: Only valid for Collections {% endcomment %}
+{% if request.page_type == 'collection' %}
+  {% assign handle_menu = linklists[collection.handle] %}
+  {% assign BLOCK_menu = linklists[block.settings.menu] %}
+  {% assign selected_menu = BLOCK_menu %}
+
+  {% comment %} 1. Menüden Alt Kategorileri Bul {% endcomment %}
+  {% if handle_menu.links.size > 0 %}
+      {% comment %} Özel Menü Bulundu (Handle Eşleşmesi) - Doğrudan bunu kullan {% endcomment %}
+      {% assign has_sub_categories = true %}
+      {% assign sub_categories = handle_menu.links %}
+  
+  {% elsif selected_menu %}
+    {% comment %} Ana Menüyü Tara (5 Seviye Derinlik) {% endcomment %}
+    {% for link in selected_menu.links %}
+      
+      {% comment %} Level 1 {% endcomment %}
+      {% assign link_is_active = false %}
+      {% if link.active %}
+        {% assign link_is_active = true %}
+      {% elsif link.type == 'collection_link' and link.object.handle == collection.handle %}
+        {% assign link_is_active = true %}
+      {% endif %}
+
+      {% if link_is_active and link.links != blank %}
+        {% assign has_sub_categories = true %}
+        {% assign sub_categories = link.links %}
+        {% break %}
+      {% elsif link.child_active %}
+        
+        {% for child_link in link.links %}
+          {% comment %} Level 2 {% endcomment %}
+          {% assign child_link_is_active = false %}
+          {% if child_link.active %}
+            {% assign child_link_is_active = true %}
+          {% elsif child_link.type == 'collection_link' and child_link.object.handle == collection.handle %}
+            {% assign child_link_is_active = true %}
+          {% endif %}
+
+          {% if child_link_is_active and child_link.links != blank %}
+            {% assign has_sub_categories = true %}
+            {% assign sub_categories = child_link.links %}
+            {% break %}
+          {% elsif child_link.child_active %}
+            
+            {% for grandchild_link in child_link.links %}
+              {% comment %} Level 3 {% endcomment %}
+              {% assign grandchild_link_is_active = false %}
+              {% if grandchild_link.active %}
+                {% assign grandchild_link_is_active = true %}
+              {% elsif grandchild_link.type == 'collection_link' and grandchild_link.object.handle == collection.handle %}
+                {% assign grandchild_link_is_active = true %}
+              {% endif %}
+
+              {% if grandchild_link_is_active and grandchild_link.links != blank %}
+                {% assign has_sub_categories = true %}
+                {% assign sub_categories = grandchild_link.links %}
+                {% break %}
+              {% elsif grandchild_link.child_active %}
+
+                {% for great_grandchild_link in grandchild_link.links %}
+                  {% comment %} Level 4 {% endcomment %}
+                  {% assign great_grandchild_link_is_active = false %}
+                  {% if great_grandchild_link.active %}
+                    {% assign great_grandchild_link_is_active = true %}
+                  {% elsif great_grandchild_link.type == 'collection_link' and great_grandchild_link.object.handle == collection.handle %}
+                    {% assign great_grandchild_link_is_active = true %}
+                  {% endif %}
+
+                  {% if great_grandchild_link_is_active and great_grandchild_link.links != blank %}
+                    {% assign has_sub_categories = true %}
+                    {% assign sub_categories = great_grandchild_link.links %}
+                    {% break %}
+                  {% elsif great_grandchild_link.child_active %}
+
+                    {% for great_great_grandchild_link in great_grandchild_link.links %}
+                       {% comment %} Level 5 {% endcomment %}
+                       {% assign great_great_grandchild_link_is_active = false %}
+                       {% if great_great_grandchild_link.active %}
+                         {% assign great_great_grandchild_link_is_active = true %}
+                       {% elsif great_great_grandchild_link.type == 'collection_link' and great_great_grandchild_link.object.handle == collection.handle %}
+                          {% assign great_great_grandchild_link_is_active = true %}
+                       {% endif %}
+
+                       {% if great_great_grandchild_link_is_active and great_great_grandchild_link.links != blank %}
+                          {% assign has_sub_categories = true %}
+                          {% assign sub_categories = great_great_grandchild_link.links %}
+                          {% break %}
+                       {% endif %}
+                    {% endfor %}
+                    {% if has_sub_categories %}{% break %}{% endif %}
+
+                  {% endif %}
+                {% endfor %}
+                {% if has_sub_categories %}{% break %}{% endif %}
+
+              {% endif %}
+            {% endfor %}
+            {% if has_sub_categories %}{% break %}{% endif %}
+            
+          {% endif %}
+        {% endfor %}
+        {% if has_sub_categories %}{% break %}{% endif %}
+
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+<style>
+  .filter-nav-container {
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 10px 0;
+  }
+
+  .filter-nav-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .filter-nav-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    scroll-behavior: smooth;
+    flex: 1;
+    padding: 0 4px; /* Focus outline spacing */
+  }
+  
+  .filter-nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px; /* Reduced Radius */
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .filter-nav-pill:hover {
+    border-color: #000;
+    background-color: #f9f9f9;
+  }
+
+  .filter-nav-pill.active {
+    background-color: #fff;
+    border-color: #000;
+    color: #000;
+    font-weight: 600;
+  }
+
+  .filter-count {
+    margin-left: 6px;
+    font-size: 12px;
+    color: #666;
+  }
+  
+  .filter-nav-pill.active .filter-count {
+    color: #333;
+  }
+
+  /* Carousel Arrows */
+  .nav-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #333;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .nav-arrow:hover {
+    opacity: 1;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+  }
+  
+  .check-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    stroke-width: 3px;
+  }
+</style>
+
+{% assign visible_total_count = 0 %}
+{% capture nav_items %}
+  {% if has_sub_categories %}
+    {% comment %} MODE A: Navigasyon (Hibrit) - Sadece Koleksiyonlarda çalışır {% endcomment %}
+    {% for link in sub_categories %}
+        
+        {% assign matching_val = false %}
+        {% for filter in results.filters %}
+            {% if filter.label == target_filter_label %}
+                {% for value in filter.values %}
+                    {% if value.label == link.title %}
+                        {% assign matching_val = value %}
+                        {% break %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+
+        {% if matching_val %}
+            {% assign visible_total_count = visible_total_count | plus: matching_val.count %}
+            <a href="{% if matching_val.active %}{{ matching_val.url_to_remove }}{% else %}{{ matching_val.url_to_add }}{% endif %}" 
+               class="filter-nav-pill {% if matching_val.active %}active{% endif %}">
+              {% if matching_val.active %}
+                  <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              {% endif %}
+              {{ link.title }}
+              <span class="filter-count">({{ matching_val.count }})</span>
+            </a>
+        {% else %}
+            <a href="{{ link.url }}" class="filter-nav-pill">
+              {{ link.title }}
+              {% if link.type == 'collection_link' and link.object.all_products_count > 0 %}
+                <span class="filter-count">({{ link.object.all_products_count }})</span>
+              {% endif %}
+            </a>
+        {% endif %}
+
+    {% endfor %}
+  
+  {% elsif request.page_type == 'collection' or request.page_type == 'search' %}
+    
+    {% comment %} MODE B: Filtreler (Varsayılan) {% endcomment %}
+    {% assign filter_rendered = false %}
+    
+    {% if block.settings.hide_filters_on_leaf and request.page_type == 'collection' %}
+        {% comment %} Ayar açık: Filtreleri gizle {% endcomment %}
+    {% else %}
+        {% for filter in results.filters %}
+            {% if filter.label == target_filter_label %}
+                {% for value in filter.values %}
+                    {% assign visible_total_count = visible_total_count | plus: value.count %}
+                    {% assign filter_rendered = true %}
+                    <a href="{{ value.url_to_add }}" 
+                       class="filter-nav-pill {% if value.active %}active{% endif %}"
+                       {% if value.active %}href="{{ value.url_to_remove }}"{% endif %}>
+                      {% if value.active %}
+                          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      {% endif %}
+                      {{ value.label }}
+                      <span class="filter-count">({{ value.count }})</span>
+                    </a>
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    {% comment %} MODE C: Force Menu Root (Eğer filtre yoksa ve ayar AÇIKSA) {% endcomment %}
+    {% if filter_rendered == false and block.settings.force_menu_root and selected_menu.links != blank and request.page_type == 'collection' %}
+        {% for link in selected_menu.links %}
+            {% assign matching_val = false %}
+            {% for filter in results.filters %}
+                {% if filter.label == target_filter_label %}
+                    {% for value in filter.values %}
+                        {% if value.label == link.title %}
+                            {% assign matching_val = value %}
+                            {% break %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+
+            {% if matching_val %}
+                {% assign visible_total_count = visible_total_count | plus: matching_val.count %}
+                <a href="{% if matching_val.active %}{{ matching_val.url_to_remove }}{% else %}{{ matching_val.url_to_add }}{% endif %}" 
+                   class="filter-nav-pill {% if matching_val.active %}active{% endif %}">
+                  {% if matching_val.active %}
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  {% endif %}
+                  {{ link.title }}
+                  <span class="filter-count">({{ matching_val.count }})</span>
+                </a>
+            {% else %}
+                <a href="{{ link.url }}" class="filter-nav-pill">
+                  {{ link.title }}
+                  {% if link.type == 'collection_link' and link.object.all_products_count > 0 %}
+                    <span class="filter-count">({{ link.object.all_products_count }})</span>
+                  {% endif %}
+                </a>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+  {% endif %}
+{% endcapture %}
+
+{% assign nav_items_check = nav_items | strip %}
+{% if nav_items_check != blank %}
+<div class="filter-nav-container">
+    <div class="filter-nav-wrapper">
+      
+      {% comment %} SOL OK {% endcomment %}
+      <button class="nav-arrow nav-prev" onclick="document.getElementById('FilterNavScroll').scrollBy({left: -200, behavior: 'smooth'})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+
+      <div class="filter-nav-scroll" id="FilterNavScroll">
+        {% comment %} "Tümünü Gör" Reset Butonu Logic {% endcomment %}
+        {% assign clear_url = collection.url %}
+        {% assign total_count = collection.all_products_count %}
+        
+        {% if request.page_type == 'search' %}
+          {% assign clear_url = routes.search_url | append: '?q=' | append: search.terms %}
+          {% assign total_count = search.results_count %}
+        {% endif %}
+        
+        {% comment %} Eğer hesaplanan toplam (görünenler) varsa onu kullan {% endcomment %}
+        {% if visible_total_count > 0 %}
+            {% assign total_count = visible_total_count %}
+        {% endif %}
+        
+        <a href="{{ clear_url }}" class="filter-nav-pill {% if current_tags == blank and results.filters.size > 0 %}{% assign active_count = 0 %}{% for filter in results.filters %}{% for value in filter.values %}{% if value.active %}{% assign active_count = active_count | plus: 1 %}{% endif %}{% endfor %}{% endfor %}{% if active_count == 0 %}active{% endif %}{% endif %}">
+          {% if request.page_type == 'search' %}
+             Tüm Sonuçlar <span class="filter-count">({{ total_count }})</span>
+          {% else %}
+             Tümünü Gör <span class="filter-count">({{ total_count }})</span>
+          {% endif %}
+        </a>
+
+        {{ nav_items }}
+      </div>
+
+      {% comment %} SAĞ OK {% endcomment %}
+      <button class="nav-arrow nav-next" onclick="document.getElementById('FilterNavScroll').scrollBy({left: 200, behavior: 'smooth'})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
+    </div>
+</div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Collection Filter",
+  "target": "section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Menü (Hiyerarşi İçin)",
+      "info": "Eğer 'Aksesuarlar > Aydınlatma' gibi bir yapınız varsa, buradan ana menünüzü seçin."
+    },
+    {
+      "type": "checkbox",
+      "id": "force_menu_root",
+      "label": "Alt kategori yoksa menüyü göster",
+      "default": false,
+      "info": "İşaretlenirse: Eşleşen bir alt kategori bulunamazsa bile seçili menünün tüm elemanlarını gösterir."
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_filters_on_leaf",
+      "label": "Alt kategori yoksa filtreleri GİZLE",
+      "default": false,
+      "info": "İşaretlenirse: Menüde alt kırılım yoksa ürün filtreleri gösterilmez. Sadece alt kategoriler varsa bar görünür."
+    },
+    {
+      "type": "text",
+      "id": "target_filter_label",
+      "label": "Hedef Filtre Adı (Yedek)",
+      "default": "Kategori",
+      "info": "Uygulama panelinden bir ayar yapılmadıysa bu değer kullanılır."
+    }
+  ]
+}
+{% endschema %}
