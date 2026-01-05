@@ -1,47 +1,52 @@
 {% comment %}
-  Horizontal Dropdown Filter Panel
-  Modern multi-column filter layout with collapsible panel
+  Horizontal Dropdown Filter Panel - Improved Version
+  - Fixed layout issues
+  - Mobile accordion design
+  - Better responsive behavior
 {% endcomment %}
 
 <style>
-  /* Filter Panel Container */
-  .filter-panel-container {
+  /* ========================================
+     FILTER PANEL - BASE STYLES
+     ======================================== */
+  
+  .fp-container {
     width: 100%;
     margin-bottom: 20px;
     position: relative;
     z-index: 100;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   /* Top Bar */
-  .filter-panel-topbar {
+  .fp-topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid #e5e5e5;
     gap: 16px;
-    flex-wrap: wrap;
   }
 
-  .filter-panel-left {
+  .fp-left {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  .filter-panel-right {
+  .fp-right {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  /* Filter Toggle Button */
-  .filter-toggle-btn {
+  /* Toggle Button */
+  .fp-toggle-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background-color: #1a1a1a;
+    background: #1a1a1a;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -50,159 +55,162 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background 0.2s;
   }
 
-  .filter-toggle-btn:hover {
-    background-color: #333;
+  .fp-toggle-btn:hover {
+    background: #333;
   }
 
-  .filter-toggle-btn svg {
+  .fp-toggle-btn svg {
     width: 16px;
     height: 16px;
   }
 
+  .fp-badge {
+    background: #f57c00;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
   /* Product Count */
-  .filter-product-count {
+  .fp-count {
     font-size: 14px;
     color: #666;
   }
 
-  .filter-product-count strong {
+  .fp-count strong {
     color: #1a1a1a;
     font-weight: 600;
   }
 
-  /* Sort Dropdown */
-  .filter-sort-select {
+  /* Sort Select */
+  .fp-sort {
     padding: 10px 36px 10px 14px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
-    background-color: #fff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
     appearance: none;
     cursor: pointer;
     min-width: 180px;
   }
 
-  .filter-sort-select:focus {
+  .fp-sort:focus {
     outline: none;
     border-color: #1a1a1a;
   }
 
-  /* Dropdown Panel */
-  .filter-dropdown-panel {
+  /* ========================================
+     DROPDOWN PANEL - DESKTOP
+     ======================================== */
+  
+  .fp-panel {
     display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
     background: #fff;
     border: 1px solid #e5e5e5;
     border-top: none;
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    z-index: 1000;
-    max-height: 500px;
-    overflow-y: auto;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
   }
 
-  .filter-dropdown-panel.is-open {
+  .fp-panel.is-open {
     display: block;
-    animation: slideDown 0.25s ease-out;
+    max-height: 600px;
+    overflow: visible;
+    animation: fpSlideDown 0.3s ease;
   }
 
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @keyframes fpSlideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Filter Columns Grid */
-  .filter-columns {
+  /* Filter Grid - Desktop */
+  .fp-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 0;
-    padding: 20px;
+    padding: 24px;
   }
 
   /* Filter Column */
-  .filter-column {
+  .fp-column {
     padding: 0 16px;
     border-right: 1px solid #f0f0f0;
   }
 
-  .filter-column:last-child {
+  .fp-column:last-child {
     border-right: none;
   }
 
-  .filter-column-title {
-    font-size: 13px;
+  .fp-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    cursor: default;
+  }
+
+  .fp-column-title {
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: #1a1a1a;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 2px solid #1a1a1a;
-    display: inline-block;
   }
 
-  /* Filter Items List */
-  .filter-items-list {
+  /* Filter List */
+  .fp-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 280px;
+    max-height: 250px;
     overflow-y: auto;
   }
 
-  .filter-items-list::-webkit-scrollbar {
+  .fp-list::-webkit-scrollbar {
     width: 4px;
   }
 
-  .filter-items-list::-webkit-scrollbar-thumb {
+  .fp-list::-webkit-scrollbar-thumb {
     background: #ccc;
     border-radius: 2px;
   }
 
   /* Filter Item */
-  .filter-item {
-    margin-bottom: 6px;
+  .fp-item {
+    margin-bottom: 4px;
   }
 
-  .filter-item a,
-  .filter-item label {
+  .fp-item a {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 6px 0;
     font-size: 13px;
     color: #333;
     text-decoration: none;
-    padding: 4px 0;
-    cursor: pointer;
     transition: color 0.15s;
   }
 
-  .filter-item a:hover,
-  .filter-item label:hover {
+  .fp-item a:hover {
     color: #f57c00;
   }
 
-  .filter-item.is-active a {
+  .fp-item.active a {
     color: #f57c00;
     font-weight: 600;
   }
 
-  /* Checkbox Style */
-  .filter-checkbox {
+  /* Checkbox */
+  .fp-checkbox {
     width: 16px;
     height: 16px;
     border: 1px solid #ccc;
@@ -215,12 +223,12 @@
     transition: all 0.15s;
   }
 
-  .filter-item.is-active .filter-checkbox {
+  .fp-item.active .fp-checkbox {
     background: #1a1a1a;
     border-color: #1a1a1a;
   }
 
-  .filter-checkbox-icon {
+  .fp-check-icon {
     width: 10px;
     height: 10px;
     stroke: #fff;
@@ -228,120 +236,89 @@
     opacity: 0;
   }
 
-  .filter-item.is-active .filter-checkbox-icon {
+  .fp-item.active .fp-check-icon {
     opacity: 1;
   }
 
-  /* Filter Count */
-  .filter-item-count {
+  .fp-item-count {
     color: #999;
     font-size: 12px;
     margin-left: auto;
   }
 
-  /* Price Section */
-  .filter-price-section {
-    padding: 0 16px;
-    min-width: 200px;
+  /* Show More */
+  .fp-show-more {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #f57c00;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 600;
   }
 
-  .filter-price-inputs {
+  .fp-show-more:hover {
+    text-decoration: underline;
+  }
+
+  /* Price Section */
+  .fp-price-info {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 12px;
+  }
+
+  .fp-price-inputs {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 12px;
   }
 
-  .filter-price-input {
-    flex: 1;
-    padding: 8px 10px;
+  .fp-price-input {
+    width: 80px;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
     text-align: center;
   }
 
-  .filter-price-input:focus {
+  .fp-price-input:focus {
     outline: none;
     border-color: #1a1a1a;
   }
 
-  .filter-price-separator {
+  .fp-price-sep {
     color: #999;
-    font-size: 14px;
   }
 
-  /* Price Slider */
-  .filter-price-slider {
-    margin-top: 16px;
-  }
-
-  .filter-price-range {
-    width: 100%;
-    height: 4px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #e5e5e5;
-    border-radius: 2px;
-    cursor: pointer;
-  }
-
-  .filter-price-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #1a1a1a;
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  .filter-price-display {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 12px;
-    color: #666;
-  }
-
-  /* Show More Link */
-  .filter-show-more {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 12px;
-    color: #f57c00;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .filter-show-more:hover {
-    text-decoration: underline;
-  }
-
-  /* Apply/Clear Buttons */
-  .filter-actions {
+  /* Actions */
+  .fp-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 16px 20px;
+    padding: 16px 24px;
     border-top: 1px solid #e5e5e5;
     background: #fafafa;
   }
 
-  .filter-clear-btn {
+  .fp-btn-clear {
     padding: 10px 24px;
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.15s;
+    text-decoration: none;
+    color: #333;
+    transition: border-color 0.15s;
   }
 
-  .filter-clear-btn:hover {
+  .fp-btn-clear:hover {
     border-color: #1a1a1a;
   }
 
-  .filter-apply-btn {
+  .fp-btn-apply {
     padding: 10px 24px;
     background: #1a1a1a;
     color: #fff;
@@ -350,22 +327,22 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s;
+    transition: background 0.15s;
   }
 
-  .filter-apply-btn:hover {
+  .fp-btn-apply:hover {
     background: #333;
   }
 
-  /* Active Filter Tags */
-  .filter-active-tags {
+  /* Active Tags */
+  .fp-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     padding: 12px 0;
   }
 
-  .filter-active-tag {
+  .fp-tag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -374,52 +351,202 @@
     border-radius: 4px;
     font-size: 12px;
     color: #333;
+    text-decoration: none;
   }
 
-  .filter-active-tag-remove {
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
+  .fp-tag-remove {
     opacity: 0.6;
     transition: opacity 0.15s;
   }
 
-  .filter-active-tag-remove:hover {
+  .fp-tag-remove:hover {
     opacity: 1;
   }
 
-  /* Mobile Responsive */
+  .fp-tag-clear {
+    background: #1a1a1a;
+    color: #fff;
+  }
+
+  /* ========================================
+     MOBILE STYLES - ACCORDION
+     ======================================== */
+  
   @media (max-width: 768px) {
-    .filter-columns {
-      grid-template-columns: 1fr 1fr;
-      padding: 16px;
-    }
-
-    .filter-column {
-      padding: 0 12px;
-      margin-bottom: 20px;
-      border-right: none;
-    }
-
-    .filter-panel-topbar {
+    .fp-topbar {
       flex-direction: column;
       align-items: stretch;
+      gap: 12px;
     }
 
-    .filter-panel-left,
-    .filter-panel-right {
+    .fp-left {
       justify-content: space-between;
     }
 
-    .filter-sort-select {
+    .fp-right {
+      width: 100%;
+    }
+
+    .fp-sort {
+      width: 100%;
       min-width: auto;
+    }
+
+    /* Mobile Panel */
+    .fp-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: none;
+      z-index: 9999;
+      overflow-y: auto;
+      border: none;
+      box-shadow: none;
+    }
+
+    .fp-panel.is-open {
+      animation: fpSlideUp 0.3s ease;
+    }
+
+    @keyframes fpSlideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    /* Mobile Header */
+    .fp-mobile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .fp-mobile-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .fp-mobile-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    /* ACCORDION GRID */
+    .fp-grid {
+      display: block;
+      padding: 0;
+    }
+
+    .fp-column {
+      padding: 0;
+      border-right: none;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .fp-column-header {
+      padding: 16px;
+      margin-bottom: 0;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .fp-column-header::after {
+      content: '+';
+      font-size: 20px;
+      font-weight: 300;
+      color: #666;
+      transition: transform 0.2s;
+    }
+
+    .fp-column.is-expanded .fp-column-header::after {
+      content: '−';
+    }
+
+    .fp-column-title {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .fp-column-body {
+      display: none;
+      padding: 0 16px 16px;
+      background: #fafafa;
+    }
+
+    .fp-column.is-expanded .fp-column-body {
+      display: block;
+      animation: fpAccordionOpen 0.2s ease;
+    }
+
+    @keyframes fpAccordionOpen {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .fp-list {
+      max-height: none;
+    }
+
+    /* Mobile Actions - Sticky Bottom */
+    .fp-actions {
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid #e5e5e5;
+      padding: 16px;
+    }
+
+    .fp-btn-clear,
+    .fp-btn-apply {
       flex: 1;
+      text-align: center;
+    }
+
+    /* Hide desktop mobile header on desktop */
+    .fp-mobile-header {
+      display: flex;
     }
   }
 
-  @media (max-width: 480px) {
-    .filter-columns {
-      grid-template-columns: 1fr;
+  @media (min-width: 769px) {
+    .fp-mobile-header {
+      display: none;
+    }
+
+    .fp-column-body {
+      display: block !important;
+    }
+
+    .fp-column-header::after {
+      display: none;
+    }
+  }
+
+  /* Tablet - 4 columns */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .fp-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  /* Large Desktop - 6 columns */
+  @media (min-width: 1200px) {
+    .fp-grid {
+      grid-template-columns: repeat(6, 1fr);
     }
   }
 </style>
@@ -440,40 +567,37 @@
   {% endfor %}
 {% endfor %}
 
-{% comment %} Product/Result count {% endcomment %}
+{% comment %} Product count {% endcomment %}
 {% assign result_count = results.products_count | default: collection.all_products_count %}
 {% if request.page_type == 'search' %}
   {% assign result_count = search.results_count %}
 {% endif %}
 
-<div class="filter-panel-container" id="FilterPanelContainer">
+<div class="fp-container" id="FPContainer">
   
   <!-- Top Bar -->
-  <div class="filter-panel-topbar">
-    <div class="filter-panel-left">
-      <button class="filter-toggle-btn" id="FilterToggleBtn" aria-expanded="false">
+  <div class="fp-topbar">
+    <div class="fp-left">
+      <button class="fp-toggle-btn" id="FPToggleBtn" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="4" y1="6" x2="20" y2="6"></line>
           <line x1="4" y1="12" x2="20" y2="12"></line>
           <line x1="4" y1="18" x2="20" y2="18"></line>
-          <circle cx="8" cy="6" r="2" fill="currentColor"></circle>
-          <circle cx="16" cy="12" r="2" fill="currentColor"></circle>
-          <circle cx="10" cy="18" r="2" fill="currentColor"></circle>
         </svg>
         FİLTRELER
         {% if active_filter_count > 0 %}
-          <span style="background:#f57c00;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">{{ active_filter_count }}</span>
+          <span class="fp-badge">{{ active_filter_count }}</span>
         {% endif %}
       </button>
 
-      <span class="filter-product-count">
+      <span class="fp-count">
         <strong>{{ result_count }}</strong> Ürün
       </span>
     </div>
 
-    <div class="filter-panel-right">
+    <div class="fp-right">
       {% if request.page_type == 'collection' %}
-        <select class="filter-sort-select" id="FilterSortSelect" onchange="handleSortChange(this)">
+        <select class="fp-sort" onchange="fpHandleSort(this)">
           <option value="">SIRALAMA SEÇİNİZ</option>
           <option value="title-ascending" {% if collection.sort_by == 'title-ascending' %}selected{% endif %}>İsme Göre (A-Z)</option>
           <option value="title-descending" {% if collection.sort_by == 'title-descending' %}selected{% endif %}>İsme Göre (Z-A)</option>
@@ -486,170 +610,169 @@
     </div>
   </div>
 
-  <!-- Active Filter Tags -->
+  <!-- Active Tags -->
   {% if active_filter_count > 0 %}
-    <div class="filter-active-tags">
+    <div class="fp-tags">
       {% for filter in results.filters %}
         {% for value in filter.values %}
           {% if value.active %}
-            <span class="filter-active-tag">
+            <a href="{{ value.url_to_remove }}" class="fp-tag">
               {{ value.label }}
-              <a href="{{ value.url_to_remove }}" class="filter-active-tag-remove" title="Kaldır">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </a>
-            </span>
+              <svg class="fp-tag-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </a>
           {% endif %}
         {% endfor %}
       {% endfor %}
-      <a href="{{ collection.url }}" class="filter-active-tag" style="background:#1a1a1a;color:#fff;">
-        Tümünü Temizle
-      </a>
+      <a href="{{ collection.url }}" class="fp-tag fp-tag-clear">Tümünü Temizle</a>
     </div>
   {% endif %}
 
   <!-- Dropdown Panel -->
-  <div class="filter-dropdown-panel" id="FilterDropdownPanel">
-    <div class="filter-columns">
-      
+  <div class="fp-panel" id="FPPanel">
+    
+    <!-- Mobile Header -->
+    <div class="fp-mobile-header">
+      <span class="fp-mobile-title">Filtreler</span>
+      <button class="fp-mobile-close" onclick="fpClosePanel()">×</button>
+    </div>
+
+    <div class="fp-grid">
       {% for filter in results.filters %}
         {% if filter.type == 'list' %}
-          <div class="filter-column">
-            <span class="filter-column-title">{{ filter.label | upcase }}</span>
-            <ul class="filter-items-list" data-filter-id="{{ filter.param_name }}">
-              {% assign visible_count = 0 %}
-              {% for value in filter.values %}
-                {% assign visible_count = visible_count | plus: 1 %}
-                <li class="filter-item {% if value.active %}is-active{% endif %}" {% if visible_count > 10 %}style="display:none;" data-hidden="true"{% endif %}>
-                  <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
-                    <span class="filter-checkbox">
-                      <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </span>
-                    <span>{{ value.label }}</span>
-                    <span class="filter-item-count">({{ value.count }})</span>
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
-            {% if filter.values.size > 10 %}
-              <a class="filter-show-more" onclick="toggleShowMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</a>
-            {% endif %}
+          <div class="fp-column" data-filter="{{ filter.param_name }}">
+            <div class="fp-column-header" onclick="fpToggleAccordion(this)">
+              <span class="fp-column-title">{{ filter.label | upcase }}</span>
+            </div>
+            <div class="fp-column-body">
+              <ul class="fp-list" data-list="{{ filter.param_name }}">
+                {% assign show_count = block.settings.visible_items | default: 10 %}
+                {% for value in filter.values %}
+                  <li class="fp-item {% if value.active %}active{% endif %}" {% if forloop.index > show_count %}data-extra="true" style="display:none;"{% endif %}>
+                    <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}">
+                      <span class="fp-checkbox">
+                        <svg class="fp-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                      <span>{{ value.label }}</span>
+                      <span class="fp-item-count">({{ value.count }})</span>
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+              {% if filter.values.size > show_count %}
+                <span class="fp-show-more" onclick="fpToggleMore(this, '{{ filter.param_name }}')">DAHA FAZLA GÖSTER</span>
+              {% endif %}
+            </div>
           </div>
 
         {% elsif filter.type == 'price_range' %}
-          <div class="filter-column filter-price-section">
-            <span class="filter-column-title">{{ filter.label | upcase }}</span>
-            
-            <form class="filter-price-slider" id="PriceFilterForm">
-              {% assign min_price = filter.min_value.value | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
-              {% assign max_price = filter.max_value.value | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
-              {% assign range_min = filter.range_min | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
-              {% assign range_max = filter.range_max | money_without_currency | remove: '.' | remove: ',' | times: 1 %}
-              
-              <div class="filter-price-display">
-                <span>En yüksek fiyat: {{ filter.range_max | money }}</span>
-              </div>
-              
-              <div class="filter-price-inputs">
+          <div class="fp-column" data-filter="price">
+            <div class="fp-column-header" onclick="fpToggleAccordion(this)">
+              <span class="fp-column-title">{{ filter.label | upcase }}</span>
+            </div>
+            <div class="fp-column-body">
+              <div class="fp-price-info">En yüksek fiyat: {{ filter.range_max | money }}</div>
+              <div class="fp-price-inputs">
                 <span>₺</span>
-                <input type="number" class="filter-price-input" id="PriceMin" 
-                       value="{{ filter.min_value.value | money_without_currency | default: '0' }}" 
-                       min="0" placeholder="0.00">
-                <span class="filter-price-separator">-</span>
+                <input type="number" class="fp-price-input" id="FPPriceMin" 
+                       value="{{ filter.min_value.value | money_without_currency | default: '' }}" 
+                       min="0" placeholder="0">
+                <span class="fp-price-sep">-</span>
                 <span>₺</span>
-                <input type="number" class="filter-price-input" id="PriceMax" 
-                       value="{{ filter.max_value.value | money_without_currency | default: filter.range_max | money_without_currency }}" 
+                <input type="number" class="fp-price-input" id="FPPriceMax" 
+                       value="{{ filter.max_value.value | money_without_currency | default: '' }}" 
                        placeholder="{{ filter.range_max | money_without_currency }}">
               </div>
-            </form>
+            </div>
           </div>
         {% endif %}
       {% endfor %}
-
     </div>
 
     <!-- Actions -->
-    <div class="filter-actions">
-      <a href="{{ collection.url }}" class="filter-clear-btn">Filtreleri Temizle</a>
-      <button class="filter-apply-btn" onclick="applyPriceFilter()">Uygula</button>
+    <div class="fp-actions">
+      <a href="{{ collection.url }}" class="fp-btn-clear">Filtreleri Temizle</a>
+      <button class="fp-btn-apply" onclick="fpApplyPrice()">Uygula</button>
     </div>
   </div>
 
 </div>
 
 <script>
-  // Toggle filter panel
-  document.getElementById('FilterToggleBtn').addEventListener('click', function() {
-    const panel = document.getElementById('FilterDropdownPanel');
-    const btn = this;
+(function() {
+  const container = document.getElementById('FPContainer');
+  const panel = document.getElementById('FPPanel');
+  const toggleBtn = document.getElementById('FPToggleBtn');
+
+  // Toggle panel
+  toggleBtn.addEventListener('click', function() {
     const isOpen = panel.classList.contains('is-open');
-    
     if (isOpen) {
-      panel.classList.remove('is-open');
-      btn.setAttribute('aria-expanded', 'false');
+      fpClosePanel();
     } else {
       panel.classList.add('is-open');
-      btn.setAttribute('aria-expanded', 'true');
+      this.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = window.innerWidth <= 768 ? 'hidden' : '';
     }
   });
 
-  // Close panel when clicking outside
+  // Close on outside click (desktop only)
   document.addEventListener('click', function(e) {
-    const container = document.getElementById('FilterPanelContainer');
-    const panel = document.getElementById('FilterDropdownPanel');
-    
-    if (!container.contains(e.target) && panel.classList.contains('is-open')) {
-      panel.classList.remove('is-open');
-      document.getElementById('FilterToggleBtn').setAttribute('aria-expanded', 'false');
+    if (window.innerWidth > 768 && !container.contains(e.target) && panel.classList.contains('is-open')) {
+      fpClosePanel();
     }
   });
 
-  // Show more items
-  function toggleShowMore(btn, filterId) {
-    const list = document.querySelector(`[data-filter-id="${filterId}"]`);
-    const hiddenItems = list.querySelectorAll('[data-hidden="true"]');
-    
-    hiddenItems.forEach(item => {
-      if (item.style.display === 'none') {
-        item.style.display = '';
-        btn.textContent = 'DAHA AZ GÖSTER';
-      } else {
-        item.style.display = 'none';
-        btn.textContent = 'DAHA FAZLA GÖSTER';
-      }
-    });
-  }
+  // Close panel function
+  window.fpClosePanel = function() {
+    panel.classList.remove('is-open');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  };
 
-  // Sort change handler
-  function handleSortChange(select) {
-    const sortValue = select.value;
-    if (!sortValue) return;
+  // Accordion toggle (mobile)
+  window.fpToggleAccordion = function(header) {
+    if (window.innerWidth > 768) return;
+    const column = header.parentElement;
+    column.classList.toggle('is-expanded');
+  };
+
+  // Show more
+  window.fpToggleMore = function(btn, filterId) {
+    const list = document.querySelector(`[data-list="${filterId}"]`);
+    const extras = list.querySelectorAll('[data-extra="true"]');
+    const isHidden = extras[0]?.style.display === 'none';
     
+    extras.forEach(item => {
+      item.style.display = isHidden ? '' : 'none';
+    });
+    btn.textContent = isHidden ? 'DAHA AZ GÖSTER' : 'DAHA FAZLA GÖSTER';
+  };
+
+  // Sort handler
+  window.fpHandleSort = function(select) {
+    if (!select.value) return;
     const url = new URL(window.location.href);
-    url.searchParams.set('sort_by', sortValue);
+    url.searchParams.set('sort_by', select.value);
     window.location.href = url.toString();
-  }
+  };
 
   // Apply price filter
-  function applyPriceFilter() {
-    const minPrice = document.getElementById('PriceMin').value;
-    const maxPrice = document.getElementById('PriceMax').value;
-    
+  window.fpApplyPrice = function() {
+    const min = document.getElementById('FPPriceMin')?.value;
+    const max = document.getElementById('FPPriceMax')?.value;
     const url = new URL(window.location.href);
     
-    if (minPrice) {
-      url.searchParams.set('filter.v.price.gte', (parseFloat(minPrice) * 100).toString());
-    }
-    if (maxPrice) {
-      url.searchParams.set('filter.v.price.lte', (parseFloat(maxPrice) * 100).toString());
-    }
+    if (min) url.searchParams.set('filter.v.price.gte', (parseFloat(min) * 100).toString());
+    if (max) url.searchParams.set('filter.v.price.lte', (parseFloat(max) * 100).toString());
     
     window.location.href = url.toString();
-  }
+  };
+})();
 </script>
 
 {% schema %}
@@ -658,31 +781,14 @@
   "target": "section",
   "settings": [
     {
-      "type": "checkbox",
-      "id": "show_product_count",
-      "label": "Ürün sayısını göster",
-      "default": true
-    },
-    {
-      "type": "checkbox",
-      "id": "show_sort",
-      "label": "Sıralama seçeneğini göster",
-      "default": true
-    },
-    {
       "type": "range",
       "id": "visible_items",
-      "label": "Her kolonda görünen öğe sayısı",
+      "label": "Görünen öğe sayısı",
       "min": 5,
       "max": 20,
       "step": 1,
-      "default": 10
-    },
-    {
-      "type": "color",
-      "id": "accent_color",
-      "label": "Vurgu rengi",
-      "default": "#f57c00"
+      "default": 10,
+      "info": "Her filtre kolonunda başlangıçta görünen öğe sayısı"
     }
   ]
 }
