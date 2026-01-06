@@ -282,6 +282,18 @@ export default function MegaMenuPage() {
                                                 }
                                                 return null;
                                             })()}
+
+                                            <div style={{ marginTop: "12px" }}>
+                                                <TextField
+                                                    label="Ekstra Menü Linkleri (Opsiyonel)"
+                                                    placeholder="Koşu Ayakkabıları | /collections/kosu-ayakkabilari"
+                                                    multiline={3}
+                                                    value={mapping.extraLinks || ""}
+                                                    onChange={(val) => updatePageMapping(index, "extraLinks", val)}
+                                                    helpText="Her satıra bir link girin. Format: Başlık | URL"
+                                                    autoComplete="off"
+                                                />
+                                            </div>
                                         </Box>
                                         <Button
                                             tone="critical"

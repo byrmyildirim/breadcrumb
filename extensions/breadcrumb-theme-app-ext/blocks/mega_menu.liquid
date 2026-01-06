@@ -1,41 +1,49 @@
 <style>
+    
 /* ============================
-   MEGA MENU – ADAPTIVE LAYOUT
+   MEGA MENU – FULL OPTIMIZED STYLE
    ============================ */
 
+/* ANA WRAPPER */
 .mega-wrapper {
   width: 100%;
   position: relative;
   z-index: 40;
-  background: white;
+  overflow-x: hidden;
 }
 
-/* ÜST MENÜ */
+
+/* ============================
+   ÜST MENÜ (ORTALANMIŞ)
+   ============================ */
 .mega-top {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0;
   padding: 14px 0;
-  border-bottom: 1px solid #eee;
 }
 
 .mega-top-item {
   position: relative;
   padding: 0 16px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
   text-decoration: none;
   color: #111;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .mega-top-item:hover {
   text-decoration: underline;
   color: #c0392b;
 }
+
+.mega-top-item.active {
+  text-decoration: underline;
+  color: #c0392b;
+}
+
 .mega-top-item:not(:last-child)::after {
   content: "";
   position: absolute;
@@ -43,21 +51,23 @@
   top: 50%;
   transform: translateY(-50%);
   width: 1px;
-  height: 14px;
+  height: 16px;
   background-color: #ddd;
 }
 
-/* MEGA PANEL */
+/* ============================
+   MEGA PANEL
+   ============================ */
 .mega-panel {
   display: none;
   width: 100%;
   background: white;
-  margin-top: 1px;
-  border-bottom: 1px solid #ddd;
-  padding: 0;
-  box-shadow: 0 12px 25px rgba(0,0,0,0.1);
-  position: absolute;
-  left: 0;
+  margin-top: 0;
+  border: 1px solid #ddd;
+  border-top: none;
+  padding: 28px 0;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+  position: relative;
   z-index: 999;
 }
 
@@ -65,102 +75,167 @@
   display: block;
 }
 
-/* ANA CONTAINER */
-.mega-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  min-height: 300px;
+
+/* ============================
+   GRID YAPI
+   Sol: 28% görsel — Sağ: 72% kolonlar
+   ============================ */
+.mega-grid {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 28% 72%;
+  gap: 40px;
+  align-items: start;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
-/* SOL GÖRSEL */
-.mega-sidebar-image {
-  width: 25%;
+
+/* ============================
+   SOL GÖRSEL — ABSOLUTE POSITION
+   (Grid yüksekliğini BOZMAMASI için)
+   ============================ */
+.mega-image {
   position: relative;
-  border-right: 1px solid #eee;
-  padding: 20px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  min-height: 280px;
 }
-.mega-sidebar-image img {
-  max-width: 100%;
+
+.mega-image img {
+  width: 100%;
   height: auto;
-  border-radius: 6px;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-/* SAĞ İÇERİK */
-.mega-content-area {
-  width: 75%;
-  display: flex;
-  flex-direction: column;
+
+/* ============================
+   SAĞ TARAF — 4 KOLON
+   ============================ */
+.mega-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 32px;
 }
 
-/* ------ LAYOUT MODE: TABS (Deep Hierarchy) ------ */
-.mega-mode-tabs .mega-tabs-header {
-  display: flex;
-  border-bottom: 1px solid #eee;
-  background-color: #fcfcfc;
+
+/* ============================
+   KOLON (PARENT)
+   ============================ */
+.mega-col {
+  margin: 0;
+  padding: 0;
 }
 
-.mega-mode-tabs .mega-tab-item {
-  padding: 16px 20px;
-  font-size: 14px;
+
+/* ============================
+   PARENT BAŞLIK + ÇİZGİ
+   ============================ */
+.mega-col-title {
   font-weight: 600;
-  color: #555;
-  cursor: pointer;
-  border-right: 1px solid #eee;
-  background: #fdfdfd;
-}
-.mega-mode-tabs .mega-tab-item:hover { background: #f5f5f5; color: #000; }
-.mega-mode-tabs .mega-tab-item.active {
-  background: #fff;
-  color: #d35400;
-  border-bottom: 2px solid #d35400;
-  margin-bottom: -1px;
-}
-.mega-mode-tabs .mega-tabs-body { padding: 24px; flex: 1; background: #fff; }
-.mega-mode-tabs .mega-tab-content { display: none; }
-.mega-mode-tabs .mega-tab-content.active { display: block; }
-
-
-/* ------ LAYOUT MODE: SIMPLE GRID (Leaf Nodes) ------ */
-.mega-mode-grid {
-    padding: 30px;
-    width: 100%;
-}
-.mega-simple-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
-}
-.mega-simple-header {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 8px;
-    color: #222;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #eee;
-}
-
-/* COMMON LINK STYLES */
-.mega-sub-item a {
-  display: block;
   font-size: 14px;
-  color: #444;
-  text-decoration: none;
-  margin-bottom: 6px;
-  padding: 2px 0;
+  color: #222;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
 }
-.mega-sub-item a:hover {
-  color: #d35400;
+
+.mega-col-title a {
+  color: #222;
+  text-decoration: none;
+}
+
+.mega-col-title a:hover {
   text-decoration: underline;
+}
+
+/* OK İKONU */
+.mega-col-title .arrow {
+  font-size: 12px;
+  margin-left: 6px;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+
+.mega-col.open .arrow {
+  transform: rotate(180deg);
+}
+
+
+/* ============================
+   CHILD (ALT MENÜ) LİNKLERİ
+   ============================ */
+.mega-col-links {
+  display: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+}
+
+.mega-col-links a {
+  display: block;
+  text-decoration: none;
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.mega-col-links a:hover {
+  text-decoration: underline;
+}
+
+
+/* ============================
+   AÇILMIŞ KOLON
+   ============================ */
+.mega-col.open .mega-col-links {
+  display: block;
 }
 
 /* MOBİL GİZLEME */
 @media (max-width: 768px) {
-  .mega-wrapper { display: none !important; }
+  .mega-wrapper {
+    display: none !important;
+  }
 }
+  }
+}
+
+/* EXTRA MENU LINKS BAR */
+.mega-extra-bar {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 8px 0;
+  display: block;
+  font-family: inherit;
+}
+.mega-extra-content {
+  display: flex;
+  justify-content: center; /* User image shows centered or right */
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.mega-extra-link {
+  font-size: 13px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.mega-extra-link:hover {
+  color: #ea580c; /* Orange */
+}
+.mega-extra-sep {
+  color: #ccc;
+  font-size: 12px;
+}
+
 </style>
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
@@ -176,54 +251,154 @@
   {% assign nav_items = custom_full_menu %}
 
   {% if auto_drill_down %}
-    {% comment %} 
-      === PAGE-MENU MAPPING LOGIC ===
-      1. First check if there's a manual mapping for this page in page_menu_map
-      2. If found, use that menu's children
-      3. If not found, show the full menu
-    {% endcomment %}
-    
     {% assign current_path = request.path | downcase %}
     {% assign found_mapping = nil %}
     
-    <!-- DEBUG: Current Path: '{{ current_path }}' -->
-    <!-- DEBUG: Page Menu Map Count: {{ page_menu_map.size }} -->
+    {% comment %} 0. Product page: ALWAYS use product.collections first (priority) {% endcomment %}
+    {% if template contains 'product' and product %}
+      {% assign found_parent = nil %}
+      {% for col in product.collections %}
+        {% assign col_handle = col.handle %}
+        {% for l1 in custom_full_menu %}
+          {% if l1.handle == col_handle %}{% assign found_parent = l1 %}{% break %}{% endif %}
+          {% for l2 in l1.children %}
+            {% if l2.handle == col_handle %}{% assign found_parent = l1 %}{% break %}{% endif %}
+            {% for l3 in l2.children %}
+              {% if l3.handle == col_handle %}{% assign found_parent = l1 %}{% break %}{% endif %}
+            {% endfor %}
+            {% if found_parent %}{% break %}{% endif %}
+          {% endfor %}
+          {% if found_parent %}{% break %}{% endif %}
+        {% endfor %}
+        {% if found_parent %}{% break %}{% endif %}
+      {% endfor %}
+      {% if found_parent and found_parent.children.size > 0 %}
+        {% assign nav_items = found_parent.children %}
+        {% assign matched_parent = found_parent %}
+      {% endif %}
+    {% endif %}
     
-    {% comment %} Check manual page-menu mappings {% endcomment %}
+    {% comment %} 1. Check manual page mappings (skip if product already matched) {% endcomment %}
+    {% unless matched_parent %}
     {% for mapping in page_menu_map %}
        {% assign mapping_url = mapping.pageUrl | downcase %}
-       
-       <!-- DEBUG: Checking mapping: '{{ mapping_url }}' → '{{ mapping.menuTitle }}' -->
-       
-       {% comment %} Normalize both paths and check for match {% endcomment %}
        {% assign mapping_url_clean = mapping_url | remove_first: '/' %}
        {% assign current_path_clean = current_path | remove_first: '/' %}
        
        {% if current_path_clean == mapping_url_clean %}
            {% assign found_mapping = mapping %}
-           <!-- DEBUG: ✅ EXACT MATCH FOUND for '{{ mapping.menuTitle }}' -->
            {% break %}
        {% elsif current_path contains mapping_url_clean and mapping_url_clean != '' and mapping_url_clean.size > 3 %}
            {% assign found_mapping = mapping %}
-           <!-- DEBUG: ✅ PARTIAL MATCH FOUND for '{{ mapping.menuTitle }}' -->
            {% break %}
        {% endif %}
     {% endfor %}
+    {% endunless %}
     
-    {% comment %} If mapping found, drill down to that menu's children {% endcomment %}
-    {% if found_mapping %}
+    {% comment %} 2. If no manual mapping, use collection.handle to find parent in custom_menu (like breadcrumb) {% endcomment %}
+    {% unless found_mapping %}
+      {% if template contains 'collection' and collection %}
+        {% assign col_handle = collection.handle %}
+        {% assign found_parent = nil %}
+        
+        {% comment %} Search up to 6 levels deep in custom_menu to find collection {% endcomment %}
+        {% for l1 in custom_full_menu %}
+          {% comment %} Level 1 check {% endcomment %}
+          {% if l1.handle == col_handle %}
+            {% assign found_parent = l1 %}
+            {% break %}
+          {% endif %}
+          
+          {% if l1.children != blank %}
+            {% for l2 in l1.children %}
+              {% comment %} Level 2 check {% endcomment %}
+              {% if l2.handle == col_handle %}
+                {% assign found_parent = l1 %}
+                {% break %}
+              {% endif %}
+              
+              {% if l2.children != blank %}
+                {% for l3 in l2.children %}
+                  {% comment %} Level 3 check {% endcomment %}
+                  {% if l3.handle == col_handle %}
+                    {% assign found_parent = l1 %}
+                    {% break %}
+                  {% endif %}
+                  
+                  {% if l3.children != blank %}
+                    {% for l4 in l3.children %}
+                      {% comment %} Level 4 check {% endcomment %}
+                      {% if l4.handle == col_handle %}
+                        {% assign found_parent = l1 %}
+                        {% break %}
+                      {% endif %}
+                      
+                      {% if l4.children != blank %}
+                        {% for l5 in l4.children %}
+                          {% comment %} Level 5 check {% endcomment %}
+                          {% if l5.handle == col_handle %}
+                            {% assign found_parent = l1 %}
+                            {% break %}
+                          {% endif %}
+                          
+                          {% if l5.children != blank %}
+                            {% for l6 in l5.children %}
+                              {% comment %} Level 6 check {% endcomment %}
+                              {% if l6.handle == col_handle %}
+                                {% assign found_parent = l1 %}
+                                {% break %}
+                              {% endif %}
+                            {% endfor %}
+                          {% endif %}
+                          {% if found_parent %}{% break %}{% endif %}
+                        {% endfor %}
+                      {% endif %}
+                      {% if found_parent %}{% break %}{% endif %}
+                    {% endfor %}
+                  {% endif %}
+                  {% if found_parent %}{% break %}{% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if found_parent %}{% break %}{% endif %}
+            {% endfor %}
+          {% endif %}
+          {% if found_parent %}{% break %}{% endif %}
+        {% endfor %}
+        
+        {% comment %} If found, use parent's children for menu {% endcomment %}
+        {% if found_parent and found_parent.children.size > 0 %}
+          {% assign nav_items = found_parent.children %}
+          {% assign matched_parent = found_parent %}
+        {% endif %}
+      {% endif %}
+    {% endunless %}
+    
+    {% comment %} 3. Apply found mapping {% endcomment %}
+    {% if found_mapping and matched_parent == nil %}
         {% for item in custom_full_menu %}
             {% if item.title == found_mapping.menuTitle %}
                 {% if item.children.size > 0 %}
                     {% assign nav_items = item.children %}
                     {% assign matched_parent = item %}
-                    <!-- DEBUG: Drilling down to {{ item.children.size }} children of '{{ item.title }}' -->
                 {% endif %}
                 {% break %}
             {% endif %}
         {% endfor %}
-    {% else %}
-        <!-- DEBUG: No mapping found, showing full menu -->
+    {% endif %}
+
+    {% comment %} 4. INHERIT MAPPING FROM PARENT (For Product Pages) {% endcomment %}
+    {% if found_mapping == nil and matched_parent %}
+      {% for map in page_menu_map %}
+        {% if map.menuTitle == matched_parent.title %}
+          {% assign found_mapping = map %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% comment %} 5. Fallback to MAIN MENU {% endcomment %}
+    {% if nav_items == empty %}
+      {% assign nav_items = custom_full_menu %}
     {% endif %}
   {% endif %}
 
@@ -235,7 +410,7 @@
 
 <div class="mega-wrapper" id="mega-{{ block.id }}">
 
-  <!-- ÜST MENÜ: Shows nav_items (either main or drilled down to children) -->
+  <!-- ÜST MENÜ -->
   <div class="mega-top">
     {% for link in nav_items %}
       <a class="mega-top-item" 
@@ -246,7 +421,27 @@
     {% endfor %}
   </div>
 
-  <!-- PANELS (Only for items with children) -->
+  <!-- EKSTRA MENÜ LINKLERI (Dinamic) -->
+  {% if found_mapping.extraLinks != blank %}
+    <div class="mega-extra-bar">
+      <div class="page-width">
+        <div class="mega-extra-content">
+           {% assign extra_lines = found_mapping.extraLinks | newline_to_br | split: '<br />' %}
+           {% for line in extra_lines %}
+               {% assign parts = line | split: '|' %}
+               {% if parts.size == 2 %}
+                  <a href="{{ parts[1] | strip }}" class="mega-extra-link">{{ parts[0] | strip }}</a>
+                  {% unless forloop.last %}
+                    <span class="mega-extra-sep">|</span>
+                  {% endunless %}
+               {% endif %}
+           {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- MEGA PANELS -->
   {% for link in nav_items %}
     
     {% assign sub_level_items = nil %}
@@ -263,11 +458,10 @@
         {% unless sub_level_items %}
            {% if item.submenuHandle contains 'custom_special:' %}
               {% assign target_title = item.submenuHandle | remove: 'custom_special:' %}
-              {% assign custom_full_menu = shop.metafields.breadcrumb.custom_menu.value %}
               {% for c in custom_full_menu %}
                   {% if c.title == target_title %}{% assign sub_level_items = c.children %}{% endif %}
               {% endfor %}
-           {% elsif item.submenuHandle != 'custom_menu_special' %}
+           {% elsif item.submenuHandle != 'custom_menu_special' and item.submenuHandle != '' %}
               {% assign sub_level_items = linklists[item.submenuHandle].links %}
            {% endif %}
         {% endunless %}
@@ -279,65 +473,50 @@
 
     {% if sub_level_items.size > 0 %}
        
-       {% assign layout_mode = 'grid' %}
-       {% for sub in sub_level_items %}
-           {% if sub.children.size > 0 %}
-               {% assign layout_mode = 'tabs' %}
-               {% break %}
-           {% endif %}
-       {% endfor %}
+       {% comment %} Determine which image to use {% endcomment %}
+       {% assign panel_image = nil %}
+       {% if matching_config.imageUrl != blank %}
+         {% assign panel_image = matching_config.imageUrl %}
+       {% elsif block.settings.show_sidebar_image and block.settings.sidebar_image %}
+         {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
+       {% endif %}
        
-       <div class="mega-panel" data-key="{{ link.title | handleize }}" data-lid="{{ link.id }}">
-          <div class="mega-container">
+       <div class="mega-panel" data-key="{{ link.title | handleize }}">
+          <div class="mega-grid">
             
-            {% if matching_config.imageUrl != blank %}
-            <div class="mega-sidebar-image">
-                <img src="{{ matching_config.imageUrl }}" alt="">
+            <!-- SOL GÖRSEL (Her zaman görünür) -->
+            <div class="mega-image">
+              {% if panel_image %}
+                <img src="{{ panel_image }}" alt="{{ link.title }}">
+              {% endif %}
             </div>
-            {% endif %}
 
-            <div class="mega-content-area mega-mode-{{ layout_mode }}" {% if matching_config.imageUrl == blank %}style="width:100%"{% endif %}>
-                
-                {% if layout_mode == 'tabs' %}
-                     <div class="mega-tabs-header">
-                        {% for parent in sub_level_items %}
-                            <div class="mega-tab-item {% if forloop.first %}active{% endif %}" data-target="{{ link.title | handleize }}-t-{{ forloop.index }}">
-                                {{ parent.title }}
-                            </div>
-                        {% endfor %}
+            <!-- SAĞ: 4 KOLON -->
+            <div class="mega-cols">
+              {% for parent in sub_level_items %}
+                <div class="mega-col">
+                  
+                  <div class="mega-col-title">
+                    <a href="{{ parent.url }}">{{ parent.title }}</a>
+                    
+                    {% assign parent_children = parent.links | default: parent.children %}
+                    {% if parent_children.size > 0 %}
+                      <span class="arrow">▼</span>
+                    {% endif %}
+                  </div>
+                  
+                  {% if parent_children.size > 0 %}
+                    <div class="mega-col-links">
+                      {% for child in parent_children %}
+                        <a href="{{ child.url }}">{{ child.title }}</a>
+                      {% endfor %}
                     </div>
-                    <div class="mega-tabs-body">
-                        {% for parent in sub_level_items %}
-                            <div class="mega-tab-content {% if forloop.first %}active{% endif %}" id="{{ link.title | handleize }}-t-{{ forloop.index }}">
-                                <div class="mega-simple-grid">
-                                    {% assign sub_links = parent.links | default: parent.children %}
-                                    {% for child in sub_links %}
-                                        <div class="mega-sub-item"><a href="{{ child.url }}">{{ child.title }}</a></div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                
-                {% else %}
-                     <div class="mega-mode-grid">
-                        <div class="mega-simple-grid">
-                            {% for parent in sub_level_items %}
-                                <div class="mega-col">
-                                    <div class="mega-simple-header"><a href="{{ parent.url }}" style="text-decoration:none; color:inherit;">{{ parent.title }}</a></div>
-                                    <div class="mega-simple-links">
-                                        {% assign sub_links = parent.links | default: parent.children %}
-                                        {% for child in sub_links %}
-                                            <div class="mega-sub-item"><a href="{{ child.url }}">{{ child.title }}</a></div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                     </div>
-                {% endif %}
-
+                  {% endif %}
+                  
+                </div>
+              {% endfor %}
             </div>
+
           </div>
        </div>
 
@@ -348,41 +527,41 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
   const wrapper = document.getElementById("mega-{{ block.id }}");
   if (!wrapper) return;
-
+  
   const topItems = wrapper.querySelectorAll(".mega-top-item");
   const panels = wrapper.querySelectorAll(".mega-panel");
 
+  /* PANEL AÇMA */
+  function openPanel(key) {
+    panels.forEach(p => {
+      p.classList.toggle("active", p.dataset.key === key);
+    });
+    topItems.forEach(item => {
+      item.classList.toggle("active", item.dataset.key === key);
+    });
+  }
+
   topItems.forEach(item => {
     item.addEventListener("mouseenter", () => {
-      panels.forEach(p => p.classList.remove("active"));
-      const key = item.dataset.key;
-      const targetPanel = wrapper.querySelector(`.mega-panel[data-key="${key}"]`);
-      if (targetPanel) {
-        targetPanel.classList.add("active");
-      }
+      openPanel(item.dataset.key);
     });
   });
 
   wrapper.addEventListener("mouseleave", () => {
     panels.forEach(p => p.classList.remove("active"));
+    topItems.forEach(item => item.classList.remove("active"));
   });
 
-  wrapper.addEventListener("mouseover", (e) => {
-    if (e.target.classList.contains("mega-tab-item")) {
-        const tabItem = e.target;
-        const targetId = tabItem.dataset.target;
-        const contentArea = tabItem.closest(".mega-content-area");
-        if (!contentArea) return;
-
-        contentArea.querySelectorAll(".mega-tab-item").forEach(t => t.classList.remove("active"));
-        contentArea.querySelectorAll(".mega-tab-content").forEach(c => c.classList.remove("active"));
-
-        tabItem.classList.add("active");
-        const targetContent = document.getElementById(targetId);
-        if (targetContent) targetContent.classList.add("active");
-    }
+  /* ALT MENÜ OK AÇ/KAPA */
+  wrapper.querySelectorAll(".mega-col-title .arrow").forEach(arrow => {
+    arrow.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.closest(".mega-col").classList.toggle("open");
+    });
   });
 
 });
@@ -404,12 +583,28 @@ document.addEventListener("DOMContentLoaded", function () {
       "id": "auto_context_root",
       "label": "Sayfa-Menü Eşleştirmelerini Kullan",
       "default": true,
-      "info": "Admin panelinde tanımladığınız sayfa-menü eşleştirmelerini kullanır. Örn: /pages/bisiklet → Bisiklet Sporu alt öğeleri"
+      "info": "Admin panelinde tanımladığınız sayfa-menü eşleştirmelerini kullanır."
     },
     {
       "type": "link_list",
       "id": "main_menu",
       "label": "Ana Menü (Shopify)"
+    },
+    {
+      "type": "header",
+      "content": "Sol Görsel Ayarları"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sidebar_image",
+      "label": "Sol Görsel Göster",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "sidebar_image",
+      "label": "Sol Görsel",
+      "info": "Panel açıldığında sol tarafta görünecek resim"
     }
   ]
 }
