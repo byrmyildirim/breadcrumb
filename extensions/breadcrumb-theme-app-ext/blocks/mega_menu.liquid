@@ -34,7 +34,7 @@
 
 .mega-top-item:hover {
   text-decoration: underline;
-  color: #c0392b; /* Vurgu */
+  color: #c0392b;
 }
 .mega-top-item:not(:last-child)::after {
   content: "";
@@ -70,7 +70,7 @@
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
-  min-height: 300px; /* Reduced min height */
+  min-height: 300px;
 }
 
 /* SOL GÖRSEL */
@@ -164,33 +164,67 @@
 </style>
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
+{% assign page_menu_map = shop.metafields.breadcrumb.page_menu_map.value %}
 {% assign use_custom_root = block.settings.use_custom_root %}
 {% assign auto_drill_down = block.settings.auto_context_root %}
 
 {% assign nav_items = nil %}
+{% assign matched_parent = nil %}
 
 {% if use_custom_root %}
   {% assign custom_full_menu = shop.metafields.breadcrumb.custom_menu.value %}
   {% assign nav_items = custom_full_menu %}
 
   {% if auto_drill_down %}
-    {% comment %} --- CONTEXT AWARE LOGIC --- {% endcomment %}
-    {% assign context_title = page.title | default: collection.title %}
+    {% comment %} 
+      === PAGE-MENU MAPPING LOGIC ===
+      1. First check if there's a manual mapping for this page in page_menu_map
+      2. If found, use that menu's children
+      3. If not found, show the full menu
+    {% endcomment %}
     
-    <!-- DEBUG: Context Title: '{{ context_title }}' -->
+    {% assign current_path = request.path | downcase %}
+    {% assign found_mapping = nil %}
     
-    {% for item in custom_full_menu %}
-       <!-- DEBUG: Checking against: '{{ item.title }}' -->
-       {% if item.title == context_title %}
-           {% if item.children.size > 0 %}
-               {% assign nav_items = item.children %}
-               <!-- DEBUG: MATCH FOUND! Children count: {{ item.children.size }} -->
-           {% else %}
-               <!-- DEBUG: Match found but NO CHILDREN. -->
-           {% endif %}
+    <!-- DEBUG: Current Path: '{{ current_path }}' -->
+    <!-- DEBUG: Page Menu Map Count: {{ page_menu_map.size }} -->
+    
+    {% comment %} Check manual page-menu mappings {% endcomment %}
+    {% for mapping in page_menu_map %}
+       {% assign mapping_url = mapping.pageUrl | downcase %}
+       
+       <!-- DEBUG: Checking mapping: '{{ mapping_url }}' → '{{ mapping.menuTitle }}' -->
+       
+       {% comment %} Normalize both paths and check for match {% endcomment %}
+       {% assign mapping_url_clean = mapping_url | remove_first: '/' %}
+       {% assign current_path_clean = current_path | remove_first: '/' %}
+       
+       {% if current_path_clean == mapping_url_clean %}
+           {% assign found_mapping = mapping %}
+           <!-- DEBUG: ✅ EXACT MATCH FOUND for '{{ mapping.menuTitle }}' -->
+           {% break %}
+       {% elsif current_path contains mapping_url_clean and mapping_url_clean != '' and mapping_url_clean.size > 3 %}
+           {% assign found_mapping = mapping %}
+           <!-- DEBUG: ✅ PARTIAL MATCH FOUND for '{{ mapping.menuTitle }}' -->
            {% break %}
        {% endif %}
     {% endfor %}
+    
+    {% comment %} If mapping found, drill down to that menu's children {% endcomment %}
+    {% if found_mapping %}
+        {% for item in custom_full_menu %}
+            {% if item.title == found_mapping.menuTitle %}
+                {% if item.children.size > 0 %}
+                    {% assign nav_items = item.children %}
+                    {% assign matched_parent = item %}
+                    <!-- DEBUG: Drilling down to {{ item.children.size }} children of '{{ item.title }}' -->
+                {% endif %}
+                {% break %}
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <!-- DEBUG: No mapping found, showing full menu -->
+    {% endif %}
   {% endif %}
 
 {% else %}
@@ -201,34 +235,32 @@
 
 <div class="mega-wrapper" id="mega-{{ block.id }}">
 
-  <!-- ÜST MENÜ LEVEL N -->
+  <!-- ÜST MENÜ: Shows nav_items (either main or drilled down to children) -->
   <div class="mega-top">
     {% for link in nav_items %}
-      <a class="mega-top-item" data-key="{{ link.title | handleize }}" href="{{ link.url }}">
+      <a class="mega-top-item" 
+         data-key="{{ link.title | handleize }}" 
+         href="{{ link.url }}">
         {{ link.title }}
       </a>
     {% endfor %}
   </div>
 
-  <!-- PANELS -->
+  <!-- PANELS (Only for items with children) -->
   {% for link in nav_items %}
     
     {% assign sub_level_items = nil %}
     {% assign matching_config = nil %}
     
-    {% comment %} 1. Try to find children directly in the data (Custom Menu) {% endcomment %}
     {% if link.children.size > 0 %}
         {% assign sub_level_items = link.children %}
     {% endif %}
 
-    {% comment %} 2. Find config for image and overrides (if any) {% endcomment %}
     {% for item in mega_config %}
       {% if item.triggerTitle == link.title %}
         {% assign matching_config = item %}
-        <!-- Config Match Found: {{ item.submenuHandle }} -->
         
         {% unless sub_level_items %}
-           {% comment %} If no direct children, try resolving from handle {% endcomment %}
            {% if item.submenuHandle contains 'custom_special:' %}
               {% assign target_title = item.submenuHandle | remove: 'custom_special:' %}
               {% assign custom_full_menu = shop.metafields.breadcrumb.custom_menu.value %}
@@ -247,7 +279,6 @@
 
     {% if sub_level_items.size > 0 %}
        
-       {% comment %} --- DETERMINE LAYOUT MODE --- {% endcomment %}
        {% assign layout_mode = 'grid' %}
        {% for sub in sub_level_items %}
            {% if sub.children.size > 0 %}
@@ -259,18 +290,15 @@
        <div class="mega-panel" data-key="{{ link.title | handleize }}" data-lid="{{ link.id }}">
           <div class="mega-container">
             
-            <!-- SIDEBAR IMAGE -->
             {% if matching_config.imageUrl != blank %}
             <div class="mega-sidebar-image">
                 <img src="{{ matching_config.imageUrl }}" alt="">
             </div>
             {% endif %}
 
-            <!-- CONTENT AREA -->
             <div class="mega-content-area mega-mode-{{ layout_mode }}" {% if matching_config.imageUrl == blank %}style="width:100%"{% endif %}>
                 
                 {% if layout_mode == 'tabs' %}
-                    <!-- === TABS LAYOUT (Hierarchy) === -->
                      <div class="mega-tabs-header">
                         {% for parent in sub_level_items %}
                             <div class="mega-tab-item {% if forloop.first %}active{% endif %}" data-target="{{ link.title | handleize }}-t-{{ forloop.index }}">
@@ -292,7 +320,6 @@
                     </div>
                 
                 {% else %}
-                    <!-- === SIMPLE GRID LAYOUT (Flat) === -->
                      <div class="mega-mode-grid">
                         <div class="mega-simple-grid">
                             {% for parent in sub_level_items %}
@@ -327,13 +354,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const topItems = wrapper.querySelectorAll(".mega-top-item");
   const panels = wrapper.querySelectorAll(".mega-panel");
 
-  // 1. OPEN PANEL ON HOVER
   topItems.forEach(item => {
     item.addEventListener("mouseenter", () => {
       panels.forEach(p => p.classList.remove("active"));
       const key = item.dataset.key;
       const targetPanel = wrapper.querySelector(`.mega-panel[data-key="${key}"]`);
-      if (targetPanel) targetPanel.classList.add("active");
+      if (targetPanel) {
+        targetPanel.classList.add("active");
+      }
     });
   });
 
@@ -341,7 +369,6 @@ document.addEventListener("DOMContentLoaded", function () {
     panels.forEach(p => p.classList.remove("active"));
   });
 
-  // 2. TABS SWITCHING
   wrapper.addEventListener("mouseover", (e) => {
     if (e.target.classList.contains("mega-tab-item")) {
         const tabItem = e.target;
@@ -370,14 +397,14 @@ document.addEventListener("DOMContentLoaded", function () {
       "type": "checkbox",
       "id": "use_custom_root",
       "label": "Uygulama Özel Menüsünü Kullan",
-      "default": false
+      "default": true
     },
     {
-       "type": "checkbox",
-       "id": "auto_context_root",
-       "label": "Otomatik Kök Menü (Sayfaya Göre)",
-       "default": true,
-       "info": "Eğer mevcut sayfa başlığı (örn. Bisiklet Sporu) menüde varsa, o menünün içine girer."
+      "type": "checkbox",
+      "id": "auto_context_root",
+      "label": "Sayfa-Menü Eşleştirmelerini Kullan",
+      "default": true,
+      "info": "Admin panelinde tanımladığınız sayfa-menü eşleştirmelerini kullanır. Örn: /pages/bisiklet → Bisiklet Sporu alt öğeleri"
     },
     {
       "type": "link_list",

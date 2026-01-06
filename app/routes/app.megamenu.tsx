@@ -1,9 +1,10 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { PlusCircleIcon, DeleteIcon } from "@shopify/polaris-icons";
 
 export async function loader({ request }: { request: Request }) {
     const { admin, session } = await authenticate.admin(request);
@@ -57,7 +58,26 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse custom menu", e);
     }
 
-    return json({ menus, initialConfig, customMenuItems });
+    // 4. Fetch Page-Menu Mappings
+    const pageMappingQuery = await admin.graphql(
+        `query {
+            shop {
+                metafield(namespace: "breadcrumb", key: "page_menu_map") {
+                    value
+                }
+            }
+        }`
+    );
+    const pageMappingJson = await pageMappingQuery.json();
+    let initialPageMappings = [];
+    try {
+        const raw = pageMappingJson.data?.shop?.metafield?.value;
+        if (raw) initialPageMappings = JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to parse page mappings", e);
+    }
+
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -65,6 +85,7 @@ export async function action({ request }: { request: Request }) {
     const formData = await request.formData();
 
     const configString = formData.get("config") as string;
+    const pageMappingsString = formData.get("pageMappings") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -76,7 +97,7 @@ export async function action({ request }: { request: Request }) {
         },
     });
 
-    // 2. Sync to Shop Metafield
+    // 2. Sync to Shop Metafields
     const shopQuery = await admin.graphql(`{ shop { id } }`);
     const shopJson = await shopQuery.json();
     const shopId = shopJson.data.shop.id;
@@ -103,6 +124,13 @@ export async function action({ request }: { request: Request }) {
                         key: "mega_menu_config",
                         type: "json",
                         value: configString,
+                    },
+                    {
+                        ownerId: shopId,
+                        namespace: "breadcrumb",
+                        key: "page_menu_map",
+                        type: "json",
+                        value: pageMappingsString,
                     }
                 ]
             }
@@ -113,13 +141,15 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
 
     const [items, setItems] = useState(Array.isArray(initialConfig) ? initialConfig : []);
+    const [pageMappings, setPageMappings] = useState(Array.isArray(initialPageMappings) ? initialPageMappings : []);
 
+    // --- Mega Menu Config Functions ---
     const addItem = () => {
         setItems([...items, { triggerTitle: "", submenuHandle: "", imageUrl: "" }]);
     };
@@ -136,9 +166,27 @@ export default function MegaMenuPage() {
         setItems(newItems);
     };
 
+    // --- Page Mapping Functions ---
+    const addPageMapping = () => {
+        setPageMappings([...pageMappings, { pageUrl: "", menuTitle: "" }]);
+    };
+
+    const removePageMapping = (index: number) => {
+        const newMappings = [...pageMappings];
+        newMappings.splice(index, 1);
+        setPageMappings(newMappings);
+    };
+
+    const updatePageMapping = (index: number, key: string, value: string) => {
+        const newMappings = [...pageMappings];
+        newMappings[index] = { ...newMappings[index], [key]: value };
+        setPageMappings(newMappings);
+    };
+
     const handleSave = () => {
         const formData = new FormData();
         formData.append("config", JSON.stringify(items));
+        formData.append("pageMappings", JSON.stringify(pageMappings));
         submit(formData, { method: "post" });
     };
 
@@ -161,10 +209,23 @@ export default function MegaMenuPage() {
     menuOptions.unshift({ label: "★ Özel Menü (Tümü/Otomatik)", value: "custom_menu_special" });
     menuOptions.unshift({ label: "Seçiniz...", value: "" });
 
+    // Custom menu options for page mapping (only top-level items with children)
+    const pageMenuOptions = [{ label: "Seçiniz...", value: "" }];
+    if (customMenuItems && customMenuItems.length > 0) {
+        customMenuItems.forEach((item: any) => {
+            if (item.children && item.children.length > 0) {
+                pageMenuOptions.push({
+                    label: item.title,
+                    value: item.title
+                });
+            }
+        });
+    }
+
     return (
         <Page
             title="Mega Menü Ayarları"
-            subtitle="Üst menü öğeleri ile mega menü içeriklerini eşleştirin."
+            subtitle="Sayfa-menü eşleştirmeleri ve mega menü içeriklerini yapılandırın."
             primaryAction={{
                 content: isSaving ? "Kaydediliyor..." : "Kaydet",
                 onAction: handleSave,
@@ -172,11 +233,92 @@ export default function MegaMenuPage() {
             }}
         >
             <Layout>
+                {/* === SECTION 1: PAGE-MENU MAPPINGS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                📍 Sayfa → Menü Eşleştirmeleri
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Her sayfa için hangi menünün gösterileceğini belirleyin.
+                                Örneğin: <code>/pages/bisiklet</code> sayfasında <strong>Bisiklet Sporu</strong> menüsünün alt öğelerini göster.
+                            </Text>
+
+                            {pageMappings.map((mapping: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "8px",
+                                    background: "#fafbfb"
+                                }}>
+                                    <InlineStack gap="400" align="start" blockAlign="end">
+                                        <Box width="45%">
+                                            <TextField
+                                                label="Sayfa URL'si"
+                                                placeholder="/pages/bisiklet"
+                                                helpText="Örn: /pages/bisiklet, /pages/kosu, /collections/spor"
+                                                value={mapping.pageUrl}
+                                                onChange={(val) => updatePageMapping(index, "pageUrl", val)}
+                                                autoComplete="off"
+                                            />
+                                        </Box>
+                                        <Box width="45%">
+                                            <Select
+                                                label="Gösterilecek Menü"
+                                                options={pageMenuOptions}
+                                                value={mapping.menuTitle}
+                                                onChange={(val) => updatePageMapping(index, "menuTitle", val)}
+                                                helpText="Bu sayfada hangi menünün alt öğeleri gösterilsin?"
+                                            />
+                                            {mapping.menuTitle && (() => {
+                                                const foundItem = customMenuItems.find((c: any) => c.title === mapping.menuTitle);
+                                                if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                    return (
+                                                        <div style={{ marginTop: '8px', padding: '8px', background: '#e3f1df', borderRadius: '6px', fontSize: '12px' }}>
+                                                            ✓ {foundItem.children.length} alt öğe gösterilecek: {foundItem.children.slice(0, 3).map((c: any) => c.title).join(", ")}{foundItem.children.length > 3 ? "..." : ""}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </Box>
+                                        <Button
+                                            tone="critical"
+                                            onClick={() => removePageMapping(index)}
+                                            variant="plain"
+                                            icon={DeleteIcon}
+                                        />
+                                    </InlineStack>
+                                </div>
+                            ))}
+
+                            {pageMappings.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz sayfa-menü eşleştirmesi yapılmamış. Aşağıdaki butonla eşleştirme ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addPageMapping} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Yeni Sayfa Eşleştirmesi Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
+                {/* === SECTION 2: MEGA MENU TRIGGER CONFIG === */}
                 <Layout.Section>
                     <Card>
                         <BlockStack gap="500">
-                            <Text as="p" variant="bodyMd">
-                                Web sitenizdeki üst menü öğesinin tam adını (Büyük/küçük harf duyarlı olabilir) yazın ve altında açılacak menüyü seçin.
+                            <Text as="h2" variant="headingMd">
+                                🎨 Mega Menü Görsel Ayarları
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Üst menü öğelerinin üzerine gelindiğinde açılacak alt menü ve sol görsel ayarlarını yapın.
                             </Text>
 
                             {items.map((item: any, index: number) => (
