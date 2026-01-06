@@ -1,40 +1,40 @@
 <style>
 /* ============================
-   MEGA MENU – FULL OPTIMIZED STYLE
+   MEGA MENU – ADAPTIVE LAYOUT
    ============================ */
 
-/* ANA WRAPPER */
 .mega-wrapper {
   width: 100%;
   position: relative;
   z-index: 40;
-  background: white; /* Ensure visibility */
+  background: white;
 }
 
-
-/* ============================
-   ÜST MENÜ (ORTALANMIŞ)
-   ============================ */
+/* ÜST MENÜ */
 .mega-top {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 0 px;
+  gap: 0;
   padding: 14px 0;
+  border-bottom: 1px solid #eee;
 }
 
 .mega-top-item {
-    position: relative;
- padding: 0 16px;
+  position: relative;
+  padding: 0 16px;
   font-size: 15px;
-  font-weight: 400;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: none;
   color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .mega-top-item:hover {
   text-decoration: underline;
+  color: #c0392b; /* Vurgu */
 }
 .mega-top-item:not(:last-child)::after {
   content: "";
@@ -43,24 +43,19 @@
   top: 50%;
   transform: translateY(-50%);
   width: 1px;
-  height: 16px;
+  height: 14px;
   background-color: #ddd;
 }
 
-/* ============================
-   MEGA PANEL
-   ============================ */
+/* MEGA PANEL */
 .mega-panel {
   display: none;
   width: 100%;
   background: white;
-  margin-top: 8px;
-  border: 1px solid #ddd;
-  border-top: none;
-  padding: 28px 36px;
-  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
-  
-  /* App Block Specific: Ensure it overlays correctly if placed in header */
+  margin-top: 1px;
+  border-bottom: 1px solid #ddd;
+  padding: 0;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.1);
   position: absolute;
   left: 0;
   z-index: 999;
@@ -70,244 +65,255 @@
   display: block;
 }
 
-
-/* ============================
-   GRID YAPI
-   Sol: 30% görsel — Sağ: 70% kolonlar
-   ============================ */
-.mega-grid {
+/* ANA CONTAINER */
+.mega-container {
   max-width: 1400px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 28% 72%;
-  gap: 40px;
-  align-items: start; /* BOŞLUK SORUNUNU ÇÖZEN KISIM */
-}
-
-
-/* ============================
-   SOL GÖRSEL — ABSOLUTE POSITION
-   (Grid yüksekliğini BOZMAMASI için)
-   ============================ */
-.mega-image {
-  position: relative;
-  min-height: 280px; /* Görsel çok küçükse hizalama bozulmasın */
-}
-
-.mega-image img {
-  width: 100%;
-  height: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 8px; /* Slight polish */
-}
-
-
-/* ============================
-   SAĞ TARAF — 4 KOLON
-   ============================ */
-.mega-cols {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: 32px;
-}
-
-
-/* ============================
-   KOLON (PARENT)
-   ============================ */
-.mega-col {
-  margin: 0;
-  padding: 0;
-}
-
-
-/* ============================
-   PARENT BAŞLIK + ÇİZGİ
-   ============================ */
-.mega-col-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: #222;
-  padding: 4px 0;
-  border-bottom: 1px solid #e5e5e5;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 4px 0;
-  line-height: 1.2;
+  min-height: 300px; /* Reduced min height */
 }
 
-.mega-col-title a {
-  color: #222;
-  text-decoration: none;
+/* SOL GÖRSEL */
+.mega-sidebar-image {
+  width: 25%;
+  position: relative;
+  border-right: 1px solid #eee;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.mega-sidebar-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
 }
 
-/* ============================
-   CHILD (ALT MENÜ) LİNKLERİ
-   ============================ */
-.mega-col-links {
-  display: block; /* Her zaman açık olsun */
-  margin: 4px 0 0 0;
-  padding: 0;
+/* SAĞ İÇERİK */
+.mega-content-area {
+  width: 75%;
+  display: flex;
+  flex-direction: column;
 }
 
-.mega-col-links a {
+/* ------ LAYOUT MODE: TABS (Deep Hierarchy) ------ */
+.mega-mode-tabs .mega-tabs-header {
+  display: flex;
+  border-bottom: 1px solid #eee;
+  background-color: #fcfcfc;
+}
+
+.mega-mode-tabs .mega-tab-item {
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  border-right: 1px solid #eee;
+  background: #fdfdfd;
+}
+.mega-mode-tabs .mega-tab-item:hover { background: #f5f5f5; color: #000; }
+.mega-mode-tabs .mega-tab-item.active {
+  background: #fff;
+  color: #d35400;
+  border-bottom: 2px solid #d35400;
+  margin-bottom: -1px;
+}
+.mega-mode-tabs .mega-tabs-body { padding: 24px; flex: 1; background: #fff; }
+.mega-mode-tabs .mega-tab-content { display: none; }
+.mega-mode-tabs .mega-tab-content.active { display: block; }
+
+
+/* ------ LAYOUT MODE: SIMPLE GRID (Leaf Nodes) ------ */
+.mega-mode-grid {
+    padding: 30px;
+    width: 100%;
+}
+.mega-simple-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+.mega-simple-header {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #222;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+}
+
+/* COMMON LINK STYLES */
+.mega-sub-item a {
   display: block;
+  font-size: 14px;
+  color: #444;
   text-decoration: none;
-  color: #666;
-  font-size: 13px;
   margin-bottom: 6px;
-  line-height: 1.4;
+  padding: 2px 0;
 }
-
-.mega-col-links a:hover {
+.mega-sub-item a:hover {
+  color: #d35400;
   text-decoration: underline;
-  color: #000;
 }
 
-/* OK İKONU GİZLE (Masaüstü mega menüde gerek yok) */
-.mega-col-title .arrow {
-  display: none;
-}
-
-/* ============================
-   AÇILMIŞ KOLON
-   ============================ */
-.mega-col.open .mega-col-links {
-  display: block;
-}
-/* MOBİLDE MEGA MENÜYÜ TAMAMEN GİZLE */
+/* MOBİL GİZLEME */
 @media (max-width: 768px) {
-  #mega-{{ block.id }} {
-    display: none !important;
-  }
+  .mega-wrapper { display: none !important; }
 }
 </style>
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
 {% assign use_custom_root = block.settings.use_custom_root %}
+{% assign auto_drill_down = block.settings.auto_context_root %}
+
+{% assign nav_items = nil %}
 
 {% if use_custom_root %}
-  {% assign nav_items = shop.metafields.breadcrumb.custom_menu.value %}
+  {% assign custom_full_menu = shop.metafields.breadcrumb.custom_menu.value %}
+  {% assign nav_items = custom_full_menu %}
+
+  {% if auto_drill_down %}
+    {% comment %} --- CONTEXT AWARE LOGIC --- {% endcomment %}
+    {% assign context_title = page.title | default: collection.title %}
+    
+    <!-- DEBUG: Context Title: '{{ context_title }}' -->
+    
+    {% for item in custom_full_menu %}
+       <!-- DEBUG: Checking against: '{{ item.title }}' -->
+       {% if item.title == context_title %}
+           {% if item.children.size > 0 %}
+               {% assign nav_items = item.children %}
+               <!-- DEBUG: MATCH FOUND! Children count: {{ item.children.size }} -->
+           {% else %}
+               <!-- DEBUG: Match found but NO CHILDREN. -->
+           {% endif %}
+           {% break %}
+       {% endif %}
+    {% endfor %}
+  {% endif %}
+
 {% else %}
   {% assign nav_handle = block.settings.main_menu %}
   {% assign nav_items = linklists[nav_handle].links %}
 {% endif %}
 
+
 <div class="mega-wrapper" id="mega-{{ block.id }}">
 
-  <!-- ÜST MENÜ -->
+  <!-- ÜST MENÜ LEVEL N -->
   <div class="mega-top">
     {% for link in nav_items %}
-      <a
-        class="mega-top-item"
-        data-key="{{ link.title | handleize }}"
-        href="{{ link.url }}"
-      >
+      <a class="mega-top-item" data-key="{{ link.title | handleize }}" href="{{ link.url }}">
         {{ link.title }}
       </a>
     {% endfor %}
   </div>
 
-
-  <!-- HER BLOCK = BİR MEGA PANEL (Dinamik Metafield'dan geliyor) -->
+  <!-- PANELS -->
   {% for link in nav_items %}
-    {% comment %} Metafield configinden eşleşen veriyi bul {% endcomment %}
+    
+    {% assign sub_level_items = nil %}
     {% assign matching_config = nil %}
+    
+    {% comment %} 1. Try to find children directly in the data (Custom Menu) {% endcomment %}
+    {% if link.children.size > 0 %}
+        {% assign sub_level_items = link.children %}
+    {% endif %}
+
+    {% comment %} 2. Find config for image and overrides (if any) {% endcomment %}
     {% for item in mega_config %}
       {% if item.triggerTitle == link.title %}
         {% assign matching_config = item %}
+        <!-- Config Match Found: {{ item.submenuHandle }} -->
+        
+        {% unless sub_level_items %}
+           {% comment %} If no direct children, try resolving from handle {% endcomment %}
+           {% if item.submenuHandle contains 'custom_special:' %}
+              {% assign target_title = item.submenuHandle | remove: 'custom_special:' %}
+              {% assign custom_full_menu = shop.metafields.breadcrumb.custom_menu.value %}
+              {% for c in custom_full_menu %}
+                  {% if c.title == target_title %}{% assign sub_level_items = c.children %}{% endif %}
+              {% endfor %}
+           {% elsif item.submenuHandle != 'custom_menu_special' %}
+              {% assign sub_level_items = linklists[item.submenuHandle].links %}
+           {% endif %}
+        {% endunless %}
+        
         {% break %}
       {% endif %}
     {% endfor %}
 
-    {% if matching_config %}
-       {% assign use_custom_sub = false %}
-       {% if matching_config.submenuHandle == 'custom_menu_special' %}
-          {% assign use_custom_sub = true %}
-          {% assign root_items = shop.metafields.breadcrumb.custom_menu.value %}
-          
-          {% comment %} Fallback: Try to find by title if generic custom menu is selected {% endcomment %}
-          {% for candidate in root_items %}
-            {% if candidate.title == link.title %}
-               {% assign sub_level_items = candidate.children %}
-               {% break %}
-            {% endif %}
-          {% endfor %}
 
-       {% elsif matching_config.submenuHandle contains 'custom_special:' %}
-          {% assign use_custom_sub = true %}
-          {% assign target_title = matching_config.submenuHandle | remove: 'custom_special:' %}
-          {% assign root_items = shop.metafields.breadcrumb.custom_menu.value %}
-          
-          {% comment %} Find specific node by title {% endcomment %}
-          {% assign sub_level_items = root_items %}
-          {% for candidate in root_items %}
-             {% if candidate.title == target_title %}
-                {% assign sub_level_items = candidate.children %}
-                {% break %}
-             {% endif %}
-          {% endfor %}
-
-       {% else %}
-          {% assign root_items = linklists[matching_config.submenuHandle].links %}
-          {% assign sub_level_items = root_items %}
-       {% endif %}
-
+    {% if sub_level_items.size > 0 %}
        
-       <!-- DEBUG INFO: -->
-       <!-- Handle: {{ matching_config.submenuHandle }} -->
-       <!-- Target Title: {{ target_title }} -->
-       <!-- Use Custom Sub: {{ use_custom_sub }} -->
-       <!-- Found Items: {{ sub_level_items.size }} -->
-       <!-- Is Array? {{ sub_level_items | json }} -->
-
-       <div class="mega-panel" data-key="{{ link.title | handleize }}">
-          <div class="mega-grid">
-
-            <!-- SOL GÖRSEL -->
-            <div class="mega-image">
-              {% if matching_config.imageUrl != blank %}
-                <img src="{{ matching_config.imageUrl }}">
-              {% endif %}
+       {% comment %} --- DETERMINE LAYOUT MODE --- {% endcomment %}
+       {% assign layout_mode = 'grid' %}
+       {% for sub in sub_level_items %}
+           {% if sub.children.size > 0 %}
+               {% assign layout_mode = 'tabs' %}
+               {% break %}
+           {% endif %}
+       {% endfor %}
+       
+       <div class="mega-panel" data-key="{{ link.title | handleize }}" data-lid="{{ link.id }}">
+          <div class="mega-container">
+            
+            <!-- SIDEBAR IMAGE -->
+            {% if matching_config.imageUrl != blank %}
+            <div class="mega-sidebar-image">
+                <img src="{{ matching_config.imageUrl }}" alt="">
             </div>
+            {% endif %}
 
-            <!-- SAĞ: 4 KOLON -->
-            <div class="mega-cols">
-              {% for parent in sub_level_items %}
-                <div class="mega-col">
-                  
-                  {% comment %} Normalize children to 'sub_links' {% endcomment %}
-                  {% assign sub_links = parent.links %}
-                  {% if parent.children %}
-                    {% assign sub_links = parent.children %}
-                  {% endif %}
-
-                  <div class="mega-col-title">
-                    <a href="{{ parent.url }}">{{ parent.title }}</a>
-
-                    {% if sub_links.size > 0 %}
-                      <span class="arrow">▼</span>
-                    {% endif %}
-                  </div>
-
-                  {% if sub_links.size > 0 %}
-                    <div class="mega-col-links">
-                      {% for child in sub_links %}
-                         <a href="{{ child.url }}">{{ child.title }}</a>
-                      {% endfor %}
+            <!-- CONTENT AREA -->
+            <div class="mega-content-area mega-mode-{{ layout_mode }}" {% if matching_config.imageUrl == blank %}style="width:100%"{% endif %}>
+                
+                {% if layout_mode == 'tabs' %}
+                    <!-- === TABS LAYOUT (Hierarchy) === -->
+                     <div class="mega-tabs-header">
+                        {% for parent in sub_level_items %}
+                            <div class="mega-tab-item {% if forloop.first %}active{% endif %}" data-target="{{ link.title | handleize }}-t-{{ forloop.index }}">
+                                {{ parent.title }}
+                            </div>
+                        {% endfor %}
                     </div>
-                  {% endif %}
-
-                </div>
-              {% endfor %}
+                    <div class="mega-tabs-body">
+                        {% for parent in sub_level_items %}
+                            <div class="mega-tab-content {% if forloop.first %}active{% endif %}" id="{{ link.title | handleize }}-t-{{ forloop.index }}">
+                                <div class="mega-simple-grid">
+                                    {% assign sub_links = parent.links | default: parent.children %}
+                                    {% for child in sub_links %}
+                                        <div class="mega-sub-item"><a href="{{ child.url }}">{{ child.title }}</a></div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                
+                {% else %}
+                    <!-- === SIMPLE GRID LAYOUT (Flat) === -->
+                     <div class="mega-mode-grid">
+                        <div class="mega-simple-grid">
+                            {% for parent in sub_level_items %}
+                                <div class="mega-col">
+                                    <div class="mega-simple-header"><a href="{{ parent.url }}" style="text-decoration:none; color:inherit;">{{ parent.title }}</a></div>
+                                    <div class="mega-simple-links">
+                                        {% assign sub_links = parent.links | default: parent.children %}
+                                        {% for child in sub_links %}
+                                            <div class="mega-sub-item"><a href="{{ child.url }}">{{ child.title }}</a></div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                     </div>
+                {% endif %}
 
             </div>
-
           </div>
-        </div>
+       </div>
+
     {% endif %}
   {% endfor %}
 
@@ -315,23 +321,19 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-
   const wrapper = document.getElementById("mega-{{ block.id }}");
   if (!wrapper) return;
 
   const topItems = wrapper.querySelectorAll(".mega-top-item");
   const panels = wrapper.querySelectorAll(".mega-panel");
 
-  /* PANEL AÇMA */
-  function openPanel(key) {
-    panels.forEach(p => {
-      p.classList.toggle("active", p.dataset.key === key);
-    });
-  }
-
+  // 1. OPEN PANEL ON HOVER
   topItems.forEach(item => {
     item.addEventListener("mouseenter", () => {
-      openPanel(item.dataset.key);
+      panels.forEach(p => p.classList.remove("active"));
+      const key = item.dataset.key;
+      const targetPanel = wrapper.querySelector(`.mega-panel[data-key="${key}"]`);
+      if (targetPanel) targetPanel.classList.add("active");
     });
   });
 
@@ -339,13 +341,21 @@ document.addEventListener("DOMContentLoaded", function () {
     panels.forEach(p => p.classList.remove("active"));
   });
 
-  /* ALT MENÜ OK AÇ/KAPA */
-  wrapper.querySelectorAll(".mega-col-title .arrow").forEach(arrow => {
-    arrow.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.closest(".mega-col").classList.toggle("open");
-    });
+  // 2. TABS SWITCHING
+  wrapper.addEventListener("mouseover", (e) => {
+    if (e.target.classList.contains("mega-tab-item")) {
+        const tabItem = e.target;
+        const targetId = tabItem.dataset.target;
+        const contentArea = tabItem.closest(".mega-content-area");
+        if (!contentArea) return;
+
+        contentArea.querySelectorAll(".mega-tab-item").forEach(t => t.classList.remove("active"));
+        contentArea.querySelectorAll(".mega-tab-content").forEach(c => c.classList.remove("active"));
+
+        tabItem.classList.add("active");
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) targetContent.classList.add("active");
+    }
   });
 
 });
@@ -360,14 +370,19 @@ document.addEventListener("DOMContentLoaded", function () {
       "type": "checkbox",
       "id": "use_custom_root",
       "label": "Uygulama Özel Menüsünü Kullan",
-      "default": false,
-      "info": "İşaretlenirse, 'Özel Menü Oluşturucu' sayfasındaki menüyü ana menü olarak kullanır. (Ana Menü seçimi geçersiz olur)"
+      "default": false
+    },
+    {
+       "type": "checkbox",
+       "id": "auto_context_root",
+       "label": "Otomatik Kök Menü (Sayfaya Göre)",
+       "default": true,
+       "info": "Eğer mevcut sayfa başlığı (örn. Bisiklet Sporu) menüde varsa, o menünün içine girer."
     },
     {
       "type": "link_list",
       "id": "main_menu",
-      "label": "Ana Menü (Shopify)",
-      "info": "Sadece yukarıdaki kutucuk işaretli DEĞİLSE kullanılır."
+      "label": "Ana Menü (Shopify)"
     }
   ]
 }

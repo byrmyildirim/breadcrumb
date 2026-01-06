@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "7df131ab6f06a35893263ca81d209966"
-name = "Breadcrumb Pro"
+name = "Temel Uygulamalar"
 application_url = "https://breadcrumb-production.up.railway.app"
 embedded = true
 
