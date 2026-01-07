@@ -96,7 +96,7 @@ export async function fetchTicimaxOrders(
         OdemeTamamlandi: -1,
         OdemeTipi: -1,
         PaketlemeDurumu: -1,
-        SiparisDurumu: 2, // Sadece onaylanmış siparişler (siparisekle.php referansı)
+        SiparisDurumu: -1, // Tüm sipariş durumlarını çek (Kullanıcı isteği: Sadece onaylandı değil, hepsi gelsin)
         SiparisID: -1,
         KargoFirmaID: -1,
         TedarikciID: -1,

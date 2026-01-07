@@ -20,6 +20,7 @@ import {
     Box,
     Divider,
     ProgressBar,
+    Select,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -117,7 +118,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 return json({ status: "error", message: "Konfigürasyon bulunamadı." });
             }
 
-            const orders = await fetchTicimaxOrders(config);
+            const statusParam = formData.get("status");
+            const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
+
+            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu });
 
             // Müşteri eşleştirmelerini yap
             const enrichedOrders = await Promise.all(orders.map(async (order) => {
@@ -308,6 +312,7 @@ export default function TiciToShopify() {
     const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
+    const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -332,7 +337,7 @@ export default function TiciToShopify() {
     // Aksiyonlar
     const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
-    const handleFetchOrders = () => submit({ intent: "fetchOrders" }, { method: "post" });
+    const handleFetchOrders = () => submit({ intent: "fetchOrders", status: selectedStatus }, { method: "post" });
 
     const handleSyncOrder = (orderNo: string) => {
         submit({ intent: "syncOrders", orderId: orderNo }, { method: "post" });
@@ -343,6 +348,18 @@ export default function TiciToShopify() {
             submit({ intent: "deleteSync", id }, { method: "post" });
         }
     }
+
+    const statusOptions = [
+        { label: 'Hepsi (-1)', value: '-1' },
+        { label: 'Ön Sipariş (0)', value: '0' },
+        { label: 'Bekliyor (1)', value: '1' },
+        { label: 'Onaylandı (2)', value: '2' },
+        { label: 'Kargolandı (3)', value: '3' },
+        { label: 'Teslim Edildi (4)', value: '4' },
+        { label: 'İptal Edildi (5)', value: '5' },
+        { label: 'İade (6)', value: '6' },
+        { label: 'Silinmiş (7)', value: '7' }
+    ];
 
     return (
         <Page fullWidth>
@@ -374,12 +391,21 @@ export default function TiciToShopify() {
                 {/* Sipariş Listesi */}
                 <Card>
                     <BlockStack gap="400">
-                        <InlineStack align="space-between">
+                        <InlineStack align="space-between" blockAlign="center">
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
-                                <Text as="p" tone="subdued">Onaylanmış siparişleri çekin ve Shopify'a aktarın</Text>
+                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın</Text>
                             </BlockStack>
-                            <Button variant="primary" onClick={handleFetchOrders} loading={isFetching}>Siparişleri Çek (Bulk)</Button>
+                            <InlineStack gap="300">
+                                <Select
+                                    label="Durum"
+                                    labelHidden
+                                    options={statusOptions}
+                                    onChange={setSelectedStatus}
+                                    value={selectedStatus}
+                                />
+                                <Button variant="primary" onClick={handleFetchOrders} loading={isFetching}>Siparişleri Çek (Bulk)</Button>
+                            </InlineStack>
                         </InlineStack>
 
                         {fetchedOrders.length > 0 ? (
