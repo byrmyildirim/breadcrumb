@@ -62,7 +62,13 @@ let soapClientCache: { [key: string]: Client } = {};
 /**
  * Ticimax SOAP client oluştur veya cache'den al
  */
-async function getSoapClient(wsdlUrl: string): Promise<Client> {
+async function getSoapClient(configWsdlUrl: string): Promise<Client> {
+    // URL normalizasyonu: ?wsdl ekle
+    let wsdlUrl = configWsdlUrl.trim();
+    if (!wsdlUrl.toLowerCase().endsWith("?wsdl")) {
+        wsdlUrl += "?wsdl";
+    }
+
     if (!soapClientCache[wsdlUrl]) {
         try {
             soapClientCache[wsdlUrl] = await createClientAsync(wsdlUrl, {
