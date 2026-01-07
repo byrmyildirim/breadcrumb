@@ -208,6 +208,7 @@
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
 {% assign page_menu_map = shop.metafields.breadcrumb.page_menu_map.value %}
+{% assign extra_menu_items = shop.metafields.breadcrumb.extra_menu_items.value %}
 {% assign use_custom_root = block.settings.use_custom_root %}
 {% assign auto_drill_down = block.settings.auto_context_root %}
 
@@ -374,6 +375,33 @@
         {{ link.title }}
       </a>
     {% endfor %}
+    
+    {% comment %} EXTRA MENU ITEMS (from admin panel metafield) {% endcomment %}
+    {% if extra_menu_items != blank %}
+        {% for extra_item in extra_menu_items %}
+            {% comment %} Find the menu item in custom_full_menu {% endcomment %}
+            {% for menu_item in custom_full_menu %}
+                {% if menu_item.title == extra_item.menuTitle %}
+                    {% if extra_item.displayMode == 'parent' %}
+                        {% comment %} Parent only - simple link, no dropdown {% endcomment %}
+                        <a class="mega-top-item" 
+                           href="{{ menu_item.url }}"
+                           data-key="extra-{{ menu_item.title | handleize }}-parent">
+                            {{ menu_item.title }}
+                        </a>
+                    {% else %}
+                        {% comment %} Children mode - hoverable with dropdown {% endcomment %}
+                        <a class="mega-top-item" 
+                           data-key="extra-{{ menu_item.title | handleize }}" 
+                           href="{{ menu_item.url }}">
+                            {{ menu_item.title }}
+                        </a>
+                    {% endif %}
+                    {% break %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
   </div>
 
   <!-- MEGA PANELS -->
@@ -457,6 +485,51 @@
 
     {% endif %}
   {% endfor %}
+  
+  {% comment %} PANELS FOR EXTRA MENU ITEMS (from admin panel) {% endcomment %}
+  {% if extra_menu_items != blank %}
+      {% for extra_item in extra_menu_items %}
+          {% comment %} Create panel for ALL extra items with children {% endcomment %}
+          {% for menu_item in custom_full_menu %}
+              {% if menu_item.title == extra_item.menuTitle and menu_item.children.size > 0 %}
+                  {% comment %} Use different data-key based on displayMode {% endcomment %}
+                  {% if extra_item.displayMode == 'parent' %}
+                      <div class="mega-panel" data-key="extra-{{ menu_item.title | handleize }}-parent">
+                  {% else %}
+                      <div class="mega-panel" data-key="extra-{{ menu_item.title | handleize }}">
+                  {% endif %}
+                      <div class="mega-grid">
+                          {% comment %} Sol Görsel (genel ayardan) {% endcomment %}
+                          <div class="mega-image">
+                              {% if block.settings.show_sidebar_image and block.settings.sidebar_image %}
+                                  <img src="{{ block.settings.sidebar_image | image_url: width: 600 }}" alt="{{ menu_item.title }}">
+                              {% endif %}
+                          </div>
+                          
+                          <div class="mega-cols">
+                              {% for parent in menu_item.children %}
+                                  <div class="mega-col">
+                                      <div class="mega-col-title">
+                                          <a href="{{ parent.url }}">{{ parent.title }}</a>
+                                          {% if parent.children.size > 0 %}<span class="arrow">▼</span>{% endif %}
+                                      </div>
+                                      {% if parent.children.size > 0 %}
+                                          <div class="mega-col-links">
+                                              {% for child in parent.children %}
+                                                  <a href="{{ child.url }}">{{ child.title }}</a>
+                                              {% endfor %}
+                                          </div>
+                                      {% endif %}
+                                  </div>
+                              {% endfor %}
+                          </div>
+                      </div>
+                  </div>
+                  {% break %}
+              {% endif %}
+          {% endfor %}
+      {% endfor %}
+  {% endif %}
 
 </div>
 
@@ -504,7 +577,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 {% schema %}
 {
-  "name": "Mega Menu (App)",
+  "name": "Mega Menu (Pro)",
   "target": "section",
   "settings": [
     {
@@ -524,6 +597,12 @@ document.addEventListener("DOMContentLoaded", function () {
       "type": "link_list",
       "id": "main_menu",
       "label": "Ana Menü (Shopify)"
+    },
+    {
+      "type": "text",
+      "id": "extra_menu_handle",
+      "label": "Ekstra Menü Handle",
+      "info": "Ana kategorilerin yanına eklenecek menünün handle'ı (örn: extra-links). Shopify Admin > Online Store > Navigation'dan oluşturduğunuz menünün handle'ını yazın."
     },
     {
       "type": "header",

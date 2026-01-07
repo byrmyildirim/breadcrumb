@@ -77,7 +77,26 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse page mappings", e);
     }
 
-    return json({ menus, initialConfig, customMenuItems, initialPageMappings });
+    // 5. Fetch Extra Menu Items
+    const extraMenuQuery = await admin.graphql(
+        `query {
+            shop {
+                metafield(namespace: "breadcrumb", key: "extra_menu_items") {
+                    value
+                }
+            }
+        }`
+    );
+    const extraMenuJson = await extraMenuQuery.json();
+    let initialExtraMenuItems = [];
+    try {
+        const raw = extraMenuJson.data?.shop?.metafield?.value;
+        if (raw) initialExtraMenuItems = JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to parse extra menu items", e);
+    }
+
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -86,6 +105,7 @@ export async function action({ request }: { request: Request }) {
 
     const configString = formData.get("config") as string;
     const pageMappingsString = formData.get("pageMappings") as string;
+    const extraMenuItemsString = formData.get("extraMenuItems") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -131,6 +151,13 @@ export async function action({ request }: { request: Request }) {
                         key: "page_menu_map",
                         type: "json",
                         value: pageMappingsString,
+                    },
+                    {
+                        ownerId: shopId,
+                        namespace: "breadcrumb",
+                        key: "extra_menu_items",
+                        type: "json",
+                        value: extraMenuItemsString,
                     }
                 ]
             }
@@ -141,13 +168,14 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems, initialPageMappings } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
 
     const [items, setItems] = useState(Array.isArray(initialConfig) ? initialConfig : []);
     const [pageMappings, setPageMappings] = useState(Array.isArray(initialPageMappings) ? initialPageMappings : []);
+    const [extraMenuItems, setExtraMenuItems] = useState(Array.isArray(initialExtraMenuItems) ? initialExtraMenuItems : []);
 
     // --- Mega Menu Config Functions ---
     const addItem = () => {
@@ -183,10 +211,28 @@ export default function MegaMenuPage() {
         setPageMappings(newMappings);
     };
 
+    // --- Extra Menu Items Functions ---
+    const addExtraMenuItem = () => {
+        setExtraMenuItems([...extraMenuItems, { menuTitle: "", displayMode: "children" }]);
+    };
+
+    const removeExtraMenuItem = (index: number) => {
+        const newItems = [...extraMenuItems];
+        newItems.splice(index, 1);
+        setExtraMenuItems(newItems);
+    };
+
+    const updateExtraMenuItem = (index: number, key: string, value: string) => {
+        const newItems = [...extraMenuItems];
+        newItems[index] = { ...newItems[index], [key]: value };
+        setExtraMenuItems(newItems);
+    };
+
     const handleSave = () => {
         const formData = new FormData();
         formData.append("config", JSON.stringify(items));
         formData.append("pageMappings", JSON.stringify(pageMappings));
+        formData.append("extraMenuItems", JSON.stringify(extraMenuItems));
         submit(formData, { method: "post" });
     };
 
@@ -310,7 +356,88 @@ export default function MegaMenuPage() {
                     <Divider />
                 </Layout.Section>
 
-                {/* === SECTION 2: MEGA MENU TRIGGER CONFIG === */}
+                {/* === SECTION 2: EXTRA MENU ITEMS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                ➕ Ekstra Menü Öğeleri
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Ana menüye ek olarak gösterilecek menü öğelerini seçin.
+                                Her öğe için "sadece başlık" veya "alt menüleriyle birlikte" gösterme seçeneği vardır.
+                            </Text>
+
+                            {extraMenuItems.map((item: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "12px",
+                                    background: "#fafbfb"
+                                }}>
+                                    <InlineStack gap="400" align="start" blockAlign="end">
+                                        <Box width="40%">
+                                            <Select
+                                                label="Menü Öğesi Seç"
+                                                options={pageMenuOptions}
+                                                value={item.menuTitle}
+                                                onChange={(val) => updateExtraMenuItem(index, "menuTitle", val)}
+                                                helpText="Hangi menü öğesini eklemek istiyorsunuz?"
+                                            />
+                                            {item.menuTitle && (() => {
+                                                const foundItem = customMenuItems.find((c: any) => c.title === item.menuTitle);
+                                                if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                    return (
+                                                        <div style={{ marginTop: '8px', padding: '8px', background: '#e3f1df', borderRadius: '6px', fontSize: '12px' }}>
+                                                            ✓ {foundItem.children.length} alt öğe mevcut
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </Box>
+                                        <Box width="40%">
+                                            <Select
+                                                label="Görüntüleme Modu"
+                                                options={[
+                                                    { label: "Alt menüleri göster", value: "children" },
+                                                    { label: "Sadece başlık (link olarak)", value: "parent" }
+                                                ]}
+                                                value={item.displayMode || "children"}
+                                                onChange={(val) => updateExtraMenuItem(index, "displayMode", val)}
+                                                helpText={item.displayMode === "parent"
+                                                    ? "Tıklanınca koleksiyona gider, alt menü açılmaz"
+                                                    : "Hover'da alt menüler açılır"}
+                                            />
+                                        </Box>
+                                        <Button
+                                            tone="critical"
+                                            onClick={() => removeExtraMenuItem(index)}
+                                            variant="plain"
+                                            icon={DeleteIcon}
+                                        />
+                                    </InlineStack>
+                                </div>
+                            ))}
+
+                            {extraMenuItems.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz ekstra menü öğesi eklenmemiş. Aşağıdaki butonla ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addExtraMenuItem} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Ekstra Menü Öğesi Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
+                {/* === SECTION 3: MEGA MENU TRIGGER CONFIG === */}
                 <Layout.Section>
                     <Card>
                         <BlockStack gap="500">
