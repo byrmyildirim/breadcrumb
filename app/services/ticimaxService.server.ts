@@ -56,12 +56,16 @@ export interface TicimaxSiparis {
 }
 
 /**
- * Servis URL'ini hazırla (WSDL olmayan, yalın .svc adresi)
+ * Servis URL'ini hazırla (WSDL olmayan, yalın .svc adresi) ve HTTPS zorla
  */
 function getServiceUrl(url: string): string {
     let cleanUrl = url.trim();
     if (cleanUrl.toLowerCase().endsWith("?wsdl") || cleanUrl.toLowerCase().endsWith("?WSDL")) {
         cleanUrl = cleanUrl.substring(0, cleanUrl.length - 5);
+    }
+    // HTTP -> HTTPS Yönlendirme sorununu (POST -> GET dönüşümü) önlemek için protokolü zorla
+    if (cleanUrl.startsWith("http://")) {
+        cleanUrl = cleanUrl.replace("http://", "https://");
     }
     return cleanUrl;
 }
@@ -145,13 +149,14 @@ export async function fetchTicimaxOrders(
             method: 'POST',
             headers: {
                 'Content-Type': 'text/xml; charset=utf-8',
-                'SOAPAction': 'http://tempuri.org/ISiparisServis/SelectSiparis',
-                'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; MS Web Services Client Protocol 4.0.30319.42000)'
+                'SOAPAction': '"http://tempuri.org/ISiparisServis/SelectSiparis"', // Quote içine alındı
+                'User-Agent': 'PHP-SOAP/8.0.0' // PHP referansına geri dönüldü
             },
             body: envelope
         });
 
         console.log(`[Ticimax] Response Status: ${response.status} ${response.statusText}`);
+        console.log(`[Ticimax] Redirected: ${response.redirected}, Final URL: ${response.url}`); // Redirect kontrolü
         const rawXml = await response.text();
         console.log(`[Ticimax] Raw Response (Head): ${rawXml.substring(0, 500)}`);
 
