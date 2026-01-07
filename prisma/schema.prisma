@@ -59,3 +59,52 @@ model MegaMenu {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Ticimax API yapılandırması
+model TicimaxConfig {
+  id           String   @id @default(cuid())
+  shop         String   @unique
+  wsdlUrl      String   // Ticimax WSDL URL
+  uyeKodu      String   // Ticimax UyeKodu (API Key)
+  isActive     Boolean  @default(true)
+  lastSync     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Senkronizasyon log tablosu
+model TicimaxSyncLog {
+  id              String    @id @default(cuid())
+  shop            String
+  syncType        String    // "orders" | "customers"
+  status          String    // "pending" | "success" | "failed"
+  ordersProcessed Int       @default(0)
+  ordersFailed    Int       @default(0)
+  errorMessage    String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  @@index([shop, syncType])
+}
+
+// Aktarılan siparişlerin takibi
+model TicimaxOrder {
+  id                 String    @id @default(cuid())
+  shop               String
+  ticimaxOrderNo     String    // Ticimax sipariş numarası
+  shopifyOrderId     String?   // Shopify'da oluşturulan sipariş ID
+  shopifyOrderName   String?   // Shopify sipariş adı (#1001 gibi)
+  shopifyCustomerId  String?   // Eşleştirilen/oluşturulan müşteri ID
+  customerName       String
+  customerEmail      String?
+  customerPhone      String?
+  totalAmount        Float
+  status             String    // "pending" | "synced" | "failed"
+  errorMessage       String?
+  orderData          String    // JSON - Tüm sipariş verisi
+  createdAt          DateTime  @default(now())
+  syncedAt           DateTime?
+
+  @@unique([shop, ticimaxOrderNo])
+  @@index([shop, status])
+}

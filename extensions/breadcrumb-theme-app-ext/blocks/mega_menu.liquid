@@ -204,6 +204,31 @@
   }
 }
 
+/* TEMA AKTİF STİLLERİNİ SIFIRLAMA - Bizim kontrolümüzde olsun */
+{% if matched_parent %}
+.mobile-category-bar li .menu-item span,
+.mobile-category-bar li.active .menu-item span,
+.category-bar li .menu-item span,
+.category-bar li.active .menu-item span {
+  color: inherit !important;
+  font-weight: normal !important;
+}
+.mobile-category-bar li .menu-item img,
+.mobile-category-bar li.active .menu-item img,
+.category-bar li .menu-item img,
+.category-bar li.active .menu-item img {
+  filter: none !important;
+}
+/* Bizim aktif class'ımız */
+.breadcrumb-active-category span {
+  color: #e68b59 !important;
+  font-weight: 700 !important;
+}
+.breadcrumb-active-category img {
+  filter: invert(72%) sepia(35%) saturate(907%) hue-rotate(335deg) brightness(92%) contrast(89%) !important;
+}
+{% endif %}
+
 </style>
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
@@ -571,6 +596,112 @@ document.addEventListener("DOMContentLoaded", function () {
       this.closest(".mega-col").classList.toggle("open");
     });
   });
+
+  /* TEMA İKON MENÜSÜ AKTİF DURUMU (Web + Mobil) */
+  {% if matched_parent %}
+    function applyActiveMenuState() {
+      const activeCategory = "{{ matched_parent.title | escape }}";
+      const activeCategoryLower = activeCategory.toLowerCase();
+      const firstWord = activeCategoryLower.split(' ')[0];
+      
+      console.log('[Mega Menu] Aktif kategori:', activeCategory, 'İlk kelime:', firstWord);
+      
+      // === 1. WEB MENÜSÜ (.menu-item) ===
+      // Tüm li.active ve menu-item stillerini temizle
+      document.querySelectorAll("li.active").forEach(li => {
+        if (li.querySelector(".menu-item")) {
+          li.classList.remove("active");
+        }
+      });
+      
+      document.querySelectorAll(".menu-item").forEach(item => {
+        const spanText = item.querySelector("span");
+        if (spanText) {
+          spanText.style.color = "";
+          spanText.style.fontWeight = "";
+        }
+        item.style.color = "";
+        item.classList.remove("breadcrumb-active-category");
+        const img = item.querySelector("img");
+        if (img) {
+          img.style.filter = "";
+        }
+      });
+      
+      // Doğru menu-item'ı bul ve vurgula
+      document.querySelectorAll(".menu-item").forEach(item => {
+        const spanText = item.querySelector("span");
+        if (spanText) {
+          const itemTitle = spanText.textContent.trim();
+          const itemTitleLower = itemTitle.toLowerCase();
+          
+          const isMatch = (
+            itemTitle === activeCategory ||
+            activeCategoryLower.includes(itemTitleLower) ||
+            itemTitleLower.includes(firstWord) ||
+            (firstWord.length > 2 && firstWord.includes(itemTitleLower))
+          );
+          
+          if (isMatch) {
+            console.log('[Mega Menu] Web eşleşme bulundu:', itemTitle);
+            const parentLi = item.closest("li");
+            if (parentLi) {
+              parentLi.classList.add("active");
+            }
+            item.classList.add("breadcrumb-active-category");
+          }
+        }
+      });
+      
+      // === 2. MOBİL MENÜSÜ (.mobile-category-item) ===
+      // Tüm mobile-category-item'lardan active kaldır
+      document.querySelectorAll(".mobile-category-item").forEach(item => {
+        item.classList.remove("active");
+      });
+      
+      // Doğru mobile-category-item'ı bul ve vurgula
+      let matchedHref = null;
+      document.querySelectorAll(".mobile-category-item").forEach(item => {
+        const spanText = item.querySelector("span");
+        if (spanText) {
+          const itemTitle = spanText.textContent.trim();
+          const itemTitleLower = itemTitle.toLowerCase();
+          
+          const isMatch = (
+            itemTitle === activeCategory ||
+            activeCategoryLower.includes(itemTitleLower) ||
+            itemTitleLower.includes(firstWord) ||
+            (firstWord.length > 2 && firstWord.includes(itemTitleLower))
+          );
+          
+          if (isMatch) {
+            console.log('[Mega Menu] Mobil eşleşme bulundu:', itemTitle);
+            item.classList.add("active");
+            matchedHref = item.getAttribute("href");
+          }
+        }
+      });
+      
+      // === 3. LOCALSTORAGE'I GÜNCELLE (Tema scriptini override et) ===
+      if (matchedHref) {
+        localStorage.setItem("lastMainCategory", matchedHref);
+        console.log('[Mega Menu] localStorage güncellendi:', matchedHref);
+      }
+    }
+    
+    // Theme scripti DOMContentLoaded'da çalışıyor, biz ondan SONRA çalışmalıyız
+    // Daha uzun gecikme kullan
+    setTimeout(applyActiveMenuState, 400);
+    setTimeout(applyActiveMenuState, 800);
+    
+    // Geri/ileri butonları ve bfcache için
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        console.log('[Mega Menu] Pageshow (bfcache) - yeniden uyguluyorum');
+        setTimeout(applyActiveMenuState, 200);
+      }
+    });
+  {% endif %}
 
 });
 </script>

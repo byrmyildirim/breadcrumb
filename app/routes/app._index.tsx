@@ -19,7 +19,8 @@ import {
   FilterIcon,
   DatabaseIcon,
   ViewIcon,
-  HomeIcon
+  HomeIcon,
+  OrderIcon,
 } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -138,6 +139,28 @@ export default function Index() {
                     <InlineStack align="end">
                       <Button url={`https://admin.shopify.com/store/${shop?.split('.')[0]}/themes/current/editor?context=apps`} target="_blank">
                         Tema Ayarlarına Git
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </Card>
+
+                {/* Tici to Shopify */}
+                <Card>
+                  <BlockStack gap="400">
+                    <InlineStack align="start" gap="400">
+                      <div style={{ background: "#fce4ec", padding: "10px", borderRadius: "8px" }}>
+                        <Icon source={OrderIcon} tone="critical" />
+                      </div>
+                      <BlockStack gap="200">
+                        <Text as="h3" variant="headingSm">Tici to Shopify</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Ticimax siparişlerini çekin ve Shopify mağazanıza aktarın.
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                    <InlineStack align="end">
+                      <Button as={RemixLink} to="/app/tici-to-shopify" variant="primary">
+                        Siparişleri Yönet
                       </Button>
                     </InlineStack>
                   </BlockStack>
