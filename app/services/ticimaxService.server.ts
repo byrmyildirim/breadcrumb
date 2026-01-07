@@ -145,6 +145,24 @@ export async function testTicimaxConnection(
     config: TicimaxApiConfig
 ): Promise<{ success: boolean; message: string; orderCount?: number }> {
     try {
+        // URL normalizasyonu
+        let wsdlUrl = config.wsdlUrl.trim();
+        if (!wsdlUrl.toLowerCase().endsWith("?wsdl") && !wsdlUrl.toLowerCase().endsWith("?WSDL")) {
+            wsdlUrl += "?wsdl";
+        }
+
+        // Ön kontrol: Raw fetch ile içeriği kontrol et
+        const response = await fetch(wsdlUrl);
+        const text = await response.text();
+
+        // Hata sayfası kontrolü
+        if (text.includes("svcutil.exe") || text.trim().toLowerCase().startsWith("<!doctype html") || text.trim().toLowerCase().startsWith("<html")) {
+            return {
+                success: false,
+                message: `WSDL Hatası: Sunucu XML yerine HTML sayfası döndürüyor. URL'in sonuna '?wsdl' eklenmiş olduğundan emin olun.`,
+            };
+        }
+
         const client = await getSoapClient(config.wsdlUrl);
 
         // Sadece 1 sipariş çekerek bağlantıyı test et
