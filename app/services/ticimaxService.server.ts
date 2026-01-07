@@ -146,7 +146,7 @@ export async function fetchTicimaxOrders(
             headers: {
                 'Content-Type': 'text/xml; charset=utf-8',
                 'SOAPAction': 'http://tempuri.org/ISiparisServis/SelectSiparis',
-                'User-Agent': 'PHP-SOAP/8.0.0' // PHP taklidi yaparak sunucunun olası engellerini aşmayı dene
+                'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; MS Web Services Client Protocol 4.0.30319.42000)'
             },
             body: envelope
         });
