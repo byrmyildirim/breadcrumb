@@ -298,6 +298,9 @@ export async function createDraftOrder(
             };
         }
 
+        // Payload'ı logla
+        console.log("Draft Order Input Payload:", JSON.stringify(input, null, 2));
+
         const response = await admin.graphql(`
       mutation draftOrderCreate($input: DraftOrderInput!) {
         draftOrderCreate(input: $input) {
