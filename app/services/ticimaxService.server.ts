@@ -66,11 +66,18 @@ async function getSoapClient(wsdlUrl: string): Promise<Client> {
     if (!soapClientCache[wsdlUrl]) {
         try {
             soapClientCache[wsdlUrl] = await createClientAsync(wsdlUrl, {
-                wsdl_options: { timeout: 30000 },
+                disableCache: true,
+                wsdl_options: {
+                    timeout: 30000,
+                    headers: {
+                        'User-Agent': 'Node-SOAP-Client',
+                        'Content-Type': 'text/xml; charset=utf-8'
+                    }
+                },
             });
         } catch (error) {
             console.error("SOAP client oluşturma hatası:", error);
-            throw new Error(`Ticimax WSDL'e bağlanılamadı: ${wsdlUrl}`);
+            throw new Error(`Ticimax WSDL'e bağlanılamadı: ${wsdlUrl}. Hata: ${error instanceof Error ? error.message : "Bilinmeyen hata"}`);
         }
     }
     return soapClientCache[wsdlUrl];
@@ -86,14 +93,14 @@ export async function fetchTicimaxOrders(
 ): Promise<TicimaxSiparis[]> {
     const client = await getSoapClient(config.wsdlUrl);
 
-    // Varsayılan filtre - Onaylanmış siparişler (SiparisDurumu: 2)
+    // Varsayılan filtre - Tüm siparişler (SiparisDurumu: -1)
     const defaultFilter: WebSiparisFiltre = {
         EntegrasyonAktarildi: -1,
         OdemeDurumu: -1,
         OdemeTamamlandi: -1,
         OdemeTipi: -1,
         PaketlemeDurumu: -1,
-        SiparisDurumu: 2, // Onaylanmış siparişler
+        SiparisDurumu: -1, // Tüm durumlar (0-9 ve diğerleri)
         SiparisID: -1,
         KargoFirmaID: -1,
         TedarikciID: -1,
