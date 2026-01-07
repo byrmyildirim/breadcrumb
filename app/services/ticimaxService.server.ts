@@ -178,7 +178,7 @@ export async function testTicimaxConnection(config: TicimaxApiConfig): Promise<{
         const orders = await fetchTicimaxOrders(config, {}, { KayitSayisi: 1 });
         return {
             success: true,
-            message: "Ticimax bağlantısı başarılı! (SOAP Bypass Modu)",
+            message: "Ticimax bağlantısı başarılı!",
             orderCount: orders.length
         };
     } catch (error: any) {
