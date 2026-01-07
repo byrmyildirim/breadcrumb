@@ -203,38 +203,6 @@
     display: none !important;
   }
 }
-  }
-}
-
-/* EXTRA MENU LINKS BAR */
-.mega-extra-bar {
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 8px 0;
-  display: block;
-  font-family: inherit;
-}
-.mega-extra-content {
-  display: flex;
-  justify-content: center; /* User image shows centered or right */
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-.mega-extra-link {
-  font-size: 13px;
-  color: #333;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-.mega-extra-link:hover {
-  color: #ea580c; /* Orange */
-}
-.mega-extra-sep {
-  color: #ccc;
-  font-size: 12px;
-}
 
 </style>
 
@@ -385,21 +353,6 @@
             {% endif %}
         {% endfor %}
     {% endif %}
-
-    {% comment %} 4. INHERIT MAPPING FROM PARENT (For Product Pages) {% endcomment %}
-    {% if found_mapping == nil and matched_parent %}
-      {% for map in page_menu_map %}
-        {% if map.menuTitle == matched_parent.title %}
-          {% assign found_mapping = map %}
-          {% break %}
-        {% endif %}
-      {% endfor %}
-    {% endif %}
-
-    {% comment %} 5. Fallback to MAIN MENU {% endcomment %}
-    {% if nav_items == empty %}
-      {% assign nav_items = custom_full_menu %}
-    {% endif %}
   {% endif %}
 
 {% else %}
@@ -420,26 +373,6 @@
       </a>
     {% endfor %}
   </div>
-
-  <!-- EKSTRA MENÜ LINKLERI (Dinamic) -->
-  {% if found_mapping.extraLinks != blank %}
-    <div class="mega-extra-bar">
-      <div class="page-width">
-        <div class="mega-extra-content">
-           {% assign extra_lines = found_mapping.extraLinks | newline_to_br | split: '<br />' %}
-           {% for line in extra_lines %}
-               {% assign parts = line | split: '|' %}
-               {% if parts.size == 2 %}
-                  <a href="{{ parts[1] | strip }}" class="mega-extra-link">{{ parts[0] | strip }}</a>
-                  {% unless forloop.last %}
-                    <span class="mega-extra-sep">|</span>
-                  {% endunless %}
-               {% endif %}
-           {% endfor %}
-        </div>
-      </div>
-    </div>
-  {% endif %}
 
   <!-- MEGA PANELS -->
   {% for link in nav_items %}
