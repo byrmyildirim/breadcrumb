@@ -137,6 +137,9 @@ export async function fetchTicimaxOrders(
   </soap:Body>
 </soap:Envelope>`;
 
+    console.log(`[Ticimax] Fetch Started. URL: ${serviceUrl}`);
+    console.log(`[Ticimax] Params: Status=${defaultFilter.SiparisDurumu}, Limit=${defaultPagination.KayitSayisi}`);
+
     try {
         const response = await fetch(serviceUrl, {
             method: 'POST',
@@ -148,7 +151,9 @@ export async function fetchTicimaxOrders(
             body: envelope
         });
 
+        console.log(`[Ticimax] Response Status: ${response.status} ${response.statusText}`);
         const rawXml = await response.text();
+        console.log(`[Ticimax] Raw Response (Head): ${rawXml.substring(0, 500)}`);
 
         // Hata kontrolü
         if (!response.ok) {
@@ -159,13 +164,17 @@ export async function fetchTicimaxOrders(
         if (rawXml.includes("Fault>") || rawXml.includes("faultcode>")) {
             // Fault temizle
             const cleanFault = rawXml.replace(/<(\/?)[a-zA-Z0-9-_]+:/g, '<$1');
-            throw new Error("Ticimax SOAP Fault: " + getTagValue(cleanFault, "faultstring"));
+            const faultString = getTagValue(cleanFault, "faultstring");
+            console.error("[Ticimax] SOAP Fault:", faultString);
+            throw new Error("Ticimax SOAP Fault: " + faultString);
         }
 
-        return parseSoapResponseRobust(rawXml);
+        const parsedOrders = parseSoapResponseRobust(rawXml);
+        console.log(`[Ticimax] Parsed Order Count: ${parsedOrders.length}`);
+        return parsedOrders;
 
     } catch (error: any) {
-        console.error("Ticimax fetch hatası:", error);
+        console.error("[Ticimax] Fetch Error:", error);
         throw new Error(`Siparişler çekilemedi: ${error.message}`);
     }
 }
