@@ -224,7 +224,7 @@ export default function MegaMenuPage() {
 
     return (
         <Page
-            title="Mega Menü Ayarları"
+            title="Mega Menü Ayarları (v2 - Updated)"
             subtitle="Sayfa-menü eşleştirmeleri ve mega menü içeriklerini yapılandırın."
             primaryAction={{
                 content: isSaving ? "Kaydediliyor..." : "Kaydet",
