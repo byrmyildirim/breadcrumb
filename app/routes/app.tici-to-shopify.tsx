@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useActionData, useSubmit, useNavigation } from "@remix-run/react";
@@ -67,23 +67,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 // Action - Siparişleri çek ve aktar
+// Action - Siparişleri çek ve aktar
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { admin, session } = await authenticate.admin(request);
     const shop = session.shop;
     const formData = await request.formData();
-    const action = formData.get("action");
+    const intent = formData.get("intent");
 
-    // Config'i al
-    const config = await prisma.ticimaxConfig.findUnique({
-        where: { shop },
-    });
-
-    if (action === "save_config") {
+    // 1. Ayarları Kaydet
+    if (intent === "saveSettings") {
         const wsdlUrl = formData.get("wsdlUrl") as string;
-        const uyeKodu = formData.get("uyeKodu") as string;
+        const uyeKodu = formData.get("apiKey") as string;
 
         if (!wsdlUrl || !uyeKodu) {
-            return json({ error: "WSDL URL ve Üye Kodu zorunludur" });
+            return json({ status: "error", message: "WSDL URL ve Üye Kodu zorunludur" });
         }
 
         await prisma.ticimaxConfig.upsert({
@@ -92,201 +89,211 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             update: { wsdlUrl, uyeKodu },
         });
 
-        return json({ success: true, message: "Ayarlar kaydedildi" });
+        return json({ status: "success", message: "Ayarlar kaydedildi." });
     }
 
-    if (action === "test_connection") {
-        if (!config) {
-            return json({ error: "Önce Ticimax ayarlarını yapılandırın" });
-        }
-
-        const result = await testTicimaxConnection({
-            wsdlUrl: config.wsdlUrl,
-            uyeKodu: config.uyeKodu,
-        });
-
-        return json({
-            testResult: result,
-        });
-    }
-
-    if (action === "fetch_orders") {
-        if (!config) {
-            return json({ error: "Önce Ticimax ayarlarını yapılandırın" });
-        }
-
+    // 2. Bağlantı Testi
+    if (intent === "testConnection") {
         try {
-            const orders = await fetchTicimaxOrders({
-                wsdlUrl: config.wsdlUrl,
-                uyeKodu: config.uyeKodu,
-            });
-
+            const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
+            if (!config) {
+                return json({ status: "error", message: "Önce ayarları kaydedin." });
+            }
+            const result = await testTicimaxConnection(config);
             return json({
-                orders,
-                orderCount: orders.length,
+                status: result.success ? "success" : "error",
+                message: result.message
             });
         } catch (error: any) {
-            return json({ error: error.message });
+            return json({ status: "error", message: "Bağlantı hatası: " + error.message });
         }
     }
 
-    if (action === "sync_order") {
-        if (!config) {
-            return json({ error: "Önce Ticimax ayarlarını yapılandırın" });
-        }
-
-        const orderData = formData.get("orderData") as string;
-        if (!orderData) {
-            return json({ error: "Sipariş verisi eksik" });
-        }
-
+    // 3. Siparişleri Çek ve Müşteri Eşleştir
+    if (intent === "fetchOrders") {
         try {
-            const order: TicimaxSiparis = JSON.parse(orderData);
+            const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
+            if (!config) {
+                return json({ status: "error", message: "Konfigürasyon bulunamadı." });
+            }
 
-            // Zaten aktarılmış mı kontrol et
-            const existing = await prisma.ticimaxOrder.findUnique({
-                where: {
-                    shop_ticimaxOrderNo: {
-                        shop,
-                        ticimaxOrderNo: order.siparisNo,
-                    },
-                },
+            const orders = await fetchTicimaxOrders(config);
+
+            // Müşteri eşleştirmelerini yap
+            const enrichedOrders = await Promise.all(orders.map(async (order) => {
+                let shopifyCustomerId = null;
+                // E-posta ile kontrol
+                if (order.email) {
+                    const customers = await admin.graphql(
+                        `#graphql
+                    query findCustomer($query: String!) {
+                        customers(first: 1, query: $query) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }`,
+                        { variables: { query: `email:${order.email}` } }
+                    );
+
+                    const responseJson = await customers.json();
+                    const edge = responseJson.data?.customers?.edges?.[0];
+                    if (edge) {
+                        shopifyCustomerId = edge.node.id;
+                    }
+                }
+                // Telefon ile kontrol (Alternatif)
+                if (!shopifyCustomerId && order.telefon) {
+                    const customers = await admin.graphql(
+                        `#graphql
+                    query findCustomer($query: String!) {
+                        customers(first: 1, query: $query) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }`,
+                        { variables: { query: `phone:${order.telefon}` } }
+                    );
+                    const responseJson = await customers.json();
+                    const edge = responseJson.data?.customers?.edges?.[0];
+                    if (edge) {
+                        shopifyCustomerId = edge.node.id;
+                    }
+                }
+
+                return {
+                    ...order,
+                    _shopifyCustomerId: shopifyCustomerId
+                };
+            }));
+
+            return json({
+                status: "success",
+                orders: enrichedOrders,
+                message: `${orders.length} sipariş çekildi.`
             });
+        } catch (error: any) {
+            return json({ status: "error", message: "Siparişler çekilemedi: " + error.message });
+        }
+    }
 
-            if (existing && existing.status === "synced") {
-                return json({ error: `Sipariş #${order.siparisNo} zaten aktarılmış` });
+    // 4. Sipariş Aktar (Sync)
+    if (intent === "syncOrders") {
+        try {
+            const orderId = formData.get("orderId") as string;
+
+            const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
+            if (!config) throw new Error("Ayar yok");
+
+            // Siparişi tekrar çekerek en güncel halini alalım
+            const allOrders = await fetchTicimaxOrders(config);
+            const orderData = allOrders.find(o => o.siparisNo === orderId);
+
+            if (!orderData) {
+                throw new Error("Sipariş Ticimax verisinde bulunamadı.");
             }
 
             // Müşteriyi bul veya oluştur
-            const customer = await findOrCreateCustomer(admin, {
-                firstName: order.uyeAdi,
-                lastName: order.uyeSoyadi,
-                email: order.email || undefined,
-                phone: order.telefon || undefined,
-                address: order.adres
-                    ? {
-                        address1: order.adres,
-                        city: order.il,
-                        province: order.ilce,
-                        zip: order.postaKodu,
-                        country: "TR",
-                    }
-                    : undefined,
+            const customerResult = await findOrCreateCustomer(admin, {
+                firstName: orderData.uyeAdi,
+                lastName: orderData.uyeSoyadi,
+                email: orderData.email,
+                phone: orderData.telefon,
+                address: orderData.adres ? {
+                    address1: orderData.adres,
+                    city: orderData.il,
+                    province: orderData.ilce,
+                    country: "Turkey"
+                } : undefined
             });
 
-            // Draft order oluştur
-            const draftResult = await createDraftOrder(admin, {
-                customerId: customer?.id,
-                customerName: `${order.uyeAdi} ${order.uyeSoyadi}`,
-                email: order.email,
-                phone: order.telefon,
-                lineItems: order.urunler.map((urun) => ({
-                    title: urun.urunAdi,
-                    quantity: urun.adet,
+            // Draft Order Oluştur
+            const result = await createDraftOrder(admin, {
+                customerId: customerResult?.id,
+                customerName: `${orderData.uyeAdi} ${orderData.uyeSoyadi}`,
+                email: orderData.email,
+                phone: orderData.telefon,
+                lineItems: orderData.urunler.map(u => ({
+                    title: u.urunAdi,
+                    quantity: u.adet,
                     priceSet: {
                         shopMoney: {
-                            amount: (urun.tutar + urun.kdvTutari).toFixed(2),
-                            currencyCode: "TRY",
-                        },
+                            amount: (u.tutar + u.kdvTutari).toString(), // KDV dahil birim fiyat varsayımı veya KDV eklenecek mi? Ticimax'tan gelen Tutar genelde KDV hariçtir.
+                            currencyCode: "TRY"
+                        }
                     },
-                    sku: urun.stokKodu,
+                    sku: u.stokKodu
                 })),
-                note: `Ticimax Sipariş No: ${order.siparisNo}\nTarih: ${order.siparisTarihi}`,
-                shippingAddress: order.adres
-                    ? {
-                        address1: order.adres,
-                        city: order.il,
-                        province: order.ilce,
-                        zip: order.postaKodu,
-                        country: "TR",
-                        firstName: order.uyeAdi,
-                        lastName: order.uyeSoyadi,
-                        phone: order.telefon,
-                    }
-                    : undefined,
-                tags: ["ticimax-import", `ticimax-${order.siparisNo}`],
+                note: `Ticimax Sipariş No: ${orderData.siparisNo}\nTarih: ${orderData.siparisTarihi}`,
+                tags: ["ticimax-import", `ticimax-${orderData.siparisNo}`],
+                shippingAddress: orderData.adres ? {
+                    address1: orderData.adres,
+                    city: orderData.il,
+                    province: orderData.ilce,
+                    country: "Turkey",
+                    firstName: orderData.uyeAdi, // Alıcı adı ayrı değilse üye adı kullanılır
+                    lastName: orderData.uyeSoyadi,
+                    phone: orderData.telefon
+                } : undefined
             });
 
-            if (!draftResult.success) {
-                // Hata kaydı oluştur
-                await prisma.ticimaxOrder.upsert({
-                    where: {
-                        shop_ticimaxOrderNo: {
-                            shop,
-                            ticimaxOrderNo: order.siparisNo,
-                        },
-                    },
-                    create: {
+            if (result.success) {
+                await prisma.ticimaxOrder.create({
+                    data: {
                         shop,
-                        ticimaxOrderNo: order.siparisNo,
-                        customerName: `${order.uyeAdi} ${order.uyeSoyadi}`,
-                        customerEmail: order.email,
-                        customerPhone: order.telefon,
-                        totalAmount: order.toplamTutar,
-                        status: "failed",
-                        errorMessage: draftResult.error,
-                        orderData: JSON.stringify(order),
-                    },
-                    update: {
-                        status: "failed",
-                        errorMessage: draftResult.error,
-                    },
+                        ticimaxOrderNo: orderData.siparisNo,
+                        shopifyOrderId: result.orderId,
+                        shopifyOrderName: result.orderName,
+                        customerName: `${orderData.uyeAdi} ${orderData.uyeSoyadi}`,
+                        shopifyCustomerId: customerResult?.id,
+                        totalAmount: orderData.toplamTutar,
+                        status: "synced",
+                        orderData: JSON.stringify(orderData),
+                        syncedAt: new Date()
+                    }
                 });
 
-                return json({ error: draftResult.error });
-            }
-
-            // Başarılı kayıt
-            await prisma.ticimaxOrder.upsert({
-                where: {
-                    shop_ticimaxOrderNo: {
+                return json({ status: "success", message: `Sipariş ${result.orderName} olarak aktarıldı.` });
+            } else {
+                // Hata
+                await prisma.ticimaxOrder.create({
+                    data: {
                         shop,
-                        ticimaxOrderNo: order.siparisNo,
-                    },
-                },
-                create: {
-                    shop,
-                    ticimaxOrderNo: order.siparisNo,
-                    shopifyOrderId: draftResult.orderId,
-                    shopifyOrderName: draftResult.orderName,
-                    shopifyCustomerId: draftResult.customerId || customer?.id,
-                    customerName: `${order.uyeAdi} ${order.uyeSoyadi}`,
-                    customerEmail: order.email,
-                    customerPhone: order.telefon,
-                    totalAmount: order.toplamTutar,
-                    status: "synced",
-                    orderData: JSON.stringify(order),
-                    syncedAt: new Date(),
-                },
-                update: {
-                    shopifyOrderId: draftResult.orderId,
-                    shopifyOrderName: draftResult.orderName,
-                    shopifyCustomerId: draftResult.customerId || customer?.id,
-                    status: "synced",
-                    errorMessage: null,
-                    syncedAt: new Date(),
-                },
-            });
-
-            // Config'in lastSync'ini güncelle
-            await prisma.ticimaxConfig.update({
-                where: { shop },
-                data: { lastSync: new Date() },
-            });
-
-            return json({
-                success: true,
-                message: `Sipariş #${order.siparisNo} başarıyla aktarıldı`,
-                shopifyOrderName: draftResult.orderName,
-                customerIsNew: customer?.isNew,
-            });
+                        ticimaxOrderNo: orderData.siparisNo,
+                        customerName: `${orderData.uyeAdi} ${orderData.uyeSoyadi}`,
+                        totalAmount: orderData.toplamTutar,
+                        status: "failed",
+                        errorMessage: result.error,
+                        orderData: JSON.stringify(orderData),
+                        syncedAt: new Date()
+                    }
+                });
+                return json({ status: "error", message: `Draft Order hatası: ${result.error}` });
+            }
         } catch (error: any) {
-            console.error("Sipariş aktarma hatası:", error);
-            return json({ error: error.message });
+            return json({ status: "error", message: error.message });
         }
     }
 
-    return json({ error: "Geçersiz işlem" });
+    // 5. Silme İşlemi
+    if (intent === "deleteSync") {
+        const id = formData.get("id") as string;
+        try {
+            await prisma.ticimaxOrder.delete({
+                where: { id }
+            });
+            return json({ status: "success", message: "Kayıt başarıyla silindi." });
+        } catch (error) {
+            return json({ status: "error", message: "Silme sırasında hata." });
+        }
+    }
+
+    return json({ status: "error", message: "Geçersiz işlem" });
 };
 
 // Component
@@ -295,321 +302,224 @@ export default function TiciToShopify() {
     const actionData = useActionData<typeof action>();
     const submit = useSubmit();
     const navigation = useNavigation();
-    const isLoading = navigation.state !== "idle";
 
     // State
     const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-    const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "");
-    const [uyeKodu, setUyeKodu] = useState(config?.uyeKodu || "");
-    const [orders, setOrders] = useState<TicimaxSiparis[]>([]);
-    const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-    const [syncingOrder, setSyncingOrder] = useState<string | null>(null);
+    const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
+    const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
+    const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
 
-    // Siparişleri çek
-    const handleFetchOrders = useCallback(() => {
-        submit({ action: "fetch_orders" }, { method: "post" });
-    }, [submit]);
+    // Action'dan gelen verileri yakala
+    useEffect(() => {
+        const data = actionData as any;
+        if (data?.status === "success") {
+            if (data.orders) {
+                setFetchedOrders(data.orders);
+                shopify.toast.show(data.message || "Siparişler yüklendi");
+            } else {
+                shopify.toast.show(data.message || "İşlem başarılı");
+            }
+        } else if (data?.status === "error") {
+            shopify.toast.show(data.message || "Hata oluştu", { duration: 5000, isError: true });
+        }
+    }, [actionData]);
 
-    // Ayarları kaydet
-    const handleSaveSettings = useCallback(() => {
-        submit({ action: "save_config", wsdlUrl, uyeKodu }, { method: "post" });
-        setSettingsModalOpen(false);
-    }, [submit, wsdlUrl, uyeKodu]);
+    // Loading durumları
+    const isFetching = navigation.state === "submitting" && navigation.formData?.get("intent") === "fetchOrders";
+    const isSyncing = navigation.state === "submitting" && navigation.formData?.get("intent") === "syncOrders";
+    const isTesting = navigation.state === "submitting" && navigation.formData?.get("intent") === "testConnection";
 
-    // Bağlantı testi
-    const handleTestConnection = useCallback(() => {
-        submit({ action: "test_connection" }, { method: "post" });
-    }, [submit]);
+    // Aksiyonlar
+    const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
+    const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
+    const handleFetchOrders = () => submit({ intent: "fetchOrders" }, { method: "post" });
 
-    // Tek sipariş aktar
-    const handleSyncOrder = useCallback(
-        (order: TicimaxSiparis) => {
-            setSyncingOrder(order.siparisNo);
-            submit(
-                {
-                    action: "sync_order",
-                    orderData: JSON.stringify(order),
-                },
-                { method: "post" }
-            );
-        },
-        [submit]
-    );
+    const handleSyncOrder = (orderNo: string) => {
+        submit({ intent: "syncOrders", orderId: orderNo }, { method: "post" });
+    };
 
-    // Action data'dan siparişleri güncelle
-    if (actionData && "orders" in actionData && actionData.orders) {
-        if (orders.length !== actionData.orders.length) {
-            setOrders(actionData.orders);
+    const handleDeleteSync = (id: string) => {
+        if (confirm("Silmek istediğinize emin misiniz?")) {
+            submit({ intent: "deleteSync", id }, { method: "post" });
         }
     }
 
-    // Aktarılmış sipariş numaralarını set olarak tut
-    const syncedOrderNos = new Set(
-        syncedOrders
-            .filter((o) => o.status === "synced")
-            .map((o) => o.ticimaxOrderNo)
-    );
-
     return (
-        <Page>
-            <TitleBar title="Tici to Shopify" />
+        <Page fullWidth>
+            <TitleBar title="Tici to Shopify">
+            </TitleBar>
 
-            <Layout>
-                <Layout.Section>
+            <BlockStack gap="500">
+                {/* Ayarlar ve Test */}
+                <Card>
                     <BlockStack gap="400">
-                        {/* Banner - Hata veya Başarı mesajları */}
-                        {actionData && "error" in actionData && actionData.error && (
-                            <Banner tone="critical" onDismiss={() => { }}>
-                                {actionData.error}
-                            </Banner>
-                        )}
-                        {actionData && "success" in actionData && actionData.success && (
-                            <Banner tone="success" onDismiss={() => { }}>
-                                {actionData.message}
-                            </Banner>
-                        )}
-                        {actionData && "testResult" in actionData && actionData.testResult && (
-                            <Banner
-                                tone={actionData.testResult.success ? "success" : "critical"}
-                                onDismiss={() => { }}
-                            >
-                                {actionData.testResult.message}
-                            </Banner>
-                        )}
-
-                        {/* Ayarlar Kartı */}
-                        <Card>
-                            <BlockStack gap="400">
-                                <InlineStack align="space-between">
-                                    <BlockStack gap="100">
-                                        <Text as="h2" variant="headingMd">
-                                            Ticimax Bağlantısı
-                                        </Text>
-                                        <Text as="p" variant="bodySm" tone="subdued">
-                                            {config
-                                                ? `WSDL: ${config.wsdlUrl.substring(0, 50)}...`
-                                                : "Henüz yapılandırılmadı"}
-                                        </Text>
-                                    </BlockStack>
-                                    <InlineStack gap="200">
-                                        {config && (
-                                            <Badge tone={config.isActive ? "success" : "warning"}>
-                                                {config.isActive ? "Aktif" : "Pasif"}
-                                            </Badge>
-                                        )}
-                                        <Button onClick={() => setSettingsModalOpen(true)}>
-                                            Ayarlar
-                                        </Button>
-                                        {config && (
-                                            <Button onClick={handleTestConnection} loading={isLoading}>
-                                                Bağlantı Test Et
-                                            </Button>
-                                        )}
-                                    </InlineStack>
-                                </InlineStack>
+                        <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="200">
+                                <Text as="h2" variant="headingMd">Ticimax Bağlantısı</Text>
+                                <Text as="p" tone="subdued">WSDL: {config?.wsdlUrl ? (config.wsdlUrl.length > 50 ? config.wsdlUrl.substring(0, 50) + "..." : config.wsdlUrl) : "Tanımlı değil"}</Text>
                             </BlockStack>
-                        </Card>
-
-                        {/* Siparişleri Çek */}
-                        {config && (
-                            <Card>
-                                <BlockStack gap="400">
-                                    <InlineStack align="space-between">
-                                        <BlockStack gap="100">
-                                            <Text as="h2" variant="headingMd">
-                                                Ticimax Siparişleri
-                                            </Text>
-                                            <Text as="p" variant="bodySm" tone="subdued">
-                                                Onaylanmış siparişleri çekin ve Shopify'a aktarın
-                                            </Text>
-                                        </BlockStack>
-                                        <Button
-                                            variant="primary"
-                                            onClick={handleFetchOrders}
-                                            loading={isLoading}
-                                        >
-                                            Siparişleri Çek
-                                        </Button>
-                                    </InlineStack>
-
-                                    {isLoading && (
-                                        <InlineStack align="center" gap="200">
-                                            <Spinner size="small" />
-                                            <Text as="span">Yükleniyor...</Text>
-                                        </InlineStack>
-                                    )}
-
-                                    {orders.length === 0 && !isLoading && (
-                                        <EmptyState
-                                            heading="Sipariş bulunamadı"
-                                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                                        >
-                                            <p>
-                                                Ticimax'tan siparişleri çekmek için yukarıdaki butonu
-                                                kullanın.
-                                            </p>
-                                        </EmptyState>
-                                    )}
-
-                                    {orders.length > 0 && (
-                                        <DataTable
-                                            columnContentTypes={[
-                                                "text",
-                                                "text",
-                                                "text",
-                                                "numeric",
-                                                "text",
-                                                "text",
-                                            ]}
-                                            headings={[
-                                                "Sipariş No",
-                                                "Tarih",
-                                                "Müşteri",
-                                                "Tutar",
-                                                "Durum",
-                                                "İşlem",
-                                            ]}
-                                            rows={orders.map((order) => {
-                                                const isSynced = syncedOrderNos.has(order.siparisNo);
-                                                const isSyncing = syncingOrder === order.siparisNo && isLoading;
-
-                                                return [
-                                                    order.siparisNo,
-                                                    new Date(order.siparisTarihi).toLocaleDateString("tr-TR"),
-                                                    `${order.uyeAdi} ${order.uyeSoyadi}`,
-                                                    `₺${order.toplamTutar.toFixed(2)}`,
-                                                    isSynced ? (
-                                                        <Badge tone="success">Aktarıldı</Badge>
-                                                    ) : (
-                                                        <Badge tone="warning">Bekliyor</Badge>
-                                                    ),
-                                                    isSynced ? (
-                                                        <Text as="span" tone="subdued">
-                                                            ✓
-                                                        </Text>
-                                                    ) : (
-                                                        <Button
-                                                            size="slim"
-                                                            onClick={() => handleSyncOrder(order)}
-                                                            loading={isSyncing}
-                                                            disabled={isLoading}
-                                                        >
-                                                            Aktar
-                                                        </Button>
-                                                    ),
-                                                ];
-                                            })}
-                                        />
-                                    )}
-                                </BlockStack>
-                            </Card>
-                        )}
-
-                        {/* Aktarım Geçmişi */}
-                        {syncedOrders.length > 0 && (
-                            <Card>
-                                <BlockStack gap="400">
-                                    <Text as="h2" variant="headingMd">
-                                        Aktarım Geçmişi
-                                    </Text>
-                                    <DataTable
-                                        columnContentTypes={["text", "text", "text", "text", "text", "text"]}
-                                        headings={[
-                                            "Ticimax No",
-                                            "Shopify No",
-                                            "Müşteri",
-                                            "Tutar",
-                                            "Durum",
-                                            "İşlem",
-                                        ]}
-                                        rows={syncedOrders.slice(0, 20).map((order) => {
-                                            const cleanId = (gid: string | null) => {
-                                                if (!gid) return "";
-                                                return gid.split("/").pop();
-                                            };
-
-                                            const shopName = config?.shop.replace(".myshopify.com", "");
-
-                                            return [
-                                                order.ticimaxOrderNo,
-                                                order.shopifyOrderName || "-",
-                                                order.customerName,
-                                                `₺${order.totalAmount.toFixed(2)}`,
-                                                order.status === "synced" ? (
-                                                    <Badge tone="success">Başarılı</Badge>
-                                                ) : order.status === "failed" ? (
-                                                    <Badge tone="critical">Hata</Badge>
-                                                ) : (
-                                                    <Badge>Bekliyor</Badge>
-                                                ),
-                                                <InlineStack gap="200">
-                                                    {order.shopifyOrderId && (
-                                                        <Button
-                                                            size="slim"
-                                                            url={`https://admin.shopify.com/store/${shopName}/draft_orders/${cleanId(order.shopifyOrderId)}`}
-                                                            target="_blank"
-                                                        >
-                                                            Siparişi Gör
-                                                        </Button>
-                                                    )}
-                                                    {order.shopifyCustomerId && (
-                                                        <Button
-                                                            size="slim"
-                                                            url={`https://admin.shopify.com/store/${shopName}/customers/${cleanId(order.shopifyCustomerId)}`}
-                                                            target="_blank"
-                                                        >
-                                                            Müşteriyi Gör
-                                                        </Button>
-                                                    )}
-                                                </InlineStack>
-                                            ];
-                                        })}
-                                    />
-                                </BlockStack>
-                            </Card>
-                        )}
+                            <InlineStack gap="300">
+                                {config ? (
+                                    <Badge tone="success">Aktif</Badge>
+                                ) : (
+                                    <Badge tone="critical">Pasif</Badge>
+                                )}
+                                <Button onClick={() => setSettingsModalOpen(true)}>Ayarlar</Button>
+                                <Button onClick={handleTestConnection} loading={isTesting}>Bağlantı Test Et</Button>
+                            </InlineStack>
+                        </InlineStack>
                     </BlockStack>
-                </Layout.Section>
-            </Layout>
+                </Card>
 
-            {/* Ayarlar Modal */}
-            <Modal
-                open={settingsModalOpen}
-                onClose={() => setSettingsModalOpen(false)}
-                title="Ticimax API Ayarları"
-                primaryAction={{
-                    content: "Kaydet",
-                    onAction: handleSaveSettings,
-                    loading: isLoading,
-                }}
-                secondaryActions={[
-                    {
-                        content: "İptal",
-                        onAction: () => setSettingsModalOpen(false),
-                    },
-                ]}
-            >
-                <Modal.Section>
+                {/* Sipariş Listesi */}
+                <Card>
                     <BlockStack gap="400">
-                        <TextField
-                            label="WSDL URL"
-                            value={wsdlUrl}
-                            onChange={setWsdlUrl}
-                            placeholder="http://yoursite.com/Servis/SiparisServis.svc?wsdl"
-                            helpText="Ticimax sipariş servisi WSDL adresi"
-                            autoComplete="off"
-                        />
-                        <TextField
-                            label="Üye Kodu (API Key)"
-                            value={uyeKodu}
-                            onChange={setUyeKodu}
-                            placeholder="XXXXXXXXXXXXXXXXXXXX"
-                            helpText="Ticimax entegrasyon üye kodu"
-                            autoComplete="off"
-                        />
+                        <InlineStack align="space-between">
+                            <BlockStack gap="100">
+                                <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
+                                <Text as="p" tone="subdued">Onaylanmış siparişleri çekin ve Shopify'a aktarın</Text>
+                            </BlockStack>
+                            <Button variant="primary" onClick={handleFetchOrders} loading={isFetching}>Siparişleri Çek (Bulk)</Button>
+                        </InlineStack>
+
+                        {fetchedOrders.length > 0 ? (
+                            <DataTable
+                                columnContentTypes={["text", "text", "text", "text", "text", "text"]}
+                                headings={["Sipariş No", "Tarih", "Müşteri", "Tutar", "Durum", "İşlem"]}
+                                rows={fetchedOrders.map((order) => {
+                                    const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
+
+                                    // Müşteri ID gösterimi
+                                    const customerInfo = order._shopifyCustomerId
+                                        ? <span style={{ color: "green", fontSize: "0.85em" }}> (ID: {order._shopifyCustomerId.split("/").pop()})</span>
+                                        : <span style={{ color: "orange", fontSize: "0.85em" }}> (Yeni)</span>;
+
+                                    return [
+                                        order.siparisNo,
+                                        new Date(order.siparisTarihi).toLocaleDateString("tr-TR"),
+                                        <>{order.uyeAdi} {order.uyeSoyadi}{customerInfo}</>,
+                                        `₺${order.toplamTutar}`,
+                                        isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
+                                        <Button
+                                            size="slim"
+                                            onClick={() => handleSyncOrder(order.siparisNo)}
+                                            disabled={isAlreadySynced || isSyncing}
+                                        >
+                                            {isAlreadySynced ? "✓" : "Aktar"}
+                                        </Button>
+                                    ];
+                                })}
+                            />
+                        ) : (
+                            isFetching ? <Text as="p" tone="subdued">Yükleniyor...</Text> : <Text as="p" tone="subdued">Listelenecek sipariş yok.</Text>
+                        )}
                     </BlockStack>
-                </Modal.Section>
-            </Modal>
+                </Card>
+
+                {/* Geçmiş */}
+                {syncedOrders.length > 0 && (
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                Aktarım Geçmişi
+                            </Text>
+                            <DataTable
+                                columnContentTypes={["text", "text", "text", "text", "text", "text", "text"]}
+                                headings={[
+                                    "Ticimax No",
+                                    "Shopify No",
+                                    "Müşteri",
+                                    "Tutar",
+                                    "Durum",
+                                    "İşlem",
+                                    "Yönet"
+                                ]}
+                                rows={syncedOrders.slice(0, 50).map((order) => {
+                                    const cleanId = (gid: string | null) => {
+                                        if (!gid) return "";
+                                        return gid.split("/").pop();
+                                    };
+
+                                    const shopName = config?.shop.replace(".myshopify.com", "");
+
+                                    return [
+                                        order.ticimaxOrderNo,
+                                        order.shopifyOrderName || "-",
+                                        order.customerName,
+                                        `₺${order.totalAmount.toFixed(2)}`,
+                                        order.status === "synced" ? (
+                                            <Badge tone="success">Başarılı</Badge>
+                                        ) : order.status === "failed" ? (
+                                            <Badge tone="critical">Hata</Badge>
+                                        ) : (
+                                            <Badge>Bekliyor</Badge>
+                                        ),
+                                        <InlineStack gap="200">
+                                            {order.shopifyOrderId && (
+                                                <Button
+                                                    size="slim"
+                                                    url={`https://admin.shopify.com/store/${shopName}/draft_orders/${cleanId(order.shopifyOrderId)}`}
+                                                    target="_blank"
+                                                >
+                                                    Siparişi Gör
+                                                </Button>
+                                            )}
+                                            {order.shopifyCustomerId && (
+                                                <Button
+                                                    size="slim"
+                                                    url={`https://admin.shopify.com/store/${shopName}/customers/${cleanId(order.shopifyCustomerId)}`}
+                                                    target="_blank"
+                                                >
+                                                    Müşteriyi Gör
+                                                </Button>
+                                            )}
+                                        </InlineStack>,
+                                        <Button tone="critical" size="slim" onClick={() => handleDeleteSync(order.id)}>Sil</Button>
+                                    ];
+                                })}
+                            />
+                        </BlockStack>
+                    </Card>
+                )}
+            </BlockStack>
+
+            {/* Ayar Modalı */}
+            {settingsModalOpen && (
+                <Modal
+                    open={settingsModalOpen}
+                    onClose={() => setSettingsModalOpen(false)}
+                    title="Ticimax API Ayarları"
+                    primaryAction={{
+                        content: 'Kaydet',
+                        onAction: handleSaveSettings,
+                    }}
+                    secondaryActions={[
+                        {
+                            content: 'İptal',
+                            onAction: () => setSettingsModalOpen(false),
+                        },
+                    ]}
+                >
+                    <Modal.Section>
+                        <BlockStack gap="400">
+                            <TextField
+                                label="WSDL URL"
+                                value={wsdlUrl}
+                                onChange={setWsdlUrl}
+                                autoComplete="off"
+                                helpText="Ticimax sipariş servisi WSDL adresi"
+                            />
+                            <TextField
+                                label="Üye Kodu (API Key)"
+                                value={apiKey}
+                                onChange={setApiKey}
+                                autoComplete="off"
+                                helpText="Ticimax entegrasyon üye kodu"
+                            />
+                        </BlockStack>
+                    </Modal.Section>
+                </Modal>
+            )}
         </Page>
     );
 }

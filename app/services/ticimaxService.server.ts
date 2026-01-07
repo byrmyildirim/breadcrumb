@@ -107,7 +107,7 @@ export async function fetchTicimaxOrders(
     // Varsayılan sayfalama
     const defaultPagination: WebSiparisSayfalama = {
         BaslangicIndex: 0,
-        KayitSayisi: 100, // Daha fazla sipariş getir
+        KayitSayisi: 500, // Daha fazla sipariş getir (Bulk Fetch)
         SiralamaDeger: "ID",
         SiralamaYonu: "DESC",
         ...pagination,
