@@ -513,27 +513,57 @@ export default function TiciToShopify() {
                                         Aktarım Geçmişi
                                     </Text>
                                     <DataTable
-                                        columnContentTypes={["text", "text", "text", "text", "text"]}
+                                        columnContentTypes={["text", "text", "text", "text", "text", "text"]}
                                         headings={[
                                             "Ticimax No",
                                             "Shopify No",
                                             "Müşteri",
                                             "Tutar",
                                             "Durum",
+                                            "İşlem",
                                         ]}
-                                        rows={syncedOrders.slice(0, 20).map((order) => [
-                                            order.ticimaxOrderNo,
-                                            order.shopifyOrderName || "-",
-                                            order.customerName,
-                                            `₺${order.totalAmount.toFixed(2)}`,
-                                            order.status === "synced" ? (
-                                                <Badge tone="success">Başarılı</Badge>
-                                            ) : order.status === "failed" ? (
-                                                <Badge tone="critical">Hata</Badge>
-                                            ) : (
-                                                <Badge>Bekliyor</Badge>
-                                            ),
-                                        ])}
+                                        rows={syncedOrders.slice(0, 20).map((order) => {
+                                            const cleanId = (gid: string | null) => {
+                                                if (!gid) return "";
+                                                return gid.split("/").pop();
+                                            };
+
+                                            const shopName = config?.shop.replace(".myshopify.com", "");
+
+                                            return [
+                                                order.ticimaxOrderNo,
+                                                order.shopifyOrderName || "-",
+                                                order.customerName,
+                                                `₺${order.totalAmount.toFixed(2)}`,
+                                                order.status === "synced" ? (
+                                                    <Badge tone="success">Başarılı</Badge>
+                                                ) : order.status === "failed" ? (
+                                                    <Badge tone="critical">Hata</Badge>
+                                                ) : (
+                                                    <Badge>Bekliyor</Badge>
+                                                ),
+                                                <InlineStack gap="200">
+                                                    {order.shopifyOrderId && (
+                                                        <Button
+                                                            size="slim"
+                                                            url={`https://admin.shopify.com/store/${shopName}/draft_orders/${cleanId(order.shopifyOrderId)}`}
+                                                            target="_blank"
+                                                        >
+                                                            Siparişi Gör
+                                                        </Button>
+                                                    )}
+                                                    {order.shopifyCustomerId && (
+                                                        <Button
+                                                            size="slim"
+                                                            url={`https://admin.shopify.com/store/${shopName}/customers/${cleanId(order.shopifyCustomerId)}`}
+                                                            target="_blank"
+                                                        >
+                                                            Müşteriyi Gör
+                                                        </Button>
+                                                    )}
+                                                </InlineStack>
+                                            ];
+                                        })}
                                     />
                                 </BlockStack>
                             </Card>
