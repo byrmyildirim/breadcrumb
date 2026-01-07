@@ -1,3 +1,4 @@
+import { createClientAsync, Client } from "soap";
 
 // Ticimax API yapılandırması
 export interface TicimaxApiConfig {
@@ -55,45 +56,59 @@ export interface TicimaxSiparis {
     urunler: TicimaxUrun[];
 }
 
+// SOAP client cache
+let soapClientCache: { [key: string]: Client } = {};
+
 /**
- * Servis URL'ini hazırla (WSDL olmayan)
+ * Ticimax SOAP client oluştur veya cache'den al
  */
-function getServiceUrl(url: string): string {
-    let cleanUrl = url.trim();
-    if (cleanUrl.toLowerCase().endsWith("?wsdl")) {
-        cleanUrl = cleanUrl.substring(0, cleanUrl.length - 5);
+async function getSoapClient(configWsdlUrl: string): Promise<Client> {
+    // URL normalizasyonu: ?wsdl ekle (Bu çok kritik!)
+    let wsdlUrl = configWsdlUrl.trim();
+    if (!wsdlUrl.toLowerCase().endsWith("?wsdl") && !wsdlUrl.toLowerCase().endsWith("?WSDL")) {
+        wsdlUrl += "?wsdl";
     }
-    return cleanUrl;
+
+    if (!soapClientCache[wsdlUrl]) {
+        try {
+            soapClientCache[wsdlUrl] = await createClientAsync(wsdlUrl, {
+                disableCache: true, // WSDL önbelleğini devre dışı bırak
+                endpoint: wsdlUrl, // Endpoint'i zorla (Bazen WSDL'deki ile farklı olabilir)
+                wsdl_options: {
+                    timeout: 30000,
+                    headers: {
+                        'User-Agent': 'Node-SOAP-Client',
+                        // Bazı sunucular bu header'ı ister
+                        'Connection': 'Keep-Alive'
+                    }
+                },
+            });
+        } catch (error) {
+            console.error("SOAP client oluşturma hatası:", error);
+            throw new Error(`Ticimax WSDL'e bağlanılamadı: ${wsdlUrl}. Hata: ${error instanceof Error ? error.message : "Bilinmeyen hata"}`);
+        }
+    }
+    return soapClientCache[wsdlUrl];
 }
 
 /**
- * XML tag içeriğini çek
- */
-function getTagValue(xml: string, tagName: string): string {
-    // Namespace'li veya namespacsiz tagleri yakalar: <tagName>...</tagName> veya <ns:tagName>...</ns:tagName>
-    const regex = new RegExp(`<([a-zA-Z0-9_]+:)?${tagName}[^>]*>(.*?)</([a-zA-Z0-9_]+:)?${tagName}>`, 's');
-    const match = regex.exec(xml);
-    return match ? match[2].trim() : ""; // match[2] içerik
-}
-
-/**
- * Ticimax'tan siparişleri çek (Raw Fetch)
+ * Ticimax'tan siparişleri çek
  */
 export async function fetchTicimaxOrders(
     config: TicimaxApiConfig,
     filter?: Partial<WebSiparisFiltre>,
     pagination?: Partial<WebSiparisSayfalama>
 ): Promise<TicimaxSiparis[]> {
-    const serviceUrl = getServiceUrl(config.wsdlUrl);
+    const client = await getSoapClient(config.wsdlUrl);
 
-    // Varsayılan filtre
+    // Varsayılan filtre - Tüm siparişler (SiparisDurumu: -1)
     const defaultFilter: WebSiparisFiltre = {
         EntegrasyonAktarildi: -1,
         OdemeDurumu: -1,
         OdemeTamamlandi: -1,
         OdemeTipi: -1,
         PaketlemeDurumu: -1,
-        SiparisDurumu: -1,
+        SiparisDurumu: -1, // Tüm durumlar
         SiparisID: -1,
         KargoFirmaID: -1,
         TedarikciID: -1,
@@ -110,177 +125,167 @@ export async function fetchTicimaxOrders(
         ...pagination,
     };
 
-    // XML Envelope oluştur
-    const envelope = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tns="http://tempuri.org/" xmlns:q1="http://schemas.datacontract.org/2004/07/">
-  <soap:Body>
-    <tns:SelectSiparis>
-      <tns:UyeKodu>${config.uyeKodu}</tns:UyeKodu>
-      <tns:f>
-        <q1:EntegrasyonAktarildi>${defaultFilter.EntegrasyonAktarildi}</q1:EntegrasyonAktarildi>
-        <q1:OdemeDurumu>${defaultFilter.OdemeDurumu}</q1:OdemeDurumu>
-        <q1:OdemeTamamlandi>${defaultFilter.OdemeTamamlandi}</q1:OdemeTamamlandi>
-        <q1:OdemeTipi>${defaultFilter.OdemeTipi}</q1:OdemeTipi>
-        <q1:PaketlemeDurumu>${defaultFilter.PaketlemeDurumu}</q1:PaketlemeDurumu>
-        <q1:SiparisDurumu>${defaultFilter.SiparisDurumu}</q1:SiparisDurumu>
-        <q1:SiparisID>${defaultFilter.SiparisID}</q1:SiparisID>
-        <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
-        <q1:TedarikciID>${defaultFilter.TedarikciID}</q1:TedarikciID>
-        <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>
-      </tns:f>
-      <tns:s>
-        <q1:BaslangicIndex>${defaultPagination.BaslangicIndex}</q1:BaslangicIndex>
-        <q1:KayitSayisi>${defaultPagination.KayitSayisi}</q1:KayitSayisi>
-        <q1:SiralamaDeger>${defaultPagination.SiralamaDeger}</q1:SiralamaDeger>
-        <q1:SiralamaYonu>${defaultPagination.SiralamaYonu}</q1:SiralamaYonu>
-      </tns:s>
-    </tns:SelectSiparis>
-  </soap:Body>
-</soap:Envelope>`;
+    const params = {
+        UyeKodu: config.uyeKodu,
+        f: defaultFilter,
+        s: defaultPagination,
+    };
 
     try {
-        const response = await fetch(serviceUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/xml; charset=utf-8',
-                'SOAPAction': 'http://tempuri.org/ISiparisServis/SelectSiparis',
-                'User-Agent': 'Node-Fetch-Client'
-            },
-            body: envelope
-        });
-
-        const xml = await response.text();
-
-        // Hata kontrolü
-        if (!response.ok) {
-            console.error("SOAP Error:", xml);
-            throw new Error(`Ticimax Servis Hatası: ${response.status} ${response.statusText}`);
-        }
-
-        if (xml.includes("Fault>") || xml.includes("faultcode>")) {
-            throw new Error("Ticimax SOAP Fault: " + getTagValue(xml, "faultstring"));
-        }
-
-        return parseSoapResponse(xml);
-
-    } catch (error: any) {
-        console.error("Ticimax fetch hatası:", error);
-        throw new Error(`Siparişler çekilemedi: ${error.message}`);
+        const [result] = await client.SelectSiparisAsync(params);
+        return parseOrderResponse(result);
+    } catch (error) {
+        console.error("Ticimax sipariş çekme hatası:", error);
+        throw new Error("Ticimax'tan siparişler alınamadı: " + (error instanceof Error ? error.message : String(error)));
     }
 }
 
 /**
- * Bağlantı Testi (Raw Fetch)
+ * Ticimax bağlantısını test et
  */
-export async function testTicimaxConnection(config: TicimaxApiConfig): Promise<{ success: boolean; message: string; orderCount?: number }> {
+export async function testTicimaxConnection(
+    config: TicimaxApiConfig
+): Promise<{ success: boolean; message: string; orderCount?: number }> {
     try {
-        // 1 sipariş çekerek test et
-        const orders = await fetchTicimaxOrders(config, {}, { KayitSayisi: 1 });
+        // Ön kontrol: Raw fetch ile WSDL'in HTML dönüp dönmediğini kontrol et (Kritik diagnostic)
+        let wsdlUrl = config.wsdlUrl.trim();
+        if (!wsdlUrl.toLowerCase().endsWith("?wsdl")) wsdlUrl += "?wsdl";
+
+        try {
+            const response = await fetch(wsdlUrl);
+            const text = await response.text();
+            if (text.includes("svcutil.exe") || text.trim().toLowerCase().startsWith("<!doctype html")) {
+                return {
+                    success: false,
+                    message: "HATA: WSDL adresi HTML döndürüyor. Lütfen URL'i ve sunucu durumunu kontrol edin."
+                };
+            }
+        } catch (e) {
+            // Fetch hatası olsa bile SOAP denemeye devam et
+        }
+
+        const client = await getSoapClient(config.wsdlUrl);
+
+        // Sadece 1 sipariş çekerek bağlantıyı test et
+        const params = {
+            UyeKodu: config.uyeKodu,
+            f: {
+                EntegrasyonAktarildi: -1,
+                OdemeDurumu: -1,
+                OdemeTamamlandi: -1,
+                OdemeTipi: -1,
+                PaketlemeDurumu: -1,
+                SiparisDurumu: -1,
+                SiparisID: -1,
+                KargoFirmaID: -1,
+                TedarikciID: -1,
+                UyeID: -1,
+            },
+            s: {
+                BaslangicIndex: 0,
+                KayitSayisi: 1,
+                SiralamaDeger: "ID",
+                SiralamaYonu: "DESC",
+            },
+        };
+
+        const [result] = await client.SelectSiparisAsync(params);
+        const orders = parseOrderResponse(result);
+
         return {
             success: true,
             message: "Ticimax bağlantısı başarılı!",
-            orderCount: orders.length
+            orderCount: orders.length,
         };
     } catch (error: any) {
+        console.error("Ticimax bağlantı testi hatası:", error);
         return {
             success: false,
-            message: `Bağlantı Hatası: ${error.message}`
+            message: `Bağlantı hatası: ${error.message || "Bilinmeyen hata"}`,
         };
     }
 }
 
 /**
- * Regex ile XML Response Parse Etme
+ * Sipariş response'unu parse et
  */
-function parseSoapResponse(xml: string): TicimaxSiparis[] {
-    const orders: TicimaxSiparis[] = [];
+function parseOrderResponse(result: any): TicimaxSiparis[] {
+    // node-soap result yapısı genellikle result.SelectSiparisResult.WebSiparis şeklindedir
+    const orders = result?.SelectSiparisResult?.WebSiparis;
 
-    // SelectSiparisResult içini al (Basit yaklaşım: tüm WebSiparis bloklarını bul)
-    // <a:WebSiparis> ... </a:WebSiparis>
+    if (!orders) {
+        return [];
+    }
 
-    // Regex ile tüm WebSiparis bloklarını bul
-    const siparisRegex = /<([a-zA-Z0-9_]+:)?WebSiparis>(.*?)<\/\1?WebSiparis>/gs;
-    let match;
+    const ordersArray = Array.isArray(orders) ? orders : [orders];
 
-    while ((match = siparisRegex.exec(xml)) !== null) {
-        const siparisXml = match[2]; // İçerik
+    return ordersArray.map((siparis: any) => {
+        const teslimat = siparis.TeslimatAdresi || {};
+        const urunler = siparis.Urunler?.WebSiparisUrun || [];
+        const urunlerArray = Array.isArray(urunler) ? urunler : [urunler];
 
-        // Temel alanları çek
-        const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
-        const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
-        const uyeAdi = getTagValue(siparisXml, "UyeAdi");
-        const uyeSoyadi = getTagValue(siparisXml, "UyeSoyadi");
-        const email = getTagValue(siparisXml, "Mail");
-
-        // Teslimat Adresi
-        const teslimatXml = parseInnerTag(siparisXml, "TeslimatAdresi");
-        const telefon = getTagValue(teslimatXml, "AliciTelefon");
-        const adres = getTagValue(teslimatXml, "Adres");
-        const il = getTagValue(teslimatXml, "Il");
-        const ilce = getTagValue(teslimatXml, "Ilce");
-        const postaKodu = getTagValue(teslimatXml, "PostaKodu");
-
-        // Ürünler ve Tutar
+        // Toplam tutarı hesapla
         let toplamTutar = 0;
-        const urunler: TicimaxUrun[] = [];
-        const urunlerXmlBlock = parseInnerTag(siparisXml, "Urunler");
-
-        const urunRegex = /<([a-zA-Z0-9_]+:)?WebSiparisUrun>(.*?)<\/\1?WebSiparisUrun>/gs;
-        let urunMatch;
-
-        while ((urunMatch = urunRegex.exec(urunlerXmlBlock)) !== null) {
-            const urunXml = urunMatch[2];
-            const tutar = parseFloat(getTagValue(urunXml, "Tutar")) || 0;
-            const kdv = parseFloat(getTagValue(urunXml, "KdvTutari")) || 0;
-            const adet = parseInt(getTagValue(urunXml, "Adet")) || 1;
-
+        const parsedUrunler = urunlerArray.map((urun: any) => {
+            const tutar = parseFloat(urun.Tutar) || 0;
+            const kdv = parseFloat(urun.KdvTutari) || 0;
+            const adet = parseInt(urun.Adet) || 1;
             toplamTutar += (tutar + kdv) * adet;
 
-            let urunAdi = getTagValue(urunXml, "UrunAdi");
-            // Varyant parse (EkSecenekList) - Basitçe Tanim'ları topla
-            const ekSecenekBlock = parseInnerTag(urunXml, "EkSecenekList");
-            const varyantlar = extractAllTags(ekSecenekBlock, "Tanim");
-            if (varyantlar.length > 0) {
-                urunAdi += ` (${varyantlar.join(", ")})`;
-            }
-
-            urunler.push({
-                stokKodu: getTagValue(urunXml, "StokKodu"),
-                barkod: getTagValue(urunXml, "Barkod"),
-                urunAdi: urunAdi,
+            return {
+                stokKodu: urun.StokKodu || "",
+                barkod: urun.Barkod || "",
+                urunAdi: parseUrunAdi(urun),
                 adet: adet,
                 tutar: tutar,
                 kdvTutari: kdv,
-                tedarikciId: parseInt(getTagValue(urunXml, "TedarikciID")) || 0
-            });
-        }
-
-        orders.push({
-            siparisId, siparisNo, siparisTarihi,
-            uyeAdi, uyeSoyadi, email,
-            telefon, adres, il, ilce, postaKodu,
-            toplamTutar, urunler
+                tedarikciId: typeof urun.TedarikciID === 'object' ? 0 : Number(urun.TedarikciID || 0), // Bazen obje dönebilir
+            };
         });
-    }
 
-    return orders;
+        return {
+            siparisTarihi: siparis.SiparisTarihi || "",
+            siparisNo: siparis.SiparisNo || "",
+            siparisId: siparis.ID || 0,
+            uyeAdi: siparis.UyeAdi || "",
+            uyeSoyadi: siparis.UyeSoyadi || "",
+            email: siparis.Mail || "",
+            telefon: teslimat.AliciTelefon || "",
+            adres: teslimat.Adres || "",
+            il: teslimat.Il || "",
+            ilce: teslimat.Ilce || "",
+            postaKodu: teslimat.PostaKodu || "",
+            toplamTutar: toplamTutar,
+            urunler: parsedUrunler,
+        };
+    });
 }
 
-// Helper: İç içe tag bul
-function parseInnerTag(xml: string, tagName: string): string {
-    const regex = new RegExp(`<([a-zA-Z0-9_]+:)?${tagName}[^>]*>(.*?)</([a-zA-Z0-9_]+:)?${tagName}>`, 's');
-    const match = regex.exec(xml);
-    return match ? match[2] : "";
+/**
+ * Ürün adını varyantlarla birlikte parse et
+ */
+function parseUrunAdi(urun: any): string {
+    let urunAdi = urun.UrunAdi || "";
+
+    // Ek seçenekleri (varyantları) ekle
+    const ekSecenekList = urun.EkSecenekList?.WebSiparisUrunEkSecenekOzellik;
+    if (ekSecenekList) {
+        const secenekler = Array.isArray(ekSecenekList) ? ekSecenekList : [ekSecenekList];
+        const varyantlar = secenekler
+            .filter((s: any) => s.Tanim)
+            .map((s: any) => s.Tanim);
+
+        if (varyantlar.length > 0) {
+            urunAdi += ` (${varyantlar.join(", ")})`;
+        }
+    }
+
+    return urunAdi;
 }
 
-// Helper: Tüm tag değerlerini array olarak al (Varyantlar için)
-function extractAllTags(xml: string, tagName: string): string[] {
-    const results: string[] = [];
-    const regex = new RegExp(`<([a-zA-Z0-9_]+:)?${tagName}[^>]*>(.*?)</([a-zA-Z0-9_]+:)?${tagName}>`, 'gs');
-    let match;
-    while ((match = regex.exec(xml)) !== null) {
-        results.push(match[2].trim());
-    }
-    return results;
+/**
+ * Cache'i temizle (bağlantı ayarları değiştiğinde)
+ */
+export function clearSoapClientCache() {
+    soapClientCache = {};
 }
