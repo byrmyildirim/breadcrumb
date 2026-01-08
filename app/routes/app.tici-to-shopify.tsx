@@ -183,26 +183,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 };
             }));
 
-            // Filtreleme: Kullanıcı isteğine göre belirli statüleri döndür
-            // Status: 1(Bekliyor/Tedarik), 2(Onay), 3(Kargo), 4(Teslim), 5(İptal), 6(İade)
-            // Ayrıca PaketlemeDurumu > 0 ise de dahil et
-            // Hariç tutulanlar: 0 (Ön Sipariş), 7 (Silinmiş)
-            const filteredOrders = enrichedOrders.filter(o => {
-                // Eğer kullanıcı spesifik bir durum seçtiyse (örn: Silinmiş), filtreleme yapma
-                if (siparisDurumu !== -1) return true;
-
-                const validStatuses = [1, 2, 3, 4, 5, 6];
-                const isStatusValid = validStatuses.includes(o.siparisDurumu);
-                const isPacked = o.paketlemeDurumu > 0;
-
-                // Ön Sipariş(0) ve Silinmiş(7) hariç, geçerli listede veya paketlenmişse göster
-                return (isStatusValid || isPacked) && o.siparisDurumu !== 0 && o.siparisDurumu !== 7;
-            });
-
             return json({
                 status: "success",
-                orders: filteredOrders,
-                message: `${filteredOrders.length} sipariş çekildi. (Sayfa: ${page})`
+                orders: enrichedOrders,
+                message: `${orders.length} sipariş çekildi.`
             });
         } catch (error: any) {
             return json({ status: "error", message: "Siparişler çekilemedi: " + error.message });
@@ -400,7 +384,7 @@ export default function TiciToShopify() {
     const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
-    const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi
+    const [selectedStatus, setSelectedStatus] = useState("4"); // Varsayılan: Teslim Edildi
     const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
