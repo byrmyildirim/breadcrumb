@@ -31,6 +31,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import {
     fetchTicimaxOrders,
+    fetchAllTicimaxOrdersRecursive,
     testTicimaxConnection,
     type TicimaxSiparis,
 } from "../services/ticimaxService.server";
@@ -122,13 +123,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 return json({ status: "error", message: "Konfigürasyon bulunamadı." });
             }
 
-            const statusParam = formData.get("status");
-            const pageParam = formData.get("page");
+            // const statusParam = formData.get("status");
+            // const pageParam = formData.get("page");
 
-            const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
-            const page = pageParam ? parseInt(pageParam as string) : 1;
-
-            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, {}, page);
+            // Sınırsız çekim ve filtreleme (Service tarafında handle ediliyor)
+            const orders = await fetchAllTicimaxOrdersRecursive(config);
 
             // Müşteri eşleştirmelerini yap
             const enrichedOrders = await Promise.all(orders.map(async (order) => {
@@ -359,7 +358,7 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
                                     `₺${order.toplamTutar}`,
                                     ticimaxStatus,
                                     isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
-                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order.siparisNo); }} disabled={isAlreadySynced || isSyncing}>
+                                    <Button size="slim" onClick={() => onSync(order.siparisNo)} disabled={isAlreadySynced || isSyncing}>
                                         {isAlreadySynced ? "✓" : "Aktar"}
                                     </Button>
                                 ]
@@ -384,8 +383,6 @@ export default function TiciToShopify() {
     const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
-    const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi
-    const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -411,10 +408,9 @@ export default function TiciToShopify() {
     const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
 
-    const handleFetchOrders = useCallback((page = 1) => {
-        setCurrentPage(page);
-        submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
-    }, [submit, selectedStatus]);
+    const handleFetchOrders = useCallback(() => {
+        submit({ intent: "fetchOrders" }, { method: "post" });
+    }, [submit]);
 
     const handleSyncOrder = (orderNo: string) => {
         submit({ intent: "syncOrders", orderId: orderNo }, { method: "post" });
@@ -502,29 +498,11 @@ export default function TiciToShopify() {
                         <InlineStack align="space-between" blockAlign="center">
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
-                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Sayfa: {currentPage})</Text>
+                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Sınırsız Çekim Modu)</Text>
                             </BlockStack>
                             <InlineStack gap="300">
-                                <Select
-                                    label="Durum"
-                                    labelHidden
-                                    options={statusOptions}
-                                    onChange={setSelectedStatus}
-                                    value={selectedStatus}
-                                />
-                                <Button
-                                    disabled={currentPage <= 1}
-                                    onClick={() => handleFetchOrders(currentPage - 1)}
-                                >
-                                    &lt; Önceki
-                                </Button>
-                                <Button variant="primary" onClick={() => handleFetchOrders(currentPage)} loading={isFetching}>
-                                    Yenile / Çek (Bulk)
-                                </Button>
-                                <Button
-                                    onClick={() => handleFetchOrders(currentPage + 1)}
-                                >
-                                    Sonraki &gt;
+                                <Button variant="primary" onClick={() => handleFetchOrders()} loading={isFetching}>
+                                    Tüm Siparişleri ve Geçmişi Getir (Bulk)
                                 </Button>
                             </InlineStack>
                         </InlineStack>
