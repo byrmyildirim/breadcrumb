@@ -429,6 +429,7 @@ export default function TiciToShopify() {
     const [selectedStatus, setSelectedStatus] = useState("7"); // Varsayılan: Teslim Edildi
     const [hideSynced, setHideSynced] = useState(true); // Varsayılan: Aktarılanları gizle
     const [currentPage, setCurrentPage] = useState(1);
+    const [historySearch, setHistorySearch] = useState(""); // Aktarım Geçmişi Arama
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -613,8 +614,18 @@ export default function TiciToShopify() {
                     <Card>
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingMd">
-                                Aktarım Geçmişi
+                                Aktarım Geçmişi ({syncedOrders.length} kayıt)
                             </Text>
+                            <TextField
+                                label="Sipariş No ile Ara"
+                                labelHidden
+                                placeholder="Sipariş No veya Müşteri Adı..."
+                                value={historySearch}
+                                onChange={setHistorySearch}
+                                autoComplete="off"
+                                clearButton
+                                onClearButtonClick={() => setHistorySearch("")}
+                            />
                             <DataTable
                                 columnContentTypes={["text", "text", "text", "text", "text", "text", "text"]}
                                 headings={[
@@ -626,49 +637,58 @@ export default function TiciToShopify() {
                                     "İşlem",
                                     "Yönet"
                                 ]}
-                                rows={syncedOrders.slice(0, 50).map((order) => {
-                                    const cleanId = (gid: string | null) => {
-                                        if (!gid) return "";
-                                        return gid.split("/").pop();
-                                    };
+                                rows={syncedOrders
+                                    .filter(order => {
+                                        if (!historySearch) return true;
+                                        const search = historySearch.toLowerCase();
+                                        return order.ticimaxOrderNo.toLowerCase().includes(search) ||
+                                            order.customerName?.toLowerCase().includes(search) ||
+                                            order.shopifyOrderName?.toLowerCase().includes(search);
+                                    })
+                                    .slice(0, 100) // Görüntülenen max sayı
+                                    .map((order) => {
+                                        const cleanId = (gid: string | null) => {
+                                            if (!gid) return "";
+                                            return gid.split("/").pop();
+                                        };
 
-                                    const shopName = config?.shop.replace(".myshopify.com", "");
+                                        const shopName = config?.shop.replace(".myshopify.com", "");
 
-                                    return [
-                                        order.ticimaxOrderNo,
-                                        order.shopifyOrderName || "-",
-                                        order.customerName,
-                                        `₺${order.totalAmount.toFixed(2)}`,
-                                        order.status === "synced" ? (
-                                            <Badge tone="success">Başarılı</Badge>
-                                        ) : order.status === "failed" ? (
-                                            <Badge tone="critical">Hata</Badge>
-                                        ) : (
-                                            <Badge>Bekliyor</Badge>
-                                        ),
-                                        <InlineStack gap="200">
-                                            {order.shopifyOrderId && (
-                                                <Button
-                                                    size="slim"
-                                                    url={`https://admin.shopify.com/store/${shopName}/draft_orders/${cleanId(order.shopifyOrderId)}`}
-                                                    target="_blank"
-                                                >
-                                                    Siparişi Gör
-                                                </Button>
-                                            )}
-                                            {order.shopifyCustomerId && (
-                                                <Button
-                                                    size="slim"
-                                                    url={`https://admin.shopify.com/store/${shopName}/customers/${cleanId(order.shopifyCustomerId)}`}
-                                                    target="_blank"
-                                                >
-                                                    Müşteriyi Gör
-                                                </Button>
-                                            )}
-                                        </InlineStack>,
-                                        <Button tone="critical" size="slim" onClick={() => handleDeleteSync(order.id)}>Sil</Button>
-                                    ];
-                                })}
+                                        return [
+                                            order.ticimaxOrderNo,
+                                            order.shopifyOrderName || "-",
+                                            order.customerName,
+                                            `₺${order.totalAmount.toFixed(2)}`,
+                                            order.status === "synced" ? (
+                                                <Badge tone="success">Başarılı</Badge>
+                                            ) : order.status === "failed" ? (
+                                                <Badge tone="critical">Hata</Badge>
+                                            ) : (
+                                                <Badge>Bekliyor</Badge>
+                                            ),
+                                            <InlineStack gap="200">
+                                                {order.shopifyOrderId && (
+                                                    <Button
+                                                        size="slim"
+                                                        url={`https://admin.shopify.com/store/${shopName}/draft_orders/${cleanId(order.shopifyOrderId)}`}
+                                                        target="_blank"
+                                                    >
+                                                        Siparişi Gör
+                                                    </Button>
+                                                )}
+                                                {order.shopifyCustomerId && (
+                                                    <Button
+                                                        size="slim"
+                                                        url={`https://admin.shopify.com/store/${shopName}/customers/${cleanId(order.shopifyCustomerId)}`}
+                                                        target="_blank"
+                                                    >
+                                                        Müşteriyi Gör
+                                                    </Button>
+                                                )}
+                                            </InlineStack>,
+                                            <Button tone="critical" size="slim" onClick={() => handleDeleteSync(order.id)}>Sil</Button>
+                                        ];
+                                    })}
                             />
                         </BlockStack>
                     </Card>
