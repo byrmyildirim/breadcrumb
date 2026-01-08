@@ -201,6 +201,69 @@ export async function createCustomer(
 }
 
 /**
+ * Müşterinin adres bilgisini güncelle (varsayılan adres olarak ekle)
+ */
+export async function updateCustomerAddress(
+    admin: AdminGraphqlClient,
+    customerId: string,
+    address: {
+        address1: string;
+        city: string;
+        province?: string;
+        zip?: string;
+        country?: string;
+        firstName?: string;
+        lastName?: string;
+        phone?: string;
+    }
+): Promise<boolean> {
+    try {
+        const response = await admin.graphql(`
+      mutation customerUpdate($input: CustomerInput!) {
+        customerUpdate(input: $input) {
+          customer {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `, {
+            variables: {
+                input: {
+                    id: customerId,
+                    addresses: [{
+                        address1: address.address1,
+                        city: address.city,
+                        province: address.province || "",
+                        zip: address.zip || "",
+                        country: address.country || "TR",
+                        firstName: address.firstName || "",
+                        lastName: address.lastName || "",
+                        phone: address.phone || "",
+                    }],
+                },
+            },
+        });
+
+        const data = await response.json();
+        const result = data?.data?.customerUpdate;
+
+        if (result?.userErrors?.length > 0) {
+            console.error("Müşteri adres güncelleme hatası:", result.userErrors);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Müşteri adres güncelleme hatası:", error);
+        return false;
+    }
+}
+
+/**
  * Müşteriyi bul veya oluştur
  */
 export async function findOrCreateCustomer(
@@ -211,6 +274,15 @@ export async function findOrCreateCustomer(
     if (customer.email) {
         const existing = await findCustomerByEmail(admin, customer.email);
         if (existing) {
+            // Mevcut müşterinin adresini güncelle (varsa)
+            if (customer.address) {
+                await updateCustomerAddress(admin, existing.id, {
+                    ...customer.address,
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    phone: customer.phone,
+                });
+            }
             return { ...existing, isNew: false };
         }
     }
@@ -219,6 +291,15 @@ export async function findOrCreateCustomer(
     if (customer.phone) {
         const existing = await findCustomerByPhone(admin, customer.phone);
         if (existing) {
+            // Mevcut müşterinin adresini güncelle (varsa)
+            if (customer.address) {
+                await updateCustomerAddress(admin, existing.id, {
+                    ...customer.address,
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    phone: customer.phone,
+                });
+            }
             return { ...existing, isNew: false };
         }
     }
