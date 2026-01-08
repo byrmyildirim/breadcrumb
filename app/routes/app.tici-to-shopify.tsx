@@ -197,26 +197,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // 4. Sipariş Aktar (Sync)
     if (intent === "syncOrders") {
         try {
-            const orderId = formData.get("orderId") as string; // This is now SiparisID (int) sent as string
-            const orderNo = formData.get("orderNo") as string; // Verification key
+            // Sipariş verisini doğrudan client'tan al (Ticimax'tan tekrar çekme, UI state'indeki veriyi kullan)
+            const orderDataStr = formData.get("orderData") as string;
+            if (!orderDataStr) throw new Error("Sipariş verisi eksik.");
 
-            const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
-            if (!config) throw new Error("Ayar yok");
-
-            // Siparişi ID ile doğrudan çek (Hata riskini ve yükü azaltır)
-            // Filtreleme ID ile yapıldığı için sayfalama sorunu olmaz
-            const orders = await fetchTicimaxOrders(config, { SiparisID: parseInt(orderId) });
-            const orderData = orders[0];
-
-            if (!orderData) {
-                throw new Error("Sipariş Ticimax verisinde bulunamadı. (Filtre: " + orderId + ")");
-            }
-
-            // Güvenlik Kontrolü: Çekilen siparişin numarası, istenen numara ile eşleşiyor mu?
-            if (orderNo && orderData.siparisNo !== orderNo) {
-                console.error(`Mismatch! Requested ID: ${orderId}, Req No: ${orderNo}, Found No: ${orderData.siparisNo}`);
-                throw new Error(`Sipariş eşleşmedi! İstenen: ${orderNo}, Bulunan: ${orderData.siparisNo}. Lütfen sayfayı yenileyip tekrar deneyin.`);
-            }
+            const orderData = JSON.parse(orderDataStr);
 
             // Müşteriyi bul veya oluştur
             const customerResult = await findOrCreateCustomer(admin, {
@@ -341,7 +326,7 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
     group: { customerName: string; email: string; shopifyId: string | null; orders: any[] },
     syncedOrders: any[],
     isSyncing: boolean,
-    onSync: (id: number, no: string) => void
+    onSync: (order: any) => void
 }) {
     const [open, setOpen] = useState(false);
 
@@ -381,7 +366,7 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
                                     `₺${order.toplamTutar}`,
                                     ticimaxStatus,
                                     isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
-                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order.siparisId, order.siparisNo); }} disabled={isAlreadySynced || isSyncing}>
+                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order); }} disabled={isAlreadySynced || isSyncing}>
                                         {isAlreadySynced ? "✓" : "Aktar"}
                                     </Button>
                                 ]
@@ -439,8 +424,8 @@ export default function TiciToShopify() {
         submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
     }, [submit, selectedStatus]);
 
-    const handleSyncOrder = (id: number, no: string) => {
-        submit({ intent: "syncOrders", orderId: id.toString(), orderNo: no }, { method: "post" });
+    const handleSyncOrder = (order: any) => {
+        submit({ intent: "syncOrders", orderData: JSON.stringify(order) }, { method: "post" });
     };
 
     const handleDeleteSync = (id: string) => {
