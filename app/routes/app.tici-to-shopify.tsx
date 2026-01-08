@@ -309,13 +309,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 const STATUS_MAP: Record<number, string> = {
     0: "Ön Sipariş",
-    1: "Bekliyor",
+    1: "Onay Bekliyor",
     2: "Onaylandı",
-    3: "Kargolandı",
-    4: "Teslim Edildi",
-    5: "İptal Edildi",
-    6: "İade",
-    7: "Silinmiş"
+    3: "Ödeme Bekliyor",
+    4: "Paketleniyor",
+    5: "Tedarik Ediliyor",
+    6: "Kargoya Verildi",
+    7: "Teslim Edildi",
+    8: "İptal Edildi",
+    9: "İade Edildi",
+    10: "Silinmiş",
+    11: "İade Talebi Alındı",
+    12: "İade Ulaştı Ödeme Yapılacak",
+    13: "İade Ödemesi Yapıldı",
+    14: "Teslimat Öncesi İptal Talebi",
+    15: "İptal Talebi",
+    16: "Kısmi İade Talebi",
+    17: "Kısmi İade Yapıldı"
 };
 
 function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
@@ -384,7 +394,7 @@ export default function TiciToShopify() {
     const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
-    const [selectedStatus, setSelectedStatus] = useState("4"); // Varsayılan: Teslim Edildi
+    const [selectedStatus, setSelectedStatus] = useState("7"); // Varsayılan: Teslim Edildi
     const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
@@ -429,13 +439,23 @@ export default function TiciToShopify() {
     const statusOptions = [
         { label: 'Hepsi (-1)', value: '-1' },
         { label: 'Ön Sipariş (0)', value: '0' },
-        { label: 'Bekliyor (1)', value: '1' },
+        { label: 'Onay Bekliyor (1)', value: '1' },
         { label: 'Onaylandı (2)', value: '2' },
-        { label: 'Kargolandı (3)', value: '3' },
-        { label: 'Teslim Edildi (4)', value: '4' },
-        { label: 'İptal Edildi (5)', value: '5' },
-        { label: 'İade (6)', value: '6' },
-        { label: 'Silinmiş (7)', value: '7' }
+        { label: 'Ödeme Bekliyor (3)', value: '3' },
+        { label: 'Paketleniyor (4)', value: '4' },
+        { label: 'Tedarik Ediliyor (5)', value: '5' },
+        { label: 'Kargoya Verildi (6)', value: '6' },
+        { label: 'Teslim Edildi (7)', value: '7' },
+        { label: 'İptal Edildi (8)', value: '8' },
+        { label: 'İade Edildi (9)', value: '9' },
+        { label: 'Silinmiş (10)', value: '10' },
+        { label: 'İade Talebi Alındı (11)', value: '11' },
+        { label: 'İade Ulaştı Ödeme Yapılacak (12)', value: '12' },
+        { label: 'İade Ödemesi Yapıldı (13)', value: '13' },
+        { label: 'Teslimat Öncesi İptal Talebi (14)', value: '14' },
+        { label: 'İptal Talebi (15)', value: '15' },
+        { label: 'Kısmi İade Talebi (16)', value: '16' },
+        { label: 'Kısmi İade Yapıldı (17)', value: '17' }
     ];
 
     // Gruplama Mantığı
