@@ -197,14 +197,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // 4. Sipariş Aktar (Sync)
     if (intent === "syncOrders") {
         try {
-            const orderId = formData.get("orderId") as string;
+            const orderId = formData.get("orderId") as string; // This is now SiparisID (int) sent as string
 
             const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
             if (!config) throw new Error("Ayar yok");
 
-            // Siparişi tekrar çekerek en güncel halini alalım
-            const allOrders = await fetchTicimaxOrders(config);
-            const orderData = allOrders.find(o => o.siparisNo === orderId);
+            // Siparişi ID ile doğrudan çek (Hata riskini ve yükü azaltır)
+            // Filtreleme ID ile yapıldığı için sayfalama sorunu olmaz
+            const orders = await fetchTicimaxOrders(config, { SiparisID: parseInt(orderId) });
+            const orderData = orders[0];
 
             if (!orderData) {
                 throw new Error("Sipariş Ticimax verisinde bulunamadı.");
@@ -333,7 +334,7 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
     group: { customerName: string; email: string; shopifyId: string | null; orders: any[] },
     syncedOrders: any[],
     isSyncing: boolean,
-    onSync: (id: string) => void
+    onSync: (id: number) => void
 }) {
     const [open, setOpen] = useState(false);
 
@@ -373,7 +374,7 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
                                     `₺${order.toplamTutar}`,
                                     ticimaxStatus,
                                     isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
-                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order.siparisNo); }} disabled={isAlreadySynced || isSyncing}>
+                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order.siparisId); }} disabled={isAlreadySynced || isSyncing}>
                                         {isAlreadySynced ? "✓" : "Aktar"}
                                     </Button>
                                 ]
@@ -431,8 +432,8 @@ export default function TiciToShopify() {
         submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
     }, [submit, selectedStatus]);
 
-    const handleSyncOrder = (orderNo: string) => {
-        submit({ intent: "syncOrders", orderId: orderNo }, { method: "post" });
+    const handleSyncOrder = (id: number) => {
+        submit({ intent: "syncOrders", orderId: id.toString() }, { method: "post" });
     };
 
     const handleDeleteSync = (id: string) => {
