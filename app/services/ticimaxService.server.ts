@@ -122,6 +122,16 @@ export async function fetchTicimaxOrders(
         ...pagination,
     };
 
+    // Tarih formatını datetime'a çevir (Ticimax genelde datetime formatı bekler)
+    const formatDateForTicimax = (date: string | undefined): string | undefined => {
+        if (!date) return undefined;
+        // YYYY-MM-DD formatını YYYY-MM-DDTHH:mm:ss formatına çevir
+        return `${date}T00:00:00`;
+    };
+
+    const formattedStartDate = formatDateForTicimax(defaultFilter.BaslangicTarihi);
+    const formattedEndDate = formatDateForTicimax(defaultFilter.BitisTarihi);
+
     // XML Envelope oluştur (Namespace'ler Ticimax standardına uygun)
     const envelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tns="http://tempuri.org/" xmlns:q1="http://schemas.datacontract.org/2004/07/">
@@ -138,9 +148,9 @@ export async function fetchTicimaxOrders(
         <q1:SiparisID>${defaultFilter.SiparisID}</q1:SiparisID>
         <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
         <q1:TedarikciID>${defaultFilter.TedarikciID}</q1:TedarikciID>
-        <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>${defaultFilter.BaslangicTarihi ? `
-        <q1:BaslangicTarihi>${defaultFilter.BaslangicTarihi}</q1:BaslangicTarihi>` : ''}${defaultFilter.BitisTarihi ? `
-        <q1:BitisTarihi>${defaultFilter.BitisTarihi}</q1:BitisTarihi>` : ''}
+        <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>${formattedStartDate ? `
+        <q1:BaslangicTarihi>${formattedStartDate}</q1:BaslangicTarihi>` : ''}${formattedEndDate ? `
+        <q1:BitisTarihi>${formattedEndDate}</q1:BitisTarihi>` : ''}
       </tns:f>
       <tns:s>
         <q1:BaslangicIndex>${defaultPagination.BaslangicIndex}</q1:BaslangicIndex>
@@ -152,8 +162,8 @@ export async function fetchTicimaxOrders(
   </soap:Body>
 </soap:Envelope>`;
 
-    console.log(`[Ticimax] Fetch Started. URL: ${serviceUrl}`);
-    console.log(`[Ticimax] Params: Status=${defaultFilter.SiparisDurumu}, Limit=${defaultPagination.KayitSayisi}, Baslangic=${defaultFilter.BaslangicTarihi || 'N/A'}, Bitis=${defaultFilter.BitisTarihi || 'N/A'}`);
+    console.log(`[Ticimax] Page ${page} | Status=${defaultFilter.SiparisDurumu}, StartIdx=${defaultPagination.BaslangicIndex}, Limit=${defaultPagination.KayitSayisi}`);
+    console.log(`[Ticimax] Date Filter: Start=${formattedStartDate || 'N/A'}, End=${formattedEndDate || 'N/A'}`);
 
     try {
         const response = await fetch(serviceUrl, {
