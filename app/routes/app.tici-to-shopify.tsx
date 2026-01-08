@@ -125,8 +125,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
 
             const statusParam = formData.get("status");
+            const startDateParam = formData.get("startDate") as string | null;
+            const endDateParam = formData.get("endDate") as string | null;
 
             const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
+
+            // Filtre objesi oluştur
+            const filter: any = { SiparisDurumu: siparisDurumu };
+            if (startDateParam) filter.BaslangicTarihi = startDateParam;
+            if (endDateParam) filter.BitisTarihi = endDateParam;
 
             // Tüm siparişleri çek (otomatik sayfalama)
             let allOrders: any[] = [];
@@ -134,27 +141,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const pageSize = 500;
             let hasMoreOrders = true;
 
-            console.log(`[Ticimax] === TÜM SİPARİŞLER ÇEKİLİYOR ===`);
-            console.log(`[Ticimax] Durum Filtresi: ${siparisDurumu}, Sayfa Boyutu: ${pageSize}`);
+            console.log(`[Ticimax] Tüm siparişler çekiliyor... (Durum: ${siparisDurumu}, Başlangıç: ${startDateParam || 'N/A'}, Bitiş: ${endDateParam || 'N/A'})`);
 
             while (hasMoreOrders) {
-                console.log(`[Ticimax] Sayfa ${currentPage} çekiliyor... (BaslangicIndex: ${(currentPage - 1) * pageSize})`);
-                const pageOrders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, { KayitSayisi: pageSize }, currentPage);
-                console.log(`[Ticimax] Sayfa ${currentPage}: ${pageOrders.length} sipariş alındı`);
+                const pageOrders = await fetchTicimaxOrders(config, filter, { KayitSayisi: pageSize }, currentPage);
+                console.log(`[Ticimax] Sayfa ${currentPage}: ${pageOrders.length} sipariş`);
 
                 if (pageOrders.length === 0) {
-                    console.log(`[Ticimax] Boş sayfa, döngü sonlandırılıyor`);
                     hasMoreOrders = false;
                 } else {
                     allOrders = [...allOrders, ...pageOrders];
-                    console.log(`[Ticimax] Toplam biriken: ${allOrders.length}`);
+                    currentPage++;
 
                     // Eğer gelen sipariş sayısı sayfa boyutundan azsa, son sayfadayız
                     if (pageOrders.length < pageSize) {
-                        console.log(`[Ticimax] Son sayfa (${pageOrders.length} < ${pageSize}), döngü sonlandırılıyor`);
                         hasMoreOrders = false;
-                    } else {
-                        currentPage++;
                     }
                 }
 
@@ -165,7 +166,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 }
             }
 
-            console.log(`[Ticimax] === TAMAMLANDI: ${allOrders.length} sipariş toplam ===`);
+            console.log(`[Ticimax] Toplam: ${allOrders.length} sipariş çekildi`);
             const orders = allOrders;
 
             // Müşteri eşleştirmelerini yap
@@ -467,6 +468,8 @@ export default function TiciToShopify() {
     const [hideSynced, setHideSynced] = useState(true); // Varsayılan: Aktarılanları gizle
     const [currentPage, setCurrentPage] = useState(1);
     const [historySearch, setHistorySearch] = useState(""); // Aktarım Geçmişi Arama
+    const [startDate, setStartDate] = useState(""); // Tarih filtresi başlangıç
+    const [endDate, setEndDate] = useState(""); // Tarih filtresi bitiş
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -493,8 +496,11 @@ export default function TiciToShopify() {
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
 
     const handleFetchOrders = useCallback(() => {
-        submit({ intent: "fetchOrders", status: selectedStatus }, { method: "post" });
-    }, [submit, selectedStatus]);
+        const params: any = { intent: "fetchOrders", status: selectedStatus };
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+        submit(params, { method: "post" });
+    }, [submit, selectedStatus, startDate, endDate]);
 
     const handleSyncOrder = (order: any) => {
         submit({ intent: "syncOrders", orderData: JSON.stringify(order) }, { method: "post" });
@@ -597,7 +603,7 @@ export default function TiciToShopify() {
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
                                 <Text as="p" tone="subdued">Seçili duruma göre tüm siparişleri çeker ({fetchedOrders.length} sipariş yüklü)</Text>
                             </BlockStack>
-                            <InlineStack gap="300">
+                            <InlineStack gap="300" wrap>
                                 <Select
                                     label="Durum"
                                     labelHidden
@@ -605,13 +611,31 @@ export default function TiciToShopify() {
                                     onChange={setSelectedStatus}
                                     value={selectedStatus}
                                 />
+                                <TextField
+                                    label="Başlangıç"
+                                    labelHidden
+                                    placeholder="Başlangıç (YYYY-MM-DD)"
+                                    value={startDate}
+                                    onChange={setStartDate}
+                                    autoComplete="off"
+                                    type="date"
+                                />
+                                <TextField
+                                    label="Bitiş"
+                                    labelHidden
+                                    placeholder="Bitiş (YYYY-MM-DD)"
+                                    value={endDate}
+                                    onChange={setEndDate}
+                                    autoComplete="off"
+                                    type="date"
+                                />
                                 <Checkbox
                                     label="Aktarılanları Gizle"
                                     checked={hideSynced}
                                     onChange={setHideSynced}
                                 />
                                 <Button variant="primary" onClick={() => handleFetchOrders()} loading={isFetching}>
-                                    {isFetching ? "Çekiliyor..." : `Tüm Siparişleri Çek`}
+                                    {isFetching ? "Çekiliyor..." : `Siparişleri Çek`}
                                 </Button>
                             </InlineStack>
                         </InlineStack>

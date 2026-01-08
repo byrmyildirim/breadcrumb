@@ -17,6 +17,8 @@ export interface WebSiparisFiltre {
     KargoFirmaID?: number;
     TedarikciID?: number;
     UyeID?: number;
+    BaslangicTarihi?: string; // Format: YYYY-MM-DD veya ISO
+    BitisTarihi?: string;     // Format: YYYY-MM-DD veya ISO
 }
 
 // Sayfalama parametreleri
@@ -136,7 +138,9 @@ export async function fetchTicimaxOrders(
         <q1:SiparisID>${defaultFilter.SiparisID}</q1:SiparisID>
         <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
         <q1:TedarikciID>${defaultFilter.TedarikciID}</q1:TedarikciID>
-        <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>
+        <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>${defaultFilter.BaslangicTarihi ? `
+        <q1:BaslangicTarihi>${defaultFilter.BaslangicTarihi}</q1:BaslangicTarihi>` : ''}${defaultFilter.BitisTarihi ? `
+        <q1:BitisTarihi>${defaultFilter.BitisTarihi}</q1:BitisTarihi>` : ''}
       </tns:f>
       <tns:s>
         <q1:BaslangicIndex>${defaultPagination.BaslangicIndex}</q1:BaslangicIndex>
@@ -149,7 +153,7 @@ export async function fetchTicimaxOrders(
 </soap:Envelope>`;
 
     console.log(`[Ticimax] Fetch Started. URL: ${serviceUrl}`);
-    console.log(`[Ticimax] Params: Status=${defaultFilter.SiparisDurumu}, Limit=${defaultPagination.KayitSayisi}`);
+    console.log(`[Ticimax] Params: Status=${defaultFilter.SiparisDurumu}, Limit=${defaultPagination.KayitSayisi}, Baslangic=${defaultFilter.BaslangicTarihi || 'N/A'}, Bitis=${defaultFilter.BitisTarihi || 'N/A'}`);
 
     try {
         const response = await fetch(serviceUrl, {
