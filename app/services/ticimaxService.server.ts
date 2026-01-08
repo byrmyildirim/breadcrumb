@@ -231,7 +231,10 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         const siparisXml = match[1]; // İçerik
 
         // Temel alanları çek
-        const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
+        let siparisId = parseInt(getTagValue(siparisXml, "ID"));
+        if (isNaN(siparisId) || siparisId === 0) {
+            siparisId = parseInt(getTagValue(siparisXml, "SiparisID")) || 0;
+        }
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
         // Status parsing - Robust
         let rawStatus = getTagValue(siparisXml, "SiparisDurumu");
