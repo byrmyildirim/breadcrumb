@@ -134,21 +134,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const pageSize = 500;
             let hasMoreOrders = true;
 
-            console.log(`[Ticimax] Tüm siparişler çekiliyor... (Durum: ${siparisDurumu})`);
+            console.log(`[Ticimax] === TÜM SİPARİŞLER ÇEKİLİYOR ===`);
+            console.log(`[Ticimax] Durum Filtresi: ${siparisDurumu}, Sayfa Boyutu: ${pageSize}`);
 
             while (hasMoreOrders) {
+                console.log(`[Ticimax] Sayfa ${currentPage} çekiliyor... (BaslangicIndex: ${(currentPage - 1) * pageSize})`);
                 const pageOrders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, { KayitSayisi: pageSize }, currentPage);
-                console.log(`[Ticimax] Sayfa ${currentPage}: ${pageOrders.length} sipariş`);
+                console.log(`[Ticimax] Sayfa ${currentPage}: ${pageOrders.length} sipariş alındı`);
 
                 if (pageOrders.length === 0) {
+                    console.log(`[Ticimax] Boş sayfa, döngü sonlandırılıyor`);
                     hasMoreOrders = false;
                 } else {
                     allOrders = [...allOrders, ...pageOrders];
-                    currentPage++;
+                    console.log(`[Ticimax] Toplam biriken: ${allOrders.length}`);
 
                     // Eğer gelen sipariş sayısı sayfa boyutundan azsa, son sayfadayız
                     if (pageOrders.length < pageSize) {
+                        console.log(`[Ticimax] Son sayfa (${pageOrders.length} < ${pageSize}), döngü sonlandırılıyor`);
                         hasMoreOrders = false;
+                    } else {
+                        currentPage++;
                     }
                 }
 
@@ -159,7 +165,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 }
             }
 
-            console.log(`[Ticimax] Toplam: ${allOrders.length} sipariş çekildi`);
+            console.log(`[Ticimax] === TAMAMLANDI: ${allOrders.length} sipariş toplam ===`);
             const orders = allOrders;
 
             // Müşteri eşleştirmelerini yap
