@@ -233,10 +233,23 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Temel alanları çek
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        // Status parsing
-        const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
+        // Status parsing (Fallback to 'Durum' if 'SiparisDurumu' is missing)
+        let siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu"));
+        if (isNaN(siparisDurumu)) {
+            siparisDurumu = parseInt(getTagValue(siparisXml, "Durum")) || -1;
+        }
+
         const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
-        const odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipi")) || -1;
+
+        let odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipi"));
+        if (isNaN(odemeTipi)) {
+            odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipiID")) || -1;
+        }
+
+        // Debug logging for the first few orders
+        if (orders.length < 3) {
+            console.log(`[Parser Debug] ID: ${siparisId} No: ${siparisNo} Status: ${siparisDurumu} (Raw: ${getTagValue(siparisXml, "SiparisDurumu")}/${getTagValue(siparisXml, "Durum")}) PayType: ${odemeTipi}`);
+        }
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
         const uyeAdi = getTagValue(siparisXml, "UyeAdi");
