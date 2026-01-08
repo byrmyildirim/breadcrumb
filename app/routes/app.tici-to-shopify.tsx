@@ -31,7 +31,6 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import {
     fetchTicimaxOrders,
-    fetchAllTicimaxOrders,
     testTicimaxConnection,
     type TicimaxSiparis,
 } from "../services/ticimaxService.server";
@@ -124,46 +123,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
 
             const statusParam = formData.get("status");
+            const pageParam = formData.get("page");
+
             const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
+            const page = pageParam ? parseInt(pageParam as string) : 1;
 
-            // "Tüm Durumlar" (-1) veya kullanıcı özellikle hepsini istiyorsa RECURSIVE FETCH atıyoruz
-            // Ve sonrasında JS tarafında filtreleme yapıyoruz (Status + Payment)
-
-            let orders: TicimaxSiparis[] = [];
-
-            if (siparisDurumu === -1) {
-                // Sınırsız çekim + Filtreleme
-                const allOrders = await fetchAllTicimaxOrders(config);
-
-                // Filtrelenecek Statüler (Kullanıcı İsteği):
-                // Onaylı(2), Kargolandı(3), Teslim(4), İptal(5), İade(6)
-                // Tedarik Ediliyor (Genelde 1 veya özel), Paketlendi (Genelde özel).
-                // Şimdilik 1(Bekliyor) ve 0(Ön Sipariş) dışındakileri alalım ya da whitelist yapalım.
-                const validStatuses = [2, 3, 4, 5, 6];
-
-                // Ödeme Tipleri: Havale(1), Kredi Kartı/PayTR(2)
-                const validPayments = [1, 2];
-
-                orders = allOrders.filter(o => {
-                    // Statü Kontrolü: Whitelist'te var mı? 
-                    // Veya Tedarik/Paket durapı farklı bir field ise ona da bakılır.
-                    // Şimdilik SiparisDurumu üzerinden gidiyoruz.
-                    // (Not: Tedarik/Paket genelde statü metninde yazar ama SiparisDurumu ID'si esastır)
-                    const statusOk = validStatuses.includes(o.siparisDurumu);
-
-                    // Ödeme Tipi Kontrolü
-                    // Not: OdemeTipi servisten 1, 2, 3... döner.
-                    const paymentOk = validPayments.includes(o.odemeTipi || 0); // odemeTipi undefined gelebilir, default 0
-
-                    return statusOk && paymentOk;
-                });
-            } else {
-                // Tekil status seçildiyse (Eski mantık, ama UI'dan kaldıracağız)
-                // Yine de backup olarak dursun
-                const pageParam = formData.get("page");
-                const page = pageParam ? parseInt(pageParam as string) : 1;
-                orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, {}, page);
-            }
+            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, {}, page);
 
             // Müşteri eşleştirmelerini yap
             const enrichedOrders = await Promise.all(orders.map(async (order) => {
@@ -218,10 +183,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 };
             }));
 
+            // Filtreleme: Kullanıcı isteğine göre belirli statüleri döndür
+            // Status: 1(Bekliyor/Tedarik), 2(Onay), 3(Kargo), 4(Teslim), 5(İptal), 6(İade)
+            // Ayrıca PaketlemeDurumu > 0 ise de dahil et
+            // Hariç tutulanlar: 0 (Ön Sipariş), 7 (Silinmiş)
+            const filteredOrders = enrichedOrders.filter(o => {
+                // Eğer kullanıcı spesifik bir durum seçtiyse (örn: Silinmiş), filtreleme yapma
+                if (siparisDurumu !== -1) return true;
+
+                const validStatuses = [1, 2, 3, 4, 5, 6];
+                const isStatusValid = validStatuses.includes(o.siparisDurumu);
+                const isPacked = o.paketlemeDurumu > 0;
+
+                // Ön Sipariş(0) ve Silinmiş(7) hariç, geçerli listede veya paketlenmişse göster
+                return (isStatusValid || isPacked) && o.siparisDurumu !== 0 && o.siparisDurumu !== 7;
+            });
+
             return json({
                 status: "success",
-                orders: enrichedOrders,
-                message: `${orders.length} sipariş çekildi.`
+                orders: filteredOrders,
+                message: `${filteredOrders.length} sipariş çekildi. (Sayfa: ${page})`
             });
         } catch (error: any) {
             return json({ status: "error", message: "Siparişler çekilemedi: " + error.message });
@@ -419,7 +400,8 @@ export default function TiciToShopify() {
     const [wsdlUrl, setWsdlUrl] = useState(config?.wsdlUrl || "http://www.goatjump.com/Servis/SiparisServis.svc?wsdl");
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
-    const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi (Gelişmiş Filtre)
+    const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -445,8 +427,9 @@ export default function TiciToShopify() {
     const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
 
-    const handleFetchOrders = useCallback(() => {
-        submit({ intent: "fetchOrders", status: selectedStatus }, { method: "post" });
+    const handleFetchOrders = useCallback((page = 1) => {
+        setCurrentPage(page);
+        submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
     }, [submit, selectedStatus]);
 
     const handleSyncOrder = (orderNo: string) => {
@@ -535,21 +518,29 @@ export default function TiciToShopify() {
                         <InlineStack align="space-between" blockAlign="center">
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
-                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Tüm Kayıtlar)</Text>
+                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Sayfa: {currentPage})</Text>
                             </BlockStack>
                             <InlineStack gap="300">
                                 <Select
                                     label="Durum"
                                     labelHidden
-                                    options={[
-                                        { label: 'Gelişmiş Filtre (Onaylı/Kargo + Ödeme)', value: '-1' },
-                                        ...statusOptions.filter(o => o.value !== '-1')
-                                    ]}
+                                    options={statusOptions}
                                     onChange={setSelectedStatus}
                                     value={selectedStatus}
                                 />
-                                <Button variant="primary" onClick={() => handleFetchOrders()} loading={isFetching}>
-                                    Tüm Siparişleri Çek
+                                <Button
+                                    disabled={currentPage <= 1}
+                                    onClick={() => handleFetchOrders(currentPage - 1)}
+                                >
+                                    &lt; Önceki
+                                </Button>
+                                <Button variant="primary" onClick={() => handleFetchOrders(currentPage)} loading={isFetching}>
+                                    Yenile / Çek (Bulk)
+                                </Button>
+                                <Button
+                                    onClick={() => handleFetchOrders(currentPage + 1)}
+                                >
+                                    Sonraki &gt;
                                 </Button>
                             </InlineStack>
                         </InlineStack>

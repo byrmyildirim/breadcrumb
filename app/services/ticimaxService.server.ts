@@ -54,7 +54,6 @@ export interface TicimaxSiparis {
     toplamTutar: number;
     siparisDurumu: number;
     paketlemeDurumu: number;
-    odemeTipi: number;
     urunler: TicimaxUrun[];
 }
 
@@ -236,7 +235,6 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Status parsing
         const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
         const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
-        const odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipi")) || 0;
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
         const uyeAdi = getTagValue(siparisXml, "UyeAdi");
@@ -291,7 +289,7 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
             siparisId, siparisNo, siparisTarihi,
             uyeAdi, uyeSoyadi, email,
             telefon, adres, il, ilce, postaKodu,
-            toplamTutar, siparisDurumu, paketlemeDurumu, odemeTipi, urunler
+            toplamTutar, siparisDurumu, paketlemeDurumu, urunler
         });
     }
 
@@ -315,41 +313,4 @@ function extractOptionValues(xml: string, tagName: string): string[] {
         results.push(match[1].trim());
     }
     return results;
-}
-
-/**
- * Recursive olarak TÜM siparişleri çeker
- */
-export async function fetchAllTicimaxOrders(config: TicimaxApiConfig): Promise<TicimaxSiparis[]> {
-    let allOrders: TicimaxSiparis[] = [];
-    let page = 1;
-    const limit = 500; // Chunk size
-    let fetchedCount = 0;
-
-    console.log("Starting bulk fetch...");
-
-    while (true) {
-        console.log(`Fetching page ${page}...`);
-        // Her sayfada -1 (Tüm durumlar) çekiliyor
-        const orders = await fetchTicimaxOrders(config, { SiparisDurumu: -1 }, { KayitSayisi: limit }, page);
-
-        if (!orders || orders.length === 0) {
-            break; // Veri bitti
-        }
-
-        allOrders = [...allOrders, ...orders];
-        fetchedCount = orders.length;
-
-        // Eğer çekilen sayı limitin altındaysa son sayfadayız demektir
-        if (fetchedCount < limit) {
-            break;
-        }
-
-        page++;
-        // Sonsuz döngü koruması (Opsiyonel ama iyi pratik, 100 sayfa = 50000 sipariş yetmeli)
-        if (page > 100) break;
-    }
-
-    console.log(`Total orders fetched: ${allOrders.length}`);
-    return allOrders;
 }
