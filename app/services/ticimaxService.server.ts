@@ -233,7 +233,11 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
         // Status parsing
-        const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
+        // Status parsing
+        // XML içinde bazen SiparisDurumu bazen sadece Durum olarak gelebiliyor
+        const siparisDurumuStr = getTagValue(siparisXml, "SiparisDurumu") || getTagValue(siparisXml, "Durum");
+        const siparisDurumu = parseInt(siparisDurumuStr) || -1;
+
         const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
