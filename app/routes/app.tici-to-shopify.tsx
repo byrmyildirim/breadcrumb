@@ -21,7 +21,11 @@ import {
     Divider,
     ProgressBar,
     Select,
+    Collapsible,
+    Icon,
+    List
 } from "@shopify/polaris";
+import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -303,6 +307,71 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ status: "error", message: "Geçersiz işlem" });
 };
 
+const STATUS_MAP: Record<number, string> = {
+    0: "Ön Sipariş",
+    1: "Bekliyor",
+    2: "Onaylandı",
+    3: "Kargolandı",
+    4: "Teslim Edildi",
+    5: "İptal Edildi",
+    6: "İade",
+    7: "Silinmiş"
+};
+
+function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
+    group: { customerName: string; email: string; shopifyId: string | null; orders: any[] },
+    syncedOrders: any[],
+    isSyncing: boolean,
+    onSync: (id: string) => void
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Card>
+            <BlockStack gap="200">
+                <div
+                    onClick={() => setOpen(!open)}
+                    style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                >
+                    <BlockStack gap="100">
+                        <Text as="h3" variant="headingSm">{group.customerName}</Text>
+                        <Text as="p" tone="subdued">{group.email} • {group.orders.length} Sipariş</Text>
+                        {group.shopifyId ?
+                            <Text as="span" tone="success">Shopify ID: {group.shopifyId.split("/").pop()}</Text> :
+                            <Badge tone="attention">Eşleşmedi</Badge>
+                        }
+                    </BlockStack>
+                    <Icon source={open ? ChevronUpIcon : ChevronDownIcon} tone="base" />
+                </div>
+
+                <Collapsible open={open} id={`collapse-${group.email}`} transition={{ duration: '500ms', timingFunction: 'ease-in-out' }}>
+                    <Box paddingBlockStart="400">
+                        <DataTable
+                            columnContentTypes={["text", "text", "text", "text", "text", "text"]}
+                            headings={["Sipariş No", "Tarih", "Tutar", "Durum (Ticimax)", "Sync", "İşlem"]}
+                            rows={group.orders.map(order => {
+                                const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
+                                const ticimaxStatus = STATUS_MAP[order.siparisDurumu] || `Bilinmiyor (${order.siparisDurumu})`;
+
+                                return [
+                                    order.siparisNo,
+                                    new Date(order.siparisTarihi).toLocaleDateString("tr-TR"),
+                                    `₺${order.toplamTutar}`,
+                                    ticimaxStatus,
+                                    isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
+                                    <Button size="slim" onClick={(e) => { e.stopPropagation(); onSync(order.siparisNo); }} disabled={isAlreadySynced || isSyncing}>
+                                        {isAlreadySynced ? "✓" : "Aktar"}
+                                    </Button>
+                                ]
+                            })}
+                        />
+                    </Box>
+                </Collapsible>
+            </BlockStack>
+        </Card>
+    );
+}
+
 // Component
 export default function TiciToShopify() {
     const { config, recentLogs, syncedOrders } = useLoaderData<typeof loader>();
@@ -370,16 +439,34 @@ export default function TiciToShopify() {
     ];
 
     // Gruplama Mantığı
+    // Gruplama Mantığı: Müşteri bazlı gruplama
     const groupedOrders = useMemo(() => {
         if (!fetchedOrders.length) return [];
-        // Siparişleri Müşteri ID veya Email'e göre sırala ki aynı müşteriler alt alta gelsin
-        return [...fetchedOrders].sort((a, b) => {
-            const customerA = (a._shopifyCustomerId || a.email || a.uyeAdi || "").toLowerCase();
-            const customerB = (b._shopifyCustomerId || b.email || b.uyeAdi || "").toLowerCase();
-            if (customerA < customerB) return -1;
-            if (customerA > customerB) return 1;
-            return 0;
+
+        const groups: Record<string, {
+            customerName: string;
+            email: string;
+            shopifyId: string | null;
+            orders: any[];
+        }> = {};
+
+        fetchedOrders.forEach((order) => {
+            // Gruplama anahtarı: Shopify ID > Email > Ad Soyad
+            const key = order._shopifyCustomerId || order.email || `${order.uyeAdi} ${order.uyeSoyadi}`;
+
+            if (!groups[key]) {
+                groups[key] = {
+                    customerName: `${order.uyeAdi} ${order.uyeSoyadi}`,
+                    email: order.email,
+                    shopifyId: order._shopifyCustomerId,
+                    orders: []
+                };
+            }
+            groups[key].orders.push(order);
         });
+
+        // Objeden array'e çevir ve sırala
+        return Object.values(groups).sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [fetchedOrders]);
 
     return (
@@ -442,34 +529,18 @@ export default function TiciToShopify() {
                             </InlineStack>
                         </InlineStack>
 
-                        {fetchedOrders.length > 0 ? (
-                            <DataTable
-                                columnContentTypes={["text", "text", "text", "text", "text", "text"]}
-                                headings={["Sipariş No", "Tarih", "Müşteri", "Tutar", "Durum", "İşlem"]}
-                                rows={groupedOrders.map((order) => {
-                                    const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
-
-                                    // Müşteri ID gösterimi
-                                    const customerInfo = order._shopifyCustomerId
-                                        ? <span style={{ color: "green", fontSize: "0.85em" }}> (ID: {order._shopifyCustomerId.split("/").pop()})</span>
-                                        : <span style={{ color: "orange", fontSize: "0.85em" }}> (Yeni)</span>;
-
-                                    return [
-                                        order.siparisNo,
-                                        new Date(order.siparisTarihi).toLocaleDateString("tr-TR"),
-                                        <>{order.uyeAdi} {order.uyeSoyadi}{customerInfo}</>,
-                                        `₺${order.toplamTutar}`,
-                                        isAlreadySynced ? <Badge tone="success">Aktarıldı</Badge> : <Badge tone="attention">Bekliyor</Badge>,
-                                        <Button
-                                            size="slim"
-                                            onClick={() => handleSyncOrder(order.siparisNo)}
-                                            disabled={isAlreadySynced || isSyncing}
-                                        >
-                                            {isAlreadySynced ? "✓" : "Aktar"}
-                                        </Button>
-                                    ];
-                                })}
-                            />
+                        {groupedOrders.length > 0 ? (
+                            <BlockStack gap="200">
+                                {groupedOrders.map((group: any) => (
+                                    <CustomerGroup
+                                        key={group.email + (group.shopifyId || "")}
+                                        group={group}
+                                        syncedOrders={syncedOrders}
+                                        isSyncing={isSyncing}
+                                        onSync={handleSyncOrder}
+                                    />
+                                ))}
+                            </BlockStack>
                         ) : (
                             isFetching ? <Text as="p" tone="subdued">Yükleniyor...</Text> : <Text as="p" tone="subdued">Listelenecek sipariş yok.</Text>
                         )}

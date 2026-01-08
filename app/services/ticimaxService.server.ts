@@ -52,6 +52,8 @@ export interface TicimaxSiparis {
     ilce: string;
     postaKodu: string;
     toplamTutar: number;
+    siparisDurumu: number;
+    paketlemeDurumu: number;
     urunler: TicimaxUrun[];
 }
 
@@ -230,7 +232,9 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Temel alanları çek
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        // SiparisDurumu 2 (Onaylandı) kontrolü yapmaya gerek yok çünkü filtreledik
+        // Status parsing
+        const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
+        const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
         const uyeAdi = getTagValue(siparisXml, "UyeAdi");
@@ -285,7 +289,7 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
             siparisId, siparisNo, siparisTarihi,
             uyeAdi, uyeSoyadi, email,
             telefon, adres, il, ilce, postaKodu,
-            toplamTutar, urunler
+            toplamTutar, siparisDurumu, paketlemeDurumu, urunler
         });
     }
 
