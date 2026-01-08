@@ -283,7 +283,7 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         const urunler: TicimaxUrun[] = [];
         const urunlerBlock = getInnerTagContent(siparisXml, "Urunler");
 
-        const urunRegex = /<WebSiparisUrun>(.*?)<\/WebSiparisUrun>/gs;
+        const urunRegex = /<WebSiparisUrun>(.*?)<\/WebSiparisUrun>/gsi;
         let urunMatch;
 
         while ((urunMatch = urunRegex.exec(urunlerBlock)) !== null) {
@@ -329,7 +329,7 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
 
 // Helper: İç içe tag bul (Namespace temizlenmiş XML için)
 function getInnerTagContent(xml: string, tagName: string): string {
-    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 's');
+    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 'si');
     const match = regex.exec(xml);
     return match ? match[1] : "";
 }
@@ -338,7 +338,7 @@ function getInnerTagContent(xml: string, tagName: string): string {
 function extractOptionValues(xml: string, tagName: string): string[] {
     const results: string[] = [];
     // <TagName>Value</TagName>
-    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 'gs');
+    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 'gsi');
     let match;
     while ((match = regex.exec(xml)) !== null) {
         results.push(match[1].trim());
