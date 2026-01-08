@@ -361,7 +361,10 @@ function CustomerGroup({ group, syncedOrders, isSyncing, onSync }: {
                             headings={["Sipariş No", "Tarih", "Tutar", "Durum (Ticimax)", "Sync", "İşlem"]}
                             rows={group.orders.map(order => {
                                 const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
-                                const ticimaxStatus = STATUS_MAP[order.siparisDurumu] || `Bilinmiyor (${order.siparisDurumu})`;
+                                let ticimaxStatus = STATUS_MAP[order.siparisDurumu] || `Bilinmiyor (${order.siparisDurumu})`;
+                                if (order.siparisDurumu === -1 && order.rawStatus) {
+                                    ticimaxStatus += ` [DEBUG: ${order.rawStatus}]`;
+                                }
 
                                 return [
                                     order.siparisNo,

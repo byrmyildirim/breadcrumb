@@ -54,6 +54,7 @@ export interface TicimaxSiparis {
     toplamTutar: number;
     siparisDurumu: number;
     paketlemeDurumu: number;
+    rawStatus?: string;
     urunler: TicimaxUrun[];
 }
 
@@ -301,7 +302,9 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
             siparisId, siparisNo, siparisTarihi,
             uyeAdi, uyeSoyadi, email,
             telefon, adres, il, ilce, postaKodu,
-            toplamTutar, siparisDurumu, paketlemeDurumu, urunler
+            toplamTutar, siparisDurumu, paketlemeDurumu,
+            rawStatus, // <--- Populate here
+            urunler
         });
     }
 
