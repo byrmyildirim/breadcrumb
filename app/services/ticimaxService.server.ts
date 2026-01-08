@@ -374,20 +374,30 @@ export async function fetchAllTicimaxOrdersRecursive(config: TicimaxApiConfig): 
 
     console.log(`[Ticimax] Total Fetched: ${allOrders.length}. Applying Backend Filters...`);
 
+    // Log for debugging: Distribution of Statuses and Payment Types
+    const statusCounts: Record<number, number> = {};
+    const paymentCounts: Record<number, number> = {};
+    allOrders.forEach(o => {
+        statusCounts[o.siparisDurumu] = (statusCounts[o.siparisDurumu] || 0) + 1;
+        paymentCounts[o.odemeTipi] = (paymentCounts[o.odemeTipi] || 0) + 1;
+    });
+    console.log("[Ticimax Debug] Status Dist:", JSON.stringify(statusCounts));
+    console.log("[Ticimax Debug] Payment Dist:", JSON.stringify(paymentCounts));
+
     // InMemory Filter
     const filtered = allOrders.filter(o => {
-        // Status Check
-        // Sipariş Durumu listede var mı VEYA Paketleme Durumu > 0 (Paketlendi) mı?
-        const isStatusValid = VALID_STATUSES.includes(o.siparisDurumu) || (o.paketlemeDurumu && o.paketlemeDurumu > 0);
+        // Status Check:
+        // User said: "Onaylı(2), Teslim(4), Kargo(3), Tedarik(?), Paket(?), İptal(5), İade(6)"
+        // And "Tüm filtreleri kaldır" (Remove filters).
+        // Best approach: Exclude invalid/system statuses like '0' (Ön Sipariş) or '-1' (Error).
+        // Let's rely on > 0 rule as 'Safe Filter'.
+        const isStatusValid = o.siparisDurumu > 0;
 
-        // Payment Type Check
-        // Eğer 'odemeTipi' alanı yoksa undefined gelir.
-        const paymentType = (o as any).odemeTipi;
+        // Payment Type Check: REMOVED.
+        // As per user request "Tüm filtreleri kaldır" and issues with filtering everything out.
+        // We will display all payment types.
 
-        // Ödeme tipi kontrolü
-        const isPaymentValid = paymentType !== undefined ? VALID_PAYMENT_TYPES.includes(paymentType) : true;
-
-        return isStatusValid && isPaymentValid;
+        return isStatusValid;
     });
 
     console.log(`[Ticimax] Filtered Count: ${filtered.length}`);
