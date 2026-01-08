@@ -76,7 +76,7 @@ function getServiceUrl(url: string): string {
  * XML tag içeriğini çek (Namespace temizlendikten sonra kullanılır)
  */
 function getTagValue(xml: string, tagName: string): string {
-    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 's');
+    const regex = new RegExp(`<${tagName}[^>]*>(.*?)</${tagName}>`, 'si');
     const match = regex.exec(xml);
     return match ? match[1].trim() : "";
 }
@@ -232,9 +232,21 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Temel alanları çek
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        // Status parsing
-        const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
-        const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
+        // Status parsing - Robust
+        let rawStatus = getTagValue(siparisXml, "SiparisDurumu");
+        if (!rawStatus) rawStatus = getTagValue(siparisXml, "Durum"); // Fallback
+
+        let siparisDurumu = parseInt(rawStatus);
+        if (isNaN(siparisDurumu)) {
+            siparisDurumu = -1;
+            // Maybe it's text? Try to map reverse if needed (Skip for now, user provided IDs)
+        }
+
+        // Fix 0 bug: parseInt("0") is 0, which is falsy in || check. Now checking isNaN.
+
+        let rawPaket = getTagValue(siparisXml, "PaketlemeDurumu");
+        let paketlemeDurumu = parseInt(rawPaket);
+        if (isNaN(paketlemeDurumu)) paketlemeDurumu = -1;
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
         const uyeAdi = getTagValue(siparisXml, "UyeAdi");
