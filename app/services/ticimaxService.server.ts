@@ -233,21 +233,36 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Temel alanları çek
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        // Status parsing - Robust
-        let rawStatus = getTagValue(siparisXml, "SiparisDurumu");
-        if (!rawStatus) rawStatus = getTagValue(siparisXml, "Durum"); // Fallback
+        // Status parsing - Robust (Durum öncelikli, metin desteği)
+        let rawStatus = getTagValue(siparisXml, "Durum"); // Ticimax XML'de "Durum" kullanıyor
+        if (!rawStatus) rawStatus = getTagValue(siparisXml, "SiparisDurumu"); // Fallback
+
+        // Metin -> Sayı dönüşümü
+        const STATUS_TEXT_MAP: Record<string, number> = {
+            "Ön sipariş": 0, "Ön Sipariş": 0,
+            "Onay bekliyor": 1, "Onay Bekliyor": 1,
+            "Onaylandı": 2,
+            "Ödeme bekliyor": 3, "Ödeme Bekliyor": 3,
+            "Paketleniyor": 4,
+            "Tedarik ediliyor": 5, "Tedarik Ediliyor": 5,
+            "Kargoya verildi": 6, "Kargoya Verildi": 6,
+            "Teslim edildi": 7, "Teslim Edildi": 7,
+            "İptal edildi": 8, "İptal Edildi": 8,
+            "İade edildi": 9, "İade Edildi": 9,
+            "Silinmiş": 10,
+            "İade talebi alındı": 11, "İade Talebi Alındı": 11,
+            "İade ulaştı ödeme yapılacak": 12, "İade Ulaştı Ödeme Yapılacak": 12,
+            "İade ödemesi yapıldı": 13, "İade Ödemesi Yapıldı": 13,
+            "Teslimat öncesi iptal talebi": 14, "Teslimat Öncesi İptal Talebi": 14,
+            "İptal talebi": 15, "İptal Talebi": 15,
+            "Kısmi iade talebi": 16, "Kısmi İade Talebi": 16,
+            "Kısmi iade yapıldı": 17, "Kısmi İade Yapıldı": 17
+        };
 
         let siparisDurumu = parseInt(rawStatus);
         if (isNaN(siparisDurumu)) {
-            // Text to ID Mapping
-            const statusMap: Record<string, number> = {
-                "Ön Sipariş": 0, "Onay Bekliyor": 1, "Onaylandı": 2, "Ödeme Bekliyor": 3,
-                "Paketleniyor": 4, "Tedarik Ediliyor": 5, "Kargoya Verildi": 6, "Teslim Edildi": 7,
-                "İptal Edildi": 8, "İade Edildi": 9, "Silinmiş": 10,
-                "İade Talebi Alındı": 11, "İade Ulaştı Ödeme Yapılacak": 12, "İade Ödemesi Yapıldı": 13,
-                "Teslimat Öncesi İptal Talebi": 14, "İptal Talebi": 15, "Kısmi İade Talebi": 16, "Kısmi İade Yapıldı": 17
-            };
-            siparisDurumu = statusMap[rawStatus] !== undefined ? statusMap[rawStatus] : -1;
+            // Metin olarak gelmişse, map'ten bul
+            siparisDurumu = STATUS_TEXT_MAP[rawStatus] ?? -1;
         }
 
         // Fix 0 bug: parseInt("0") is 0, which is falsy in || check. Now checking isNaN.
