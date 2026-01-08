@@ -233,23 +233,10 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
         // Temel alanları çek
         const siparisId = parseInt(getTagValue(siparisXml, "ID")) || 0;
         const siparisNo = getTagValue(siparisXml, "SiparisNo");
-        // Status parsing (Fallback to 'Durum' if 'SiparisDurumu' is missing)
-        let siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu"));
-        if (isNaN(siparisDurumu)) {
-            siparisDurumu = parseInt(getTagValue(siparisXml, "Durum")) || -1;
-        }
-
+        // Status parsing
+        const siparisDurumu = parseInt(getTagValue(siparisXml, "SiparisDurumu")) || -1;
         const paketlemeDurumu = parseInt(getTagValue(siparisXml, "PaketlemeDurumu")) || -1;
-
-        let odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipi"));
-        if (isNaN(odemeTipi)) {
-            odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipiID")) || -1;
-        }
-
-        // Debug logging for the first few orders
-        if (orders.length < 3) {
-            console.log(`[Parser Debug] ID: ${siparisId} No: ${siparisNo} Status: ${siparisDurumu} (Raw: ${getTagValue(siparisXml, "SiparisDurumu")}/${getTagValue(siparisXml, "Durum")}) PayType: ${odemeTipi}`);
-        }
+        const odemeTipi = parseInt(getTagValue(siparisXml, "OdemeTipi")) || 0;
 
         const siparisTarihi = getTagValue(siparisXml, "SiparisTarihi");
         const uyeAdi = getTagValue(siparisXml, "UyeAdi");
@@ -331,75 +318,38 @@ function extractOptionValues(xml: string, tagName: string): string[] {
 }
 
 /**
- * Recursive Unlimited Fetch with Filtering
- * @param config 
+ * Recursive olarak TÜM siparişleri çeker
  */
-export async function fetchAllTicimaxOrdersRecursive(config: TicimaxApiConfig): Promise<TicimaxSiparis[]> {
+export async function fetchAllTicimaxOrders(config: TicimaxApiConfig): Promise<TicimaxSiparis[]> {
     let allOrders: TicimaxSiparis[] = [];
     let page = 1;
-    const limit = 500;
+    const limit = 500; // Chunk size
+    let fetchedCount = 0;
 
-    // Status Groups to Filter:
-    // 1: Bekliyor, 2: Onaylandı, 3: Kargolandı, 4: Teslim Edildi, 5: İptal Edildi, 6: İade
-    // Teyitli/Tedarik/Paketleme gibi durumları kapsamak için geniş tutuyoruz.
-    // Ön Sipariş (0) ve Silinmiş (7) hariç hepsi.
-    // Kullanıcı isteği: Onaylı, Teslim, Kargo, Tedarik, Paket, İptal, İade.
-
-    // Payment Types:
-    // 1: Havale
-    // 2: Kredi Kartı (PayTR dahil genelde bu ID kullanılır)
-    // Diğerleri (Kapıda Ödeme vs) hariç.
-
-    const VALID_STATUSES = [1, 2, 3, 4, 5, 6];
-    const VALID_PAYMENT_TYPES = [1, 2];
+    console.log("Starting bulk fetch...");
 
     while (true) {
-        console.log(`[Ticimax] Fetching Page ${page} (Limit: ${limit})...`);
-
-        // Tüm statüleri (-1) ve ödeme tiplerini (-1) çekiyoruz, sonra filtreleyeceğiz
-        const orders = await fetchTicimaxOrders(config, { SiparisDurumu: -1, OdemeTipi: -1 }, { KayitSayisi: limit }, page);
+        console.log(`Fetching page ${page}...`);
+        // Her sayfada -1 (Tüm durumlar) çekiliyor
+        const orders = await fetchTicimaxOrders(config, { SiparisDurumu: -1 }, { KayitSayisi: limit }, page);
 
         if (!orders || orders.length === 0) {
+            break; // Veri bitti
+        }
+
+        allOrders = [...allOrders, ...orders];
+        fetchedCount = orders.length;
+
+        // Eğer çekilen sayı limitin altındaysa son sayfadayız demektir
+        if (fetchedCount < limit) {
             break;
         }
 
-        allOrders = allOrders.concat(orders);
-
-        if (orders.length < limit) {
-            // Last page reached
-            break;
-        }
         page++;
+        // Sonsuz döngü koruması (Opsiyonel ama iyi pratik, 100 sayfa = 50000 sipariş yetmeli)
+        if (page > 100) break;
     }
 
-    console.log(`[Ticimax] Total Fetched: ${allOrders.length}. Applying Backend Filters...`);
-
-    // Log for debugging: Distribution of Statuses and Payment Types
-    const statusCounts: Record<number, number> = {};
-    const paymentCounts: Record<number, number> = {};
-    allOrders.forEach(o => {
-        statusCounts[o.siparisDurumu] = (statusCounts[o.siparisDurumu] || 0) + 1;
-        paymentCounts[o.odemeTipi] = (paymentCounts[o.odemeTipi] || 0) + 1;
-    });
-    console.log("[Ticimax Debug] Status Dist:", JSON.stringify(statusCounts));
-    console.log("[Ticimax Debug] Payment Dist:", JSON.stringify(paymentCounts));
-
-    // InMemory Filter
-    const filtered = allOrders.filter(o => {
-        // Status Check:
-        // User said: "Onaylı(2), Teslim(4), Kargo(3), Tedarik(?), Paket(?), İptal(5), İade(6)"
-        // And "Tüm filtreleri kaldır" (Remove filters).
-        // Best approach: Exclude invalid/system statuses like '0' (Ön Sipariş) or '-1' (Error).
-        // Let's rely on > 0 rule as 'Safe Filter'.
-        const isStatusValid = o.siparisDurumu > 0;
-
-        // Payment Type Check: REMOVED.
-        // As per user request "Tüm filtreleri kaldır" and issues with filtering everything out.
-        // We will display all payment types.
-
-        return isStatusValid;
-    });
-
-    console.log(`[Ticimax] Filtered Count: ${filtered.length}`);
-    return filtered;
+    console.log(`Total orders fetched: ${allOrders.length}`);
+    return allOrders;
 }
