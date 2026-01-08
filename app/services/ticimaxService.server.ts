@@ -133,6 +133,7 @@ export async function fetchTicimaxOrders(
     const formattedEndDate = formatDateForTicimax(defaultFilter.BitisTarihi);
 
     // XML Envelope oluştur (Namespace'ler Ticimax standardına uygun)
+    // NOT: WCF servisleri alanları ALFABETIK SIRAYA göre bekler!
     const envelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tns="http://tempuri.org/" xmlns:q1="http://schemas.datacontract.org/2004/07/">
   <soap:Body>
@@ -140,20 +141,15 @@ export async function fetchTicimaxOrders(
       <tns:UyeKodu>${config.uyeKodu}</tns:UyeKodu>
       <tns:f>
         <q1:EntegrasyonAktarildi>${defaultFilter.EntegrasyonAktarildi}</q1:EntegrasyonAktarildi>
-        <q1:EntegrasyonParams xsi:nil="true" />
-        <q1:FaturaNo xsi:nil="true" />
-        <q1:IptalEdilmisUrunler>false</q1:IptalEdilmisUrunler>
+        <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
         <q1:OdemeDurumu>${defaultFilter.OdemeDurumu}</q1:OdemeDurumu>
         <q1:OdemeTamamlandi>${defaultFilter.OdemeTamamlandi}</q1:OdemeTamamlandi>
         <q1:OdemeTipi>${defaultFilter.OdemeTipi}</q1:OdemeTipi>
         <q1:PaketlemeDurumu>${defaultFilter.PaketlemeDurumu}</q1:PaketlemeDurumu>
         <q1:SiparisDurumu>${defaultFilter.SiparisDurumu}</q1:SiparisDurumu>
-        <q1:SiparisID>${defaultFilter.SiparisID}</q1:SiparisID>
-        <q1:SiparisKaynagi xsi:nil="true" />
-        <q1:SiparisKodu xsi:nil="true" />${formattedStartDate ? `
-        <q1:SiparisTarihiBas>${formattedStartDate}</q1:SiparisTarihiBas>` : '<q1:SiparisTarihiBas xsi:nil="true" />'}${formattedEndDate ? `
-        <q1:SiparisTarihiSon>${formattedEndDate}</q1:SiparisTarihiSon>` : '<q1:SiparisTarihiSon xsi:nil="true" />'}
-        <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
+        <q1:SiparisID>${defaultFilter.SiparisID}</q1:SiparisID>${formattedStartDate ? `
+        <q1:SiparisTarihiBas>${formattedStartDate}</q1:SiparisTarihiBas>` : ''}${formattedEndDate ? `
+        <q1:SiparisTarihiSon>${formattedEndDate}</q1:SiparisTarihiSon>` : ''}
         <q1:TedarikciID>${defaultFilter.TedarikciID}</q1:TedarikciID>
         <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>
       </tns:f>
@@ -161,7 +157,7 @@ export async function fetchTicimaxOrders(
         <q1:BaslangicIndex>${defaultPagination.BaslangicIndex}</q1:BaslangicIndex>
         <q1:KayitSayisi>${defaultPagination.KayitSayisi}</q1:KayitSayisi>
         <q1:SiralamaDeger>${defaultPagination.SiralamaDeger}</q1:SiralamaDeger>
-        <q1:SiralamaYonu>Desc</q1:SiralamaYonu>
+        <q1:SiralamaYonu>${defaultPagination.SiralamaYonu}</q1:SiralamaYonu>
       </tns:s>
     </tns:SelectSiparis>
   </soap:Body>
@@ -169,6 +165,10 @@ export async function fetchTicimaxOrders(
 
     console.log(`[Ticimax] Page ${page} | Status=${defaultFilter.SiparisDurumu}, StartIdx=${defaultPagination.BaslangicIndex}, Limit=${defaultPagination.KayitSayisi}`);
     console.log(`[Ticimax] Date Filter: Start=${formattedStartDate || 'N/A'}, End=${formattedEndDate || 'N/A'}`);
+    // Debug: XML payload logla (sadece tarih filtresi varsa)
+    if (formattedStartDate || formattedEndDate) {
+        console.log(`[Ticimax] XML Date Fields: SiparisTarihiBas=${formattedStartDate}, SiparisTarihiSon=${formattedEndDate}`);
+    }
 
     try {
         const response = await fetch(serviceUrl, {
