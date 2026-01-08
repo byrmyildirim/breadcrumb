@@ -149,8 +149,8 @@ export async function fetchTicimaxOrders(
         <q1:KargoFirmaID>${defaultFilter.KargoFirmaID}</q1:KargoFirmaID>
         <q1:TedarikciID>${defaultFilter.TedarikciID}</q1:TedarikciID>
         <q1:UyeID>${defaultFilter.UyeID}</q1:UyeID>${formattedStartDate ? `
-        <q1:BaslangicTarihi>${formattedStartDate}</q1:BaslangicTarihi>` : ''}${formattedEndDate ? `
-        <q1:BitisTarihi>${formattedEndDate}</q1:BitisTarihi>` : ''}
+        <q1:SiparisTarihiBas>${formattedStartDate}</q1:SiparisTarihiBas>` : ''}${formattedEndDate ? `
+        <q1:SiparisTarihiSon>${formattedEndDate}</q1:SiparisTarihiSon>` : ''}
       </tns:f>
       <tns:s>
         <q1:BaslangicIndex>${defaultPagination.BaslangicIndex}</q1:BaslangicIndex>
