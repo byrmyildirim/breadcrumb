@@ -23,7 +23,8 @@ import {
     Select,
     Collapsible,
     Icon,
-    List
+    List,
+    Checkbox
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -398,6 +399,7 @@ export default function TiciToShopify() {
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
     const [selectedStatus, setSelectedStatus] = useState("7"); // Varsayılan: Teslim Edildi
+    const [hideSynced, setHideSynced] = useState(true); // Varsayılan: Aktarılanları gizle
     const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
@@ -477,6 +479,9 @@ export default function TiciToShopify() {
             // Gruplama anahtarı: Shopify ID > Email > Ad Soyad
             const key = order._shopifyCustomerId || order.email || `${order.uyeAdi} ${order.uyeSoyadi}`;
 
+            const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
+            if (hideSynced && isAlreadySynced) return; // Aktarılanları gizle
+
             if (!groups[key]) {
                 groups[key] = {
                     customerName: `${order.uyeAdi} ${order.uyeSoyadi}`,
@@ -534,6 +539,11 @@ export default function TiciToShopify() {
                                     options={statusOptions}
                                     onChange={setSelectedStatus}
                                     value={selectedStatus}
+                                />
+                                <Checkbox
+                                    label="Aktarılanları Gizle"
+                                    checked={hideSynced}
+                                    onChange={setHideSynced}
                                 />
                                 <Button
                                     disabled={currentPage <= 1}
