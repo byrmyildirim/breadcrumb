@@ -85,11 +85,12 @@ function getTagValue(xml: string, tagName: string): string {
 export async function fetchTicimaxOrders(
     config: TicimaxApiConfig,
     filter?: Partial<WebSiparisFiltre>,
-    pagination?: Partial<WebSiparisSayfalama>
+    pagination?: Partial<WebSiparisSayfalama>,
+    page: number = 1 // Yeni sayfa parametresi
 ): Promise<TicimaxSiparis[]> {
     const serviceUrl = getServiceUrl(config.wsdlUrl);
 
-    // Varsayılan filtre: SiparisDurumu = 2 (Onaylandı) - Kullanıcı isteği üzerine
+    // Varsayılan filtre
     const defaultFilter: WebSiparisFiltre = {
         EntegrasyonAktarildi: -1,
         OdemeDurumu: -1,
@@ -104,10 +105,13 @@ export async function fetchTicimaxOrders(
         ...filter,
     };
 
+    const limit = pagination?.KayitSayisi || 500;
+    const startIndex = (page - 1) * limit;
+
     // Varsayılan sayfalama
     const defaultPagination: WebSiparisSayfalama = {
-        BaslangicIndex: 0,
-        KayitSayisi: 500, // Daha fazla sipariş getir (Bulk Fetch)
+        BaslangicIndex: startIndex,
+        KayitSayisi: limit,
         SiralamaDeger: "ID",
         SiralamaYonu: "DESC",
         ...pagination,

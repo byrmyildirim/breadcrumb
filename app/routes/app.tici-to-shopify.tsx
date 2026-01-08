@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useActionData, useSubmit, useNavigation } from "@remix-run/react";
@@ -119,9 +119,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
 
             const statusParam = formData.get("status");
-            const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
+            const pageParam = formData.get("page");
 
-            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu });
+            const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
+            const page = pageParam ? parseInt(pageParam as string) : 1;
+
+            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, {}, page);
 
             // Müşteri eşleştirmelerini yap
             const enrichedOrders = await Promise.all(orders.map(async (order) => {
@@ -313,6 +316,7 @@ export default function TiciToShopify() {
     const [apiKey, setApiKey] = useState(config?.uyeKodu || "");
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
     const [selectedStatus, setSelectedStatus] = useState("-1"); // Varsayılan: Hepsi
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Action'dan gelen verileri yakala
     useEffect(() => {
@@ -337,7 +341,11 @@ export default function TiciToShopify() {
     // Aksiyonlar
     const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
-    const handleFetchOrders = () => submit({ intent: "fetchOrders", status: selectedStatus }, { method: "post" });
+
+    const handleFetchOrders = useCallback((page = 1) => {
+        setCurrentPage(page);
+        submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
+    }, [submit, selectedStatus]);
 
     const handleSyncOrder = (orderNo: string) => {
         submit({ intent: "syncOrders", orderId: orderNo }, { method: "post" });
@@ -360,6 +368,19 @@ export default function TiciToShopify() {
         { label: 'İade (6)', value: '6' },
         { label: 'Silinmiş (7)', value: '7' }
     ];
+
+    // Gruplama Mantığı
+    const groupedOrders = useMemo(() => {
+        if (!fetchedOrders.length) return [];
+        // Siparişleri Müşteri ID veya Email'e göre sırala ki aynı müşteriler alt alta gelsin
+        return [...fetchedOrders].sort((a, b) => {
+            const customerA = (a._shopifyCustomerId || a.email || a.uyeAdi || "").toLowerCase();
+            const customerB = (b._shopifyCustomerId || b.email || b.uyeAdi || "").toLowerCase();
+            if (customerA < customerB) return -1;
+            if (customerA > customerB) return 1;
+            return 0;
+        });
+    }, [fetchedOrders]);
 
     return (
         <Page fullWidth>
@@ -394,7 +415,7 @@ export default function TiciToShopify() {
                         <InlineStack align="space-between" blockAlign="center">
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
-                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın</Text>
+                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Sayfa: {currentPage})</Text>
                             </BlockStack>
                             <InlineStack gap="300">
                                 <Select
@@ -404,7 +425,20 @@ export default function TiciToShopify() {
                                     onChange={setSelectedStatus}
                                     value={selectedStatus}
                                 />
-                                <Button variant="primary" onClick={handleFetchOrders} loading={isFetching}>Siparişleri Çek (Bulk)</Button>
+                                <Button
+                                    disabled={currentPage <= 1}
+                                    onClick={() => handleFetchOrders(currentPage - 1)}
+                                >
+                                    &lt; Önceki
+                                </Button>
+                                <Button variant="primary" onClick={() => handleFetchOrders(currentPage)} loading={isFetching}>
+                                    Yenile / Çek (Bulk)
+                                </Button>
+                                <Button
+                                    onClick={() => handleFetchOrders(currentPage + 1)}
+                                >
+                                    Sonraki &gt;
+                                </Button>
                             </InlineStack>
                         </InlineStack>
 
@@ -412,7 +446,7 @@ export default function TiciToShopify() {
                             <DataTable
                                 columnContentTypes={["text", "text", "text", "text", "text", "text"]}
                                 headings={["Sipariş No", "Tarih", "Müşteri", "Tutar", "Durum", "İşlem"]}
-                                rows={fetchedOrders.map((order) => {
+                                rows={groupedOrders.map((order) => {
                                     const isAlreadySynced = syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced");
 
                                     // Müşteri ID gösterimi
