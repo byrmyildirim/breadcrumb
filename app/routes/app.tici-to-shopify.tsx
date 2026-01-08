@@ -203,12 +203,47 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
             const orderData = JSON.parse(orderDataStr);
 
+            // Duplicate Check: Bu sipariş daha önce aktarılmış mı?
+            const existingOrder = await prisma.ticimaxOrder.findFirst({
+                where: {
+                    shop,
+                    ticimaxOrderNo: orderData.siparisNo,
+                    status: "synced"
+                }
+            });
+            if (existingOrder) {
+                return json({ status: "error", message: `Bu sipariş zaten aktarılmış. (Shopify: ${existingOrder.shopifyOrderName})` });
+            }
+
+            // Phone Sanitizer: Shopify E.164 formatı bekliyor (+905321234567)
+            const sanitizePhone = (phone: string): string | undefined => {
+                if (!phone) return undefined;
+                // Sadece rakamları al
+                let digits = phone.replace(/\D/g, '');
+                // Türkiye için: 5xx ile başlıyorsa veya 05xx ile başlıyorsa +90 ekle
+                if (digits.startsWith('0')) digits = digits.substring(1);
+                if (digits.length === 10 && digits.startsWith('5')) {
+                    return '+90' + digits;
+                }
+                // 90 ile başlıyorsa + ekle
+                if (digits.startsWith('90') && digits.length === 12) {
+                    return '+' + digits;
+                }
+                // Zaten doğru formatta veya farklı ülke (olduğu gibi bırak)
+                if (digits.length >= 10) {
+                    return '+' + digits;
+                }
+                return undefined; // Geçersiz numara
+            };
+
+            const formattedPhone = sanitizePhone(orderData.telefon);
+
             // Müşteriyi bul veya oluştur
             const customerResult = await findOrCreateCustomer(admin, {
                 firstName: orderData.uyeAdi,
                 lastName: orderData.uyeSoyadi,
                 email: orderData.email,
-                phone: orderData.telefon,
+                phone: formattedPhone,
                 address: orderData.adres ? {
                     address1: orderData.adres,
                     city: orderData.il,
@@ -222,7 +257,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 customerId: customerResult?.id,
                 customerName: `${orderData.uyeAdi} ${orderData.uyeSoyadi}`,
                 email: orderData.email,
-                phone: orderData.telefon,
+                phone: formattedPhone,
                 lineItems: orderData.urunler.map(u => ({
                     title: u.urunAdi,
                     quantity: u.adet,
@@ -243,7 +278,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     country: "Turkey",
                     firstName: orderData.uyeAdi, // Alıcı adı ayrı değilse üye adı kullanılır
                     lastName: orderData.uyeSoyadi,
-                    phone: orderData.telefon
+                    phone: formattedPhone
                 } : undefined
             });
 
