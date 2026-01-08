@@ -197,17 +197,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // 4. Sipariş Aktar (Sync)
     if (intent === "syncOrders") {
         try {
-            const orderId = formData.get("orderId") as string;
+            const orderIdStr = formData.get("orderId") as string;
+            // orderIdStr artık Numeric ID veya String ID olabilir. 
+            // Ticimax'ta tekil sipariş çekmek için SiparisID veya SiparisNo kullanabiliriz.
+            // SiparisNo (String) filtrede yok. SiparisID (Int) filtrede var.
+            // UI'dan SiparisID yollamalıyız.
+            const orderId = parseInt(orderIdStr);
 
             const config = await prisma.ticimaxConfig.findFirst({ where: { shop } });
             if (!config) throw new Error("Ayar yok");
 
-            // Siparişi tekrar çekerek en güncel halini alalım
-            const allOrders = await fetchTicimaxOrders(config);
-            const orderData = allOrders.find(o => o.siparisNo === orderId);
+            // Siparişi tekrar çekerek en güncel halini alalım (ID Filtresi ile)
+            // Sadece o siparişi getir.
+            const allOrders = await fetchTicimaxOrders(config, { SiparisID: orderId });
+
+            // Dönen listede bul (zaten 1 tane olmalı, ama garanti olsun)
+            // Ticimax ID filtresi çalışmazsa (bazı versiyonlarda) yine ilk sayfayı döner, o zaman bulmaya çalışırız.
+            let orderData = allOrders.find(o => o.siparisId === orderId);
+
+            // Eğer ID ile bulamazsa (filtre çalışmadıysa ve sipariş sonraki sayfadaysa), SiparisNo ile filtrelemeyi deneyemeyiz (XML'de yok).
+            // Ancak SiparisID ile filtreleme standarttır.
 
             if (!orderData) {
-                throw new Error("Sipariş Ticimax verisinde bulunamadı.");
+                // Fallback: Belki string SiparisNo ile eşleşiyordur? (Eğer ID parse edilemediyse)
+                orderData = allOrders.find(o => o.siparisNo === orderIdStr);
+            }
+
+            if (!orderData) {
+                throw new Error(`Sipariş Ticimax verisinde bulunamadı. (ID: ${orderIdStr}) Filtrede dönen kayıt: ${allOrders.length}`);
             }
 
             // Müşteriyi bul veya oluştur
@@ -570,7 +587,7 @@ export default function TiciToShopify() {
                                         group={group}
                                         syncedOrders={syncedOrders}
                                         isSyncing={isSyncing}
-                                        onSync={handleSyncOrder}
+                                        onSync={(id) => onSync(group.orders.find((o: any) => o.siparisNo === id)?.siparisId || id)}
                                     />
                                 ))}
                             </BlockStack>

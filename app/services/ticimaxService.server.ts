@@ -239,8 +239,15 @@ function parseSoapResponseRobust(rawXml: string): TicimaxSiparis[] {
 
         let siparisDurumu = parseInt(rawStatus);
         if (isNaN(siparisDurumu)) {
-            siparisDurumu = -1;
-            // Maybe it's text? Try to map reverse if needed (Skip for now, user provided IDs)
+            // Text to ID Mapping
+            const statusMap: Record<string, number> = {
+                "Ön Sipariş": 0, "Onay Bekliyor": 1, "Onaylandı": 2, "Ödeme Bekliyor": 3,
+                "Paketleniyor": 4, "Tedarik Ediliyor": 5, "Kargoya Verildi": 6, "Teslim Edildi": 7,
+                "İptal Edildi": 8, "İade Edildi": 9, "Silinmiş": 10,
+                "İade Talebi Alındı": 11, "İade Ulaştı Ödeme Yapılacak": 12, "İade Ödemesi Yapıldı": 13,
+                "Teslimat Öncesi İptal Talebi": 14, "İptal Talebi": 15, "Kısmi İade Talebi": 16, "Kısmi İade Yapıldı": 17
+            };
+            siparisDurumu = statusMap[rawStatus] !== undefined ? statusMap[rawStatus] : -1;
         }
 
         // Fix 0 bug: parseInt("0") is 0, which is falsy in || check. Now checking isNaN.
