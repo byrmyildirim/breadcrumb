@@ -512,6 +512,58 @@ export default function TiciToShopify() {
         }
     }
 
+    // Toplu Aktarım State
+    const [bulkSyncProgress, setBulkSyncProgress] = useState<{ current: number; total: number; running: boolean }>({ current: 0, total: 0, running: false });
+
+    // Toplu Aktarım Fonksiyonu
+    const handleBulkSync = async () => {
+        // Sadece aktarılmamış siparişleri al
+        const ordersToSync = fetchedOrders.filter(order =>
+            !syncedOrders.some(s => s.ticimaxOrderNo === order.siparisNo && s.status === "synced")
+        );
+
+        if (ordersToSync.length === 0) {
+            shopify.toast.show("Aktarılacak sipariş yok!", { isError: true });
+            return;
+        }
+
+        if (!confirm(`${ordersToSync.length} sipariş sırayla aktarılacak. Devam etmek istiyor musunuz?`)) {
+            return;
+        }
+
+        setBulkSyncProgress({ current: 0, total: ordersToSync.length, running: true });
+
+        for (let i = 0; i < ordersToSync.length; i++) {
+            const order = ordersToSync[i];
+            setBulkSyncProgress(prev => ({ ...prev, current: i + 1 }));
+
+            try {
+                // Form submit yerine fetch kullan (sequential processing için)
+                const formData = new FormData();
+                formData.append("intent", "syncOrders");
+                formData.append("orderData", JSON.stringify(order));
+
+                await fetch(window.location.href, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                shopify.toast.show(`${i + 1}/${ordersToSync.length}: ${order.siparisNo} aktarıldı`);
+            } catch (error) {
+                shopify.toast.show(`Hata: ${order.siparisNo} aktarılamadı`, { isError: true });
+            }
+
+            // Küçük gecikme ekle (rate limiting önlemi)
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        setBulkSyncProgress({ current: 0, total: 0, running: false });
+        shopify.toast.show(`Toplu aktarım tamamlandı! (${ordersToSync.length} sipariş)`);
+
+        // Sayfayı yenile
+        window.location.reload();
+    };
+
     const statusOptions = [
         { label: 'Hepsi (-1)', value: '-1' },
         { label: 'Ön Sipariş (0)', value: '0' },
@@ -637,8 +689,25 @@ export default function TiciToShopify() {
                                 <Button variant="primary" onClick={() => handleFetchOrders()} loading={isFetching}>
                                     {isFetching ? "Çekiliyor..." : `Siparişleri Çek`}
                                 </Button>
+                                {fetchedOrders.length > 0 && !bulkSyncProgress.running && (
+                                    <Button tone="success" onClick={handleBulkSync}>
+                                        Toplu Aktar ({fetchedOrders.filter(o => !syncedOrders.some(s => s.ticimaxOrderNo === o.siparisNo && s.status === "synced")).length} sipariş)
+                                    </Button>
+                                )}
+                                {bulkSyncProgress.running && (
+                                    <Button disabled loading>
+                                        Aktarılıyor... {bulkSyncProgress.current}/{bulkSyncProgress.total}
+                                    </Button>
+                                )}
                             </InlineStack>
                         </InlineStack>
+
+                        {/* Toplu Aktarım İlerleme Çubuğu */}
+                        {bulkSyncProgress.running && (
+                            <Banner tone="info">
+                                <p>Toplu aktarım devam ediyor: {bulkSyncProgress.current} / {bulkSyncProgress.total} sipariş aktarıldı</p>
+                            </Banner>
+                        )}
 
                         {groupedOrders.length > 0 ? (
                             <BlockStack gap="200">
