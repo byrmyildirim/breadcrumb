@@ -41,6 +41,7 @@ import {
 } from "../services/shopifyOrderService.server";
 
 // Loader - Mevcut ayarları ve siparişleri yükle
+// Son güncelleme: 2026-01-08 15:51 - Railway deploy tetiklemesi
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const shop = session.shop;
