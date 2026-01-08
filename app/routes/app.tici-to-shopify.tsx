@@ -125,12 +125,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
 
             const statusParam = formData.get("status");
-            const pageParam = formData.get("page");
 
             const siparisDurumu = statusParam ? parseInt(statusParam as string) : -1;
-            const page = pageParam ? parseInt(pageParam as string) : 1;
 
-            const orders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, {}, page);
+            // Tüm siparişleri çek (otomatik sayfalama)
+            let allOrders: any[] = [];
+            let currentPage = 1;
+            const pageSize = 500;
+            let hasMoreOrders = true;
+
+            console.log(`[Ticimax] Tüm siparişler çekiliyor... (Durum: ${siparisDurumu})`);
+
+            while (hasMoreOrders) {
+                const pageOrders = await fetchTicimaxOrders(config, { SiparisDurumu: siparisDurumu }, { KayitSayisi: pageSize }, currentPage);
+                console.log(`[Ticimax] Sayfa ${currentPage}: ${pageOrders.length} sipariş`);
+
+                if (pageOrders.length === 0) {
+                    hasMoreOrders = false;
+                } else {
+                    allOrders = [...allOrders, ...pageOrders];
+                    currentPage++;
+
+                    // Eğer gelen sipariş sayısı sayfa boyutundan azsa, son sayfadayız
+                    if (pageOrders.length < pageSize) {
+                        hasMoreOrders = false;
+                    }
+                }
+
+                // Güvenlik: Maksimum 20 sayfa (10.000 sipariş) ile sınırla
+                if (currentPage > 20) {
+                    console.log(`[Ticimax] Maksimum sayfa limitine ulaşıldı (20 sayfa)`);
+                    hasMoreOrders = false;
+                }
+            }
+
+            console.log(`[Ticimax] Toplam: ${allOrders.length} sipariş çekildi`);
+            const orders = allOrders;
 
             // Müşteri eşleştirmelerini yap
             const enrichedOrders = await Promise.all(orders.map(async (order) => {
@@ -456,9 +486,8 @@ export default function TiciToShopify() {
     const handleSaveSettings = () => submit({ intent: "saveSettings", wsdlUrl, apiKey }, { method: "post" });
     const handleTestConnection = () => submit({ intent: "testConnection" }, { method: "post" });
 
-    const handleFetchOrders = useCallback((page = 1) => {
-        setCurrentPage(page);
-        submit({ intent: "fetchOrders", status: selectedStatus, page: page.toString() }, { method: "post" });
+    const handleFetchOrders = useCallback(() => {
+        submit({ intent: "fetchOrders", status: selectedStatus }, { method: "post" });
     }, [submit, selectedStatus]);
 
     const handleSyncOrder = (order: any) => {
@@ -560,7 +589,7 @@ export default function TiciToShopify() {
                         <InlineStack align="space-between" blockAlign="center">
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Ticimax Siparişleri</Text>
-                                <Text as="p" tone="subdued">Siparişleri çekin ve Shopify'a aktarın (Sayfa: {currentPage})</Text>
+                                <Text as="p" tone="subdued">Seçili duruma göre tüm siparişleri çeker ({fetchedOrders.length} sipariş yüklü)</Text>
                             </BlockStack>
                             <InlineStack gap="300">
                                 <Select
@@ -575,19 +604,8 @@ export default function TiciToShopify() {
                                     checked={hideSynced}
                                     onChange={setHideSynced}
                                 />
-                                <Button
-                                    disabled={currentPage <= 1}
-                                    onClick={() => handleFetchOrders(currentPage - 1)}
-                                >
-                                    &lt; Önceki
-                                </Button>
-                                <Button variant="primary" onClick={() => handleFetchOrders(currentPage)} loading={isFetching}>
-                                    Yenile / Çek (Bulk)
-                                </Button>
-                                <Button
-                                    onClick={() => handleFetchOrders(currentPage + 1)}
-                                >
-                                    Sonraki &gt;
+                                <Button variant="primary" onClick={() => handleFetchOrders()} loading={isFetching}>
+                                    {isFetching ? "Çekiliyor..." : `Tüm Siparişleri Çek`}
                                 </Button>
                             </InlineStack>
                         </InlineStack>
