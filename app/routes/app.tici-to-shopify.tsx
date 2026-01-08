@@ -57,11 +57,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         take: 5,
     });
 
-    // Aktarılan siparişleri al
+    // Aktarılan siparişleri al (Yeterince büyük limit koyarak tüm geçmişi çek)
     const syncedOrders = await prisma.ticimaxOrder.findMany({
         where: { shop },
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: 2000, // Daha fazla sipariş göster (eski: 50)
     });
 
     return json({
