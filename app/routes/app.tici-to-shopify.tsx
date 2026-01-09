@@ -38,6 +38,7 @@ import {
 import {
     findOrCreateCustomer,
     createDraftOrder,
+    completeDraftOrder,
 } from "../services/shopifyOrderService.server";
 
 // Loader - Mevcut ayarları ve siparişleri yükle
@@ -371,6 +372,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
     }
 
+    // 6. Siparişi Ödendi Olarak İşaretle (Draft Order Complete)
+    if (intent === "markAsPaid") {
+        const draftOrderId = formData.get("draftOrderId") as string;
+        const recordId = formData.get("recordId") as string;
+
+        if (!draftOrderId) {
+            return json({ status: "error", message: "Draft Order ID eksik." });
+        }
+
+        try {
+            const result = await completeDraftOrder(admin, draftOrderId);
+
+            if (result.success) {
+                // Veritabanındaki kaydı güncelle
+                await prisma.ticimaxOrder.update({
+                    where: { id: recordId },
+                    data: {
+                        status: "completed",
+                        shopifyOrderId: result.orderId || undefined,
+                        shopifyOrderName: result.orderName || undefined,
+                    }
+                });
+                return json({ status: "success", message: `Sipariş ${result.orderName} olarak tamamlandı (ödendi).` });
+            } else {
+                return json({ status: "error", message: `Hata: ${result.error}` });
+            }
+        } catch (error: any) {
+            return json({ status: "error", message: error.message });
+        }
+    }
+
     return json({ status: "error", message: "Geçersiz işlem" });
 };
 
@@ -468,7 +500,6 @@ export default function TiciToShopify() {
     const [hideSynced, setHideSynced] = useState(true); // Varsayılan: Aktarılanları gizle
     const [currentPage, setCurrentPage] = useState(1);
     const [historySearch, setHistorySearch] = useState(""); // Aktarım Geçmişi Arama
-    const [historyStatusFilter, setHistoryStatusFilter] = useState<"all" | "synced" | "failed">("all"); // Aktarım Geçmişi Durum Filtresi
     const [startDate, setStartDate] = useState(""); // Tarih filtresi başlangıç
     const [endDate, setEndDate] = useState(""); // Tarih filtresi bitiş
 
@@ -745,31 +776,6 @@ export default function TiciToShopify() {
                                 clearButton
                                 onClearButtonClick={() => setHistorySearch("")}
                             />
-                            <InlineStack gap="200">
-                                <Button
-                                    pressed={historyStatusFilter === "all"}
-                                    onClick={() => setHistoryStatusFilter("all")}
-                                    size="slim"
-                                >
-                                    Tümü ({syncedOrders.length})
-                                </Button>
-                                <Button
-                                    pressed={historyStatusFilter === "synced"}
-                                    onClick={() => setHistoryStatusFilter("synced")}
-                                    size="slim"
-                                    tone="success"
-                                >
-                                    Başarılı ({syncedOrders.filter(o => o.status === "synced").length})
-                                </Button>
-                                <Button
-                                    pressed={historyStatusFilter === "failed"}
-                                    onClick={() => setHistoryStatusFilter("failed")}
-                                    size="slim"
-                                    tone="critical"
-                                >
-                                    Hatalı ({syncedOrders.filter(o => o.status === "failed").length})
-                                </Button>
-                            </InlineStack>
                             <DataTable
                                 columnContentTypes={["text", "text", "text", "text", "text", "text", "text"]}
                                 headings={[
@@ -783,9 +789,6 @@ export default function TiciToShopify() {
                                 ]}
                                 rows={syncedOrders
                                     .filter(order => {
-                                        // Durum filtresi
-                                        if (historyStatusFilter !== "all" && order.status !== historyStatusFilter) return false;
-                                        // Arama filtresi
                                         if (!historySearch) return true;
                                         const search = historySearch.toLowerCase();
                                         return order.ticimaxOrderNo.toLowerCase().includes(search) ||
@@ -806,8 +809,10 @@ export default function TiciToShopify() {
                                             order.shopifyOrderName || "-",
                                             order.customerName,
                                             `₺${order.totalAmount.toFixed(2)}`,
-                                            order.status === "synced" ? (
-                                                <Badge tone="success">Başarılı</Badge>
+                                            order.status === "completed" ? (
+                                                <Badge tone="info">Ödendi</Badge>
+                                            ) : order.status === "synced" ? (
+                                                <Badge tone="success">Taslak</Badge>
                                             ) : order.status === "failed" ? (
                                                 <Badge tone="critical">Hata</Badge>
                                             ) : (
@@ -830,6 +835,20 @@ export default function TiciToShopify() {
                                                         target="_blank"
                                                     >
                                                         Müşteriyi Gör
+                                                    </Button>
+                                                )}
+                                                {/* Ödendi Yap butonu - sadece synced durumundaki siparişler için */}
+                                                {order.status === "synced" && order.shopifyOrderId && (
+                                                    <Button
+                                                        size="slim"
+                                                        tone="success"
+                                                        onClick={() => submit({
+                                                            intent: "markAsPaid",
+                                                            draftOrderId: order.shopifyOrderId,
+                                                            recordId: order.id
+                                                        }, { method: "post" })}
+                                                    >
+                                                        Ödendi Yap
                                                     </Button>
                                                 )}
                                             </InlineStack>,
