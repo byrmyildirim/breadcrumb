@@ -442,10 +442,20 @@ document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll('.qv-compare-price').forEach(el => el.innerHTML = cp);
 
       const btn = document.getElementById('qv-add-btn');
-      if(variant.available) {
-          btn.disabled = false; btn.textContent = "SEPETE EKLE";
+      
+      // Zero Price Guard
+      if (variant.price === 0) {
+          btn.disabled = true;
+          btn.textContent = "FİYAT ALINIZ";
+          btn.style.backgroundColor = "#ccc"; // Optional: Visually disable
+      } else if(variant.available) {
+          btn.disabled = false;
+          btn.textContent = "SEPETE EKLE";
+          btn.style.backgroundColor = ""; // Reset color
       } else {
-          btn.disabled = true; btn.textContent = "TÜKENDİ";
+          btn.disabled = true;
+          btn.textContent = "TÜKENDİ";
+          btn.style.backgroundColor = "";
       }
 
       variant.options.forEach((val, idx) => {
