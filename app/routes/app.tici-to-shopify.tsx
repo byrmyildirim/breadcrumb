@@ -359,6 +359,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
     }
 
+    if (intent === "completeOrder") {
+        try {
+            const id = formData.get("id") as string;
+            if (!id) throw new Error("ID eksik.");
+
+            const dbOrder = await prisma.ticimaxOrder.findUnique({ where: { id } });
+            if (!dbOrder || !dbOrder.shopifyOrderId) throw new Error("Sipariş bulunamadı veya Shopify Draft ID yok.");
+
+            // Draft Order'ı tamamla (Ödendi/Tamamlandı olarak işaretle)
+            const result = await completeDraftOrder(admin, dbOrder.shopifyOrderId);
+
+            if (result.success) {
+                // DB'yi güncelle
+                await prisma.ticimaxOrder.update({
+                    where: { id },
+                    data: {
+                        status: "completed", // "synced" -> "completed"
+                        shopifyOrderId: result.orderId, // Yeni Order ID (Draft ID yerine)
+                        shopifyOrderName: result.orderName
+                    }
+                });
+                return json({ status: "success", message: `Sipariş ${result.orderName} olarak tamamlandı (Ödendi).` });
+            } else {
+                return json({ status: "error", message: result.error || "Sipariş tamamlanamadı." });
+            }
+
+        } catch (error: any) {
+            return json({ status: "error", message: error.message });
+        }
+    }
+
     // 5. Silme İşlemi
     if (intent === "deleteSync") {
         const id = formData.get("id") as string;
@@ -369,37 +400,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return json({ status: "success", message: "Kayıt başarıyla silindi." });
         } catch (error) {
             return json({ status: "error", message: "Silme sırasında hata." });
-        }
-    }
-
-    // 6. Siparişi Ödendi Olarak İşaretle (Draft Order Complete)
-    if (intent === "markAsPaid") {
-        const draftOrderId = formData.get("draftOrderId") as string;
-        const recordId = formData.get("recordId") as string;
-
-        if (!draftOrderId) {
-            return json({ status: "error", message: "Draft Order ID eksik." });
-        }
-
-        try {
-            const result = await completeDraftOrder(admin, draftOrderId);
-
-            if (result.success) {
-                // Veritabanındaki kaydı güncelle
-                await prisma.ticimaxOrder.update({
-                    where: { id: recordId },
-                    data: {
-                        status: "completed",
-                        shopifyOrderId: result.orderId || undefined,
-                        shopifyOrderName: result.orderName || undefined,
-                    }
-                });
-                return json({ status: "success", message: `Sipariş ${result.orderName} olarak tamamlandı (ödendi).` });
-            } else {
-                return json({ status: "error", message: `Hata: ${result.error}` });
-            }
-        } catch (error: any) {
-            return json({ status: "error", message: error.message });
         }
     }
 
@@ -590,9 +590,61 @@ export default function TiciToShopify() {
         }
 
         setBulkSyncProgress({ current: 0, total: 0, running: false });
-        shopify.toast.show(`Toplu aktarım tamamlandı! (${ordersToSync.length} sipariş)`);
-
+        shopify.toast.show(`Toplu aktarım tamamlandı!`);
         // Sayfayı yenile
+        window.location.reload();
+    };
+
+    // Tekli Tamamla
+    const handleCompleteOrder = (id: string, shopifyNo: string) => {
+        if (confirm(`${shopifyNo} nolu siparişi ödendi olarak işaretlemek istiyor musunuz?`)) {
+            submit({ intent: "completeOrder", id }, { method: "post" });
+        }
+    };
+
+    // Toplu Tamamla State
+    const [bulkCompleteProgress, setBulkCompleteProgress] = useState<{ current: number; total: number; running: boolean }>({ current: 0, total: 0, running: false });
+
+    // Toplu Tamamla Fonksiyonu
+    const handleBulkComplete = async () => {
+        // Sadece "synced" (Taslak) olanları al
+        const ordersToComplete = syncedOrders.filter(s => s.status === "synced");
+
+        if (ordersToComplete.length === 0) {
+            shopify.toast.show("Tamamlanacak (Taslak) sipariş yok!", { isError: true });
+            return;
+        }
+
+        if (!confirm(`${ordersToComplete.length} taslak sipariş ödendi (tamamlandı) olarak işaretlenecek. Bu işlem geri alınamaz. Devam mı?`)) {
+            return;
+        }
+
+        setBulkCompleteProgress({ current: 0, total: ordersToComplete.length, running: true });
+
+        for (let i = 0; i < ordersToComplete.length; i++) {
+            const order = ordersToComplete[i];
+            setBulkCompleteProgress(prev => ({ ...prev, current: i + 1 }));
+
+            try {
+                const formData = new FormData();
+                formData.append("intent", "completeOrder");
+                formData.append("id", order.id);
+
+                await fetch(window.location.href, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                shopify.toast.show(`${i + 1}/${ordersToComplete.length}: ${order.shopifyOrderName} tamamlandı`);
+            } catch (error) {
+                shopify.toast.show(`Hata: ${order.shopifyOrderName} tamamlanamadı`, { isError: true });
+            }
+            // Küçük gecikme
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        setBulkCompleteProgress({ current: 0, total: 0, running: false });
+        shopify.toast.show(`Toplu tamamlama bitti!`);
         window.location.reload();
     };
 
@@ -766,6 +818,16 @@ export default function TiciToShopify() {
                             <Text as="h2" variant="headingMd">
                                 Aktarım Geçmişi ({syncedOrders.length} kayıt)
                             </Text>
+                            {syncedOrders.some(s => s.status === "synced") && !bulkCompleteProgress.running && (
+                                <Button tone="success" onClick={handleBulkComplete}>
+                                    Tüm Taslakları Ödendi İşaretle ({syncedOrders.filter(s => s.status === "synced").length})
+                                </Button>
+                            )}
+                            {bulkCompleteProgress.running && (
+                                <Banner tone="info">
+                                    <p>Ödendi işaretleniyor... {bulkCompleteProgress.current} / {bulkCompleteProgress.total}</p>
+                                </Banner>
+                            )}
                             <TextField
                                 label="Sipariş No ile Ara"
                                 labelHidden
@@ -809,16 +871,21 @@ export default function TiciToShopify() {
                                             order.shopifyOrderName || "-",
                                             order.customerName,
                                             `₺${order.totalAmount.toFixed(2)}`,
-                                            order.status === "completed" ? (
-                                                <Badge tone="info">Ödendi</Badge>
-                                            ) : order.status === "synced" ? (
-                                                <Badge tone="success">Taslak</Badge>
+                                            order.status === "synced" ? (
+                                                <Badge tone="success">Başarılı (Taslak)</Badge>
+                                            ) : order.status === "completed" ? (
+                                                <Badge tone="info">Tamamlandı (Ödendi)</Badge>
                                             ) : order.status === "failed" ? (
                                                 <Badge tone="critical">Hata</Badge>
                                             ) : (
                                                 <Badge>Bekliyor</Badge>
                                             ),
                                             <InlineStack gap="200">
+                                                {order.status === "synced" && (
+                                                    <Button size="slim" onClick={() => handleCompleteOrder(order.id, order.shopifyOrderName || "")}>
+                                                        Ödendi Yap
+                                                    </Button>
+                                                )}
                                                 {order.shopifyOrderId && (
                                                     <Button
                                                         size="slim"
@@ -835,20 +902,6 @@ export default function TiciToShopify() {
                                                         target="_blank"
                                                     >
                                                         Müşteriyi Gör
-                                                    </Button>
-                                                )}
-                                                {/* Ödendi Yap butonu - sadece synced durumundaki siparişler için */}
-                                                {order.status === "synced" && order.shopifyOrderId && (
-                                                    <Button
-                                                        size="slim"
-                                                        tone="success"
-                                                        onClick={() => submit({
-                                                            intent: "markAsPaid",
-                                                            draftOrderId: order.shopifyOrderId,
-                                                            recordId: order.id
-                                                        }, { method: "post" })}
-                                                    >
-                                                        Ödendi Yap
                                                     </Button>
                                                 )}
                                             </InlineStack>,
