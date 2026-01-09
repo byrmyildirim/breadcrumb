@@ -21,6 +21,7 @@ import {
   ViewIcon,
   HomeIcon,
   OrderIcon,
+  ShieldCheckMarkIcon,
 } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -161,6 +162,28 @@ export default function Index() {
                     <InlineStack align="end">
                       <Button as={RemixLink} to="/app/tici-to-shopify" variant="primary">
                         Siparişleri Yönet
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </Card>
+
+                {/* Price Audit */}
+                <Card>
+                  <BlockStack gap="400">
+                    <InlineStack align="start" gap="400">
+                      <div style={{ background: "#fff4e5", padding: "10px", borderRadius: "8px" }}>
+                        <Icon source={ShieldCheckMarkIcon} tone="warning" />
+                      </div>
+                      <BlockStack gap="200">
+                        <Text as="h3" variant="headingSm">Fiyat Güvenliği</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          0 TL fiyatlı ve stokta olan ürünleri tespit edip satışa kapatın.
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                    <InlineStack align="end">
+                      <Button as={RemixLink} to="/app/price-audit" variant="primary" tone="critical">
+                        Denetle
                       </Button>
                     </InlineStack>
                   </BlockStack>
