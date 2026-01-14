@@ -22,10 +22,7 @@ RUN npm run build
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Copy and make startup script executable
-COPY wait-for-db.sh /app/wait-for-db.sh
-RUN chmod +x /app/wait-for-db.sh
+# Use Node.js startup script with database retry logic
+CMD ["node", "start.js"]
 
-# Use startup script with database retry logic
-CMD ["/app/wait-for-db.sh"]
 
