@@ -1,0 +1,20 @@
+query CartValidationsGenerateRunInput {
+  cart {
+    lines {
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
+      merchandise {
+        ... on ProductVariant {
+            id
+            title
+            product {
+                hasAnyTag(tags: ["HEDIYE", "PROMOSYON", "GIFT", "FREE"])
+            }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+api_version = "2025-07"
+
+[[extensions]]
+name = "t:name"
+handle = "price-validator"
+
+uid = "767a2338-f5e8-6c83-110c-9de0fb82768e1ad81352"
+
+type = "function"
+description = "t:description"
+
+
+  [[extensions.targeting]]
+  target = "cart.validations.generate.run"
+  input_query = "src/cart_validations_generate_run.graphql"
+  export = "run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"

@@ -1,209 +1,6 @@
+{{ 'mega-menu.css' | asset_url | stylesheet_tag }}
+
 <style>
-    
-/* ============================
-   MEGA MENU – FULL OPTIMIZED STYLE
-   ============================ */
-
-/* ANA WRAPPER */
-.mega-wrapper {
-  width: 100%;
-  position: relative;
-  z-index: 40;
-  overflow-x: hidden;
-}
-
-
-/* ============================
-   ÜST MENÜ (ORTALANMIŞ)
-   ============================ */
-.mega-top {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0;
-  padding: 14px 0;
-}
-
-.mega-top-item {
-  position: relative;
-  padding: 0 16px;
-  font-size: 15px;
-  font-weight: 400;
-  cursor: pointer;
-  text-decoration: none;
-  color: #111;
-}
-
-.mega-top-item:hover {
-  text-decoration: underline;
-  color: #c0392b;
-}
-
-.mega-top-item.active {
-  text-decoration: underline;
-  color: #c0392b;
-}
-
-.mega-top-item:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1px;
-  height: 16px;
-  background-color: #ddd;
-}
-
-/* ============================
-   MEGA PANEL
-   ============================ */
-.mega-panel {
-  display: none;
-  width: 100%;
-  background: white;
-  margin-top: 0;
-  border: 1px solid #ddd;
-  border-top: none;
-  padding: 28px 0;
-  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
-  position: relative;
-  z-index: 999;
-}
-
-.mega-panel.active {
-  display: block;
-}
-
-
-/* ============================
-   GRID YAPI
-   Sol: 28% görsel — Sağ: 72% kolonlar
-   ============================ */
-.mega-grid {
-  width: 100%;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 28% 72%;
-  gap: 40px;
-  align-items: start;
-  padding: 0 20px;
-  box-sizing: border-box;
-}
-
-
-/* ============================
-   SOL GÖRSEL — ABSOLUTE POSITION
-   (Grid yüksekliğini BOZMAMASI için)
-   ============================ */
-.mega-image {
-  position: relative;
-  min-height: 280px;
-}
-
-.mega-image img {
-  width: 100%;
-  height: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-
-/* ============================
-   SAĞ TARAF — 4 KOLON
-   ============================ */
-.mega-cols {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: 32px;
-}
-
-
-/* ============================
-   KOLON (PARENT)
-   ============================ */
-.mega-col {
-  margin: 0;
-  padding: 0;
-}
-
-
-/* ============================
-   PARENT BAŞLIK + ÇİZGİ
-   ============================ */
-.mega-col-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: #222;
-  padding: 4px 0;
-  border-bottom: 1px solid #e5e5e5;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0 0 4px 0;
-  line-height: 1.2;
-}
-
-.mega-col-title a {
-  color: #222;
-  text-decoration: none;
-}
-
-.mega-col-title a:hover {
-  text-decoration: underline;
-}
-
-/* OK İKONU */
-.mega-col-title .arrow {
-  font-size: 12px;
-  margin-left: 6px;
-  opacity: 0.7;
-  cursor: pointer;
-  transition: transform .2s ease;
-}
-
-.mega-col.open .arrow {
-  transform: rotate(180deg);
-}
-
-
-/* ============================
-   CHILD (ALT MENÜ) LİNKLERİ
-   ============================ */
-.mega-col-links {
-  display: none;
-  margin: 4px 0 0 0;
-  padding: 0;
-}
-
-.mega-col-links a {
-  display: block;
-  text-decoration: none;
-  color: #444;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.mega-col-links a:hover {
-  text-decoration: underline;
-}
-
-
-/* ============================
-   AÇILMIŞ KOLON
-   ============================ */
-.mega-col.open .mega-col-links {
-  display: block;
-}
-
-/* MOBİL GİZLEME */
-@media (max-width: 768px) {
-  .mega-wrapper {
-    display: none !important;
-  }
-}
-
 /* TEMA AKTİF STİLLERİNİ SIFIRLAMA - Bizim kontrolümüzde olsun */
 {% if matched_parent %}
 .mobile-category-bar li .menu-item span,
@@ -228,7 +25,6 @@
   filter: invert(72%) sepia(35%) saturate(907%) hue-rotate(335deg) brightness(92%) contrast(89%) !important;
 }
 {% endif %}
-
 </style>
 
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
@@ -267,7 +63,10 @@
         {% if found_parent %}{% break %}{% endif %}
       {% endfor %}
       {% if found_parent and found_parent.children.size > 0 %}
-        {% assign nav_items = found_parent.children %}
+        {% assign allowed_drill_parents = "Bisiklet Sporu,Koşu Sporu,Yüzme Sporu,Beslenme" | split: "," %}
+        {% if allowed_drill_parents contains found_parent.title %}
+            {% assign nav_items = found_parent.children %}
+        {% endif %}
         {% assign matched_parent = found_parent %}
       {% endif %}
     {% endif %}
@@ -361,7 +160,10 @@
         
         {% comment %} If found, use parent's children for menu {% endcomment %}
         {% if found_parent and found_parent.children.size > 0 %}
-          {% assign nav_items = found_parent.children %}
+          {% assign allowed_drill_parents = "Bisiklet Sporu,Koşu Sporu,Yüzme Sporu,Beslenme" | split: "," %}
+          {% if allowed_drill_parents contains found_parent.title %}
+              {% assign nav_items = found_parent.children %}
+          {% endif %}
           {% assign matched_parent = found_parent %}
         {% endif %}
       {% endif %}
@@ -372,7 +174,10 @@
         {% for item in custom_full_menu %}
             {% if item.title == found_mapping.menuTitle %}
                 {% if item.children.size > 0 %}
-                    {% assign nav_items = item.children %}
+                    {% assign allowed_drill_parents = "Bisiklet Sporu,Koşu Sporu,Yüzme Sporu,Beslenme" | split: "," %}
+                    {% if allowed_drill_parents contains item.title %}
+                        {% assign nav_items = item.children %}
+                    {% endif %}
                     {% assign matched_parent = item %}
                 {% endif %}
                 {% break %}
@@ -393,7 +198,28 @@
 
   <!-- ÜST MENÜ -->
   <div class="mega-top">
+    {% assign rendered_titles = "" %}
+    {% assign priority_order = "Bisiklet Sporu,Koşu Sporu,Yüzme Sporu,Beslenme,Günlük Spor Giyim ve Aksesuar,Giyilebilir Teknolojiler,Sporcu Destek Ürünleri" | split: "," %}
+
+    {% comment %} 1. Render Priority Items {% endcomment %}
+    {% for priority_title in priority_order %}
+      {% for link in nav_items %}
+        {% if link.title == priority_title %}
+          {% assign rendered_titles = rendered_titles | append: link.title | append: "|||" %}
+          <a class="mega-top-item" 
+             data-key="{{ link.title | handleize }}" 
+             href="{{ link.url }}">
+            {{ link.title }}
+          </a>
+          {% break %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
+    {% comment %} 2. Render Remaining Items {% endcomment %}
     {% for link in nav_items %}
+      {% if rendered_titles contains link.title %}{% continue %}{% endif %}
+      {% assign rendered_titles = rendered_titles | append: link.title | append: "|||" %}
       <a class="mega-top-item" 
          data-key="{{ link.title | handleize }}" 
          href="{{ link.url }}">
@@ -404,6 +230,7 @@
     {% comment %} EXTRA MENU ITEMS (from admin panel metafield) {% endcomment %}
     {% if extra_menu_items != blank %}
         {% for extra_item in extra_menu_items %}
+            {% if rendered_titles contains extra_item.menuTitle %}{% continue %}{% endif %}
             {% comment %} Find the menu item in custom_full_menu {% endcomment %}
             {% for menu_item in custom_full_menu %}
                 {% if menu_item.title == extra_item.menuTitle %}
@@ -430,7 +257,49 @@
   </div>
 
   <!-- MEGA PANELS -->
+  {% assign rendered_panels = "" %}
+  
+  {% comment %} 1. Priority Panels {% endcomment %}
+  {% for priority_title in priority_order %}
+    {% for link in nav_items %}
+        {% if link.title == priority_title %}
+            {% assign rendered_panels = rendered_panels | append: link.title | append: "|||" %}
+            
+            {% assign sub_level_items = nil %}
+            {% assign matching_config = nil %}
+            
+            {% if link.children.size > 0 %}
+                {% assign sub_level_items = link.children %}
+            {% endif %}
+        
+            {% for item in mega_config %}
+              {% if item.triggerTitle == link.title %}
+                {% assign matching_config = item %}
+                
+                {% unless sub_level_items %}
+                   {% if item.submenuHandle contains 'custom_special:' %}
+                      {% assign target_title = item.submenuHandle | remove: 'custom_special:' %}
+                      {% for c in custom_full_menu %}
+                          {% if c.title == target_title %}{% assign sub_level_items = c.children %}{% endif %}
+                      {% endfor %}
+                   {% elsif item.submenuHandle != 'custom_menu_special' and item.submenuHandle != '' %}
+                      {% assign sub_level_items = linklists[item.submenuHandle].links %}
+                   {% endif %}
+                {% endunless %}
+                
+                {% break %}
+              {% endif %}
+            {% endfor %}
+        
+            {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block %}
+
+        {% endif %}
+    {% endfor %}
+  {% endfor %}
+
+  {% comment %} 2. Remaining Panels {% endcomment %}
   {% for link in nav_items %}
+     {% if rendered_panels contains link.title %}{% continue %}{% endif %}
     
     {% assign sub_level_items = nil %}
     {% assign matching_config = nil %}
@@ -458,71 +327,20 @@
       {% endif %}
     {% endfor %}
 
+    {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block %}
 
-    {% if sub_level_items.size > 0 %}
-       
-       {% comment %} Determine which image to use {% endcomment %}
-       {% assign panel_image = nil %}
-       {% if matching_config.imageUrl != blank %}
-         {% assign panel_image = matching_config.imageUrl %}
-       {% elsif block.settings.show_sidebar_image and block.settings.sidebar_image %}
-         {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
-       {% endif %}
-       
-       <div class="mega-panel" data-key="{{ link.title | handleize }}">
-          <div class="mega-grid">
-            
-            <!-- SOL GÖRSEL (Her zaman görünür) -->
-            <div class="mega-image">
-              {% if panel_image %}
-                <img src="{{ panel_image }}" alt="{{ link.title }}">
-              {% endif %}
-            </div>
-
-            <!-- SAĞ: 4 KOLON -->
-            <div class="mega-cols">
-              {% for parent in sub_level_items %}
-                <div class="mega-col">
-                  
-                  <div class="mega-col-title">
-                    <a href="{{ parent.url }}">{{ parent.title }}</a>
-                    
-                    {% assign parent_children = parent.links | default: parent.children %}
-                    {% if parent_children.size > 0 %}
-                      <span class="arrow">▼</span>
-                    {% endif %}
-                  </div>
-                  
-                  {% if parent_children.size > 0 %}
-                    <div class="mega-col-links">
-                      {% for child in parent_children %}
-                        <a href="{{ child.url }}">{{ child.title }}</a>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                  
-                </div>
-              {% endfor %}
-            </div>
-
-          </div>
-       </div>
-
-    {% endif %}
   {% endfor %}
-  
+
   {% comment %} PANELS FOR EXTRA MENU ITEMS (from admin panel) {% endcomment %}
   {% if extra_menu_items != blank %}
       {% for extra_item in extra_menu_items %}
+          {% if rendered_panels contains extra_item.menuTitle %}{% continue %}{% endif %}
+          
           {% comment %} Create panel for ALL extra items with children {% endcomment %}
           {% for menu_item in custom_full_menu %}
               {% if menu_item.title == extra_item.menuTitle and menu_item.children.size > 0 %}
-                  {% comment %} Use different data-key based on displayMode {% endcomment %}
-                  {% if extra_item.displayMode == 'parent' %}
-                      <div class="mega-panel" data-key="extra-{{ menu_item.title | handleize }}-parent">
-                  {% else %}
-                      <div class="mega-panel" data-key="extra-{{ menu_item.title | handleize }}">
-                  {% endif %}
+                  
+                  <div class="mega-panel" data-key="{% if extra_item.displayMode == 'parent' %}extra-{{ menu_item.title | handleize }}-parent{% else %}extra-{{ menu_item.title | handleize }}{% endif %}">
                       <div class="mega-grid">
                           {% comment %} Sol Görsel (genel ayardan) {% endcomment %}
                           <div class="mega-image">

@@ -1,0 +1,463 @@
+{% comment %}
+  Horizontal Dropdown Filter Panel - Final Robust Version
+  Features:
+  - Form-based filtering with AbortController for robust AJAX
+  - Hides unavailable (0 count) options
+  - Fixed bottom bar for Mobile
+  - Mobile: Accordions default CLOSED
+  - Price inputs: White background
+  - Robust State Management for Checkboxes
+  - CSS Moved to assets/filter-panel.css
+{% endcomment %}
+
+{{ 'filter-panel.css' | asset_url | stylesheet_tag }}
+
+<style>
+  :root {
+    --filter-accent-color: {{ block.settings.accent_color | default: '#f57c00' }};
+  }
+  
+  /* Dynamic styles using Liquid variables */
+  .filter-badge {
+    background: var(--filter-accent-color);
+  }
+  
+  .filter-label:hover {
+    color: var(--filter-accent-color);
+  }
+  
+  .filter-apply-btn {
+    background: var(--filter-accent-color);
+  }
+  
+  .filter-show-more {
+    color: var(--filter-accent-color);
+  }
+  
+  .filter-spinner {
+    border-top-color: var(--filter-accent-color);
+  }
+</style>
+
+{% assign results = collection %}
+{% if request.page_type == 'search' %}
+  {% assign results = search %}
+{% endif %}
+
+<div class="filter-panel-container" id="FilterPanelContainer">
+  
+  <div class="filter-panel-topbar">
+    <div class="filter-panel-left">
+      <button class="filter-toggle-btn" id="FilterToggleBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="icon icon-filter">
+          <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        FİLTRELER
+      </button>
+
+      <span class="filter-product-count">
+        <strong>{{ results.results_count | default: results.products_count }}</strong> Ürün
+      </span>
+    </div>
+
+    <div class="filter-panel-right">
+       <div class="filter-sort-wrapper">
+         <select id="FilterSort" class="filter-sort-select" aria-label="Sıralama Seçiniz">
+            <option value="" disabledselected>SIRALAMA SEÇİNİZ</option>
+            {% assign sort_by = results.sort_by | default: results.default_sort_by %}
+            {% for option in results.sort_options %}
+              <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name }}</option>
+            {% endfor %}
+         </select>
+         <svg class="filter-sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+       </div>
+    </div>
+  </div>
+
+  <form id="FilterForm" class="filter-dropdown-panel" onsubmit="return false;">
+    <div class="filter-loading-overlay">
+      <div class="filter-spinner"></div>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="filter-mobile-header" style="display:none;">
+      <span style="font-weight:700; font-size:16px;">Filtreler</span>
+      <button type="button" id="FilterMobileClose" style="background:none; border:none; padding:5px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="filter-content-wrapper">
+      
+      <!-- DESKTOP -->
+      <div class="filter-columns-desktop">
+        {% for filter in results.filters %}
+          <div class="filter-column">
+            <div class="filter-column-title">{{ filter.label }}</div>
+            
+            {% if filter.type == 'list' %}
+              <ul class="filter-items-list">
+                {% for value in filter.values %}
+                  {% unless value.count == 0 and value.active == false %}
+                    <li {% if forloop.index > 8 %}class="hidden-item" style="display:none;"{% endif %}>
+                      <label class="filter-label">
+                        <input type="checkbox" 
+                               name="{{ value.param_name }}" 
+                               value="{{ value.value }}"
+                               class="filter-native-checkbox"
+                               {% if value.active %}checked{% endif %}>
+                        
+                        <span class="filter-checkbox-styled">
+                          <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                           <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </span>
+                        <span class="filter-text">{{ value.label }}</span>
+                        <span class="filter-count">({{ value.count }})</span>
+                      </label>
+                    </li>
+                  {% endunless %}
+                {% endfor %}
+              </ul>
+              {% if filter.values.size > 8 %}
+                 <a class="filter-show-more" onclick="toggleShowMore(this)">DAHA FAZLA GÖSTER</a>
+              {% endif %}
+
+            {% elsif filter.type == 'price_range' %}
+               <div class="filter-price-inputs">
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.min_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="0"
+                          min="0"
+                          value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+                 <span style="color:#999;">-</span>
+                 <div class="filter-price-field">
+                   <span class="filter-price-currency">₺</span>
+                   <input type="number" 
+                          name="{{ filter.max_value.param_name }}"
+                          class="filter-price-input" 
+                          placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                          min="0"
+                          value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
+                 </div>
+               </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- MOBILE -->
+      <div class="filter-columns-mobile">
+        {% for filter in results.filters %}
+          <div class="filter-accordion-item" data-filter-label="{{ filter.label }}">
+            <div class="filter-accordion-header">
+              {{ filter.label }}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+            <div class="filter-accordion-content">
+              {% if filter.type == 'list' %}
+                <ul class="filter-items-list">
+                  {% for value in filter.values %}
+                    {% unless value.count == 0 and value.active == false %}
+                      <li>
+                        <label class="filter-label">
+                          <input type="checkbox" 
+                                 name="{{ value.param_name }}" 
+                                 value="{{ value.value }}"
+                                 class="filter-native-checkbox"
+                                 {% if value.active %}checked{% endif %}>
+                          <span class="filter-checkbox-styled">
+                            <svg class="filter-checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                             <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </span>
+                          <span class="filter-text">{{ value.label }}</span>
+                          <span class="filter-count">({{ value.count }})</span>
+                        </label>
+                      </li>
+                    {% endunless %}
+                  {% endfor %}
+                </ul>
+              {% elsif filter.type == 'price_range' %}
+                 <div class="filter-price-inputs">
+                   <div class="filter-price-field">
+                     <span class="filter-price-currency">₺</span>
+                     <input type="number" name="{{ filter.min_value.param_name }}" class="filter-price-input" placeholder="Min" value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
+                   </div>
+                   <div class="filter-price-field">
+                     <span class="filter-price-currency">₺</span>
+                     <input type="number" name="{{ filter.max_value.param_name }}" class="filter-price-input" placeholder="Max" value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
+                   </div>
+                 </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="filter-actions" style="justify-content: space-between;">
+      <span class="filter-clear-btn" id="FilterClearBtn">Temizle</span>
+      <!-- Apply button removed for auto-submit -->
+    </div>
+  </form>
+</div>
+
+<script>
+class FilterPanel {
+  constructor() {
+    this.container = document.getElementById('FilterPanelContainer');
+    this.form = document.getElementById('FilterForm');
+    this.panel = document.querySelector('.filter-dropdown-panel');
+    this.toggleBtn = document.getElementById('FilterToggleBtn');
+    this.sortSelect = document.getElementById('FilterSort');
+    this.abortController = null;
+    this.debounceTimer = null;
+    
+    // Initial State
+    this.selectedFilters = [];
+    this.initEvents();
+    this.initMobileEvents();
+  }
+
+  initEvents() {
+    this.toggleBtn.addEventListener('click', () => this.togglePanel());
+    
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth > 768 && 
+          this.panel.classList.contains('is-open') && 
+          !this.container.contains(e.target)) {
+        this.closePanel();
+      }
+    });
+
+    // CHANGE EVENT: Auto-Submit on Change
+    this.form.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox') {
+        const name = e.target.name;
+        const value = e.target.value;
+        
+        if (e.target.checked) {
+          const exists = this.selectedFilters.some(f => f.name === name && f.value === value);
+          if (!exists) this.selectedFilters.push({name, value});
+        } else {
+          this.selectedFilters = this.selectedFilters.filter(f => !(f.name === name && f.value === value));
+        }
+
+        this.debouncedUpdate();
+      }
+    });
+    
+    if(this.sortSelect) {
+        this.sortSelect.addEventListener('change', () => {
+             this.debouncedUpdate();
+        });
+    }
+
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', () => this.debouncedUpdate(800)); // Longer debounce for typing
+    });
+
+    document.getElementById('FilterClearBtn').addEventListener('click', () => {
+      this.clearFilters();
+    });
+  }
+
+  initMobileEvents() {
+    const closeBtn = document.getElementById('FilterMobileClose');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closePanel());
+
+    this.panel.addEventListener('click', (e) => {
+      const header = e.target.closest('.filter-accordion-header');
+      if (header) {
+        header.parentElement.classList.toggle('is-open');
+      }
+    });
+  }
+
+  togglePanel() {
+    if (this.panel.classList.contains('is-open')) this.closePanel();
+    else this.openPanel();
+  }
+
+  openPanel() {
+    this.panel.classList.add('is-open');
+    if (window.innerWidth <= 768) {
+      document.querySelector('.filter-mobile-header').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  closePanel() {
+    this.panel.classList.remove('is-open');
+    if (window.innerWidth <= 768) {
+      document.querySelector('.filter-mobile-header').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  getSearchParams() {
+    const searchParams = new URLSearchParams();
+    this.selectedFilters.forEach(filter => searchParams.append(filter.name, filter.value));
+    
+    const minPrice = this.form.querySelector('input[name*="price"][name*="gte"]');
+    const maxPrice = this.form.querySelector('input[name*="price"][name*="lte"]');
+    if (minPrice && minPrice.value) searchParams.set(minPrice.name, minPrice.value);
+    if (maxPrice && maxPrice.value) searchParams.set(maxPrice.name, maxPrice.value);
+    
+    if(this.sortSelect && this.sortSelect.value) {
+        searchParams.set('sort_by', this.sortSelect.value);
+    }
+    return searchParams.toString();
+  }
+
+  debouncedUpdate(delay = 500) {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.panel.classList.add('is-loading');
+    this.debounceTimer = setTimeout(() => this.performUpdate(), delay);
+  }
+
+  async performUpdate() {
+    if (this.abortController) this.abortController.abort();
+    this.abortController = new AbortController();
+
+    const params = this.getSearchParams();
+    const url = window.location.pathname + '?' + params;
+
+    // Update Browser History
+    window.history.pushState({path: url}, '', url);
+
+    try {
+      const response = await fetch(url, { signal: this.abortController.signal });
+      if (!response.ok) throw new Error('Fetch failed');
+
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
+      // 1. Update Filter Panel (Self)
+      const newWrapper = doc.querySelector('.filter-content-wrapper');
+      const currentWrapper = this.form.querySelector('.filter-content-wrapper');
+      
+      if (newWrapper && currentWrapper) {
+        const openLabels = Array.from(currentWrapper.querySelectorAll('.filter-accordion-item.is-open'))
+          .map(item => item.getAttribute('data-filter-label'))
+          .filter(Boolean);
+
+        currentWrapper.innerHTML = newWrapper.innerHTML;
+
+        openLabels.forEach(label => {
+          const item = currentWrapper.querySelector(`.filter-accordion-item[data-filter-label="${label}"]`);
+          if (item) item.classList.add('is-open');
+        });
+
+        this.restoreCheckboxStates();
+      }
+
+      // 2. Update Product Grid
+      // Attempt to find common product grid selectors
+      const gridSelectors = ['#product-grid', '.product-grid', '.collection-grid', '.grid', '#CollectionProductGrid'];
+      let productGrid = null;
+      let newProductGrid = null;
+
+      for (const selector of gridSelectors) {
+         productGrid = document.querySelector(selector);
+         if(productGrid) {
+            newProductGrid = doc.querySelector(selector);
+            if(newProductGrid) break; // Found a match
+         }
+      }
+
+      if (productGrid && newProductGrid) {
+         productGrid.innerHTML = newProductGrid.innerHTML;
+         // Re-run any theme-specific JS/Events if possible, or trigger scroll
+         // Optional: Scroll to top of grid
+         // productGrid.scrollIntoView({ behavior: 'smooth' });
+      } else {
+         // Fallback: If we can't patch the grid, do a hard reload
+         console.warn('Product grid not found for AJAX update. Reloading...');
+         window.location.reload();
+         return; 
+      }
+      
+      // 3. Update Counts
+      const newCount = doc.querySelector('.filter-product-count strong');
+      const currentCount = document.querySelector('.filter-product-count strong');
+      if(newCount && currentCount) currentCount.textContent = newCount.textContent;
+
+    } catch (error) {
+       if (error.name !== 'AbortError') {
+         console.error('Filter update error:', error);
+         // Error fallback
+         window.location.reload(); 
+       }
+    } finally {
+      this.panel.classList.remove('is-loading');
+    }
+  }
+
+  restoreCheckboxStates() {
+    const checkboxes = this.form.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(box => {
+      const isSelected = this.selectedFilters.some(f => f.name === box.name && f.value === box.value);
+      if (isSelected) box.checked = true;
+    });
+  }
+
+  clearFilters() {
+    window.location.href = window.location.pathname;
+  }
+}
+
+function toggleShowMore(el) {
+    const list = el.previousElementSibling;
+    const hiddenItems = list.querySelectorAll('.hidden-item');
+    if (hiddenItems.length > 0) {
+        hiddenItems.forEach(item => item.style.display = 'block');
+        el.textContent = 'DAHA AZ GÖSTER';
+    } else {
+        const items = list.querySelectorAll('li');
+        items.forEach((item, index) => {
+            if (index > 8) {
+               item.classList.add('hidden-item');
+               item.style.display = 'none';
+            }
+        });
+        el.textContent = 'DAHA FAZLA GÖSTER';
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  const panel = new FilterPanel();
+  // Pre-fill state
+  document.querySelectorAll('#FilterForm input[type="checkbox"]:checked').forEach(box => {
+    panel.selectedFilters.push({name: box.name, value: box.value});
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Filter Panel",
+  "target": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Vurgu Rengi",
+      "default": "#f57c00"
+    }
+  ]
+}
+{% endschema %}

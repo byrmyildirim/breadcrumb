@@ -1,0 +1,198 @@
+{{ 'section-brand-slider.css' | asset_url | stylesheet_tag }}
+
+{% style %}
+  {{ block.settings.title_font | font_face }}
+  {{ block.settings.link_font | font_face }}
+
+  #block-{{ block.id }} .brand-slider-section {
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+  }
+  {% if block.settings.border_top_thickness > 0 %}
+    #block-{{ block.id }} .brand-slider-section {
+      border-top: {{ block.settings.border_top_thickness }}px solid {{ block.settings.border_color }};
+    }
+  {% endif %}
+  {% if block.settings.border_bottom_thickness > 0 %}
+    #block-{{ block.id }} .brand-slider-section {
+      border-bottom: {{ block.settings.border_bottom_thickness }}px solid {{ block.settings.border_color }};
+    }
+  {% endif %}
+  #block-{{ block.id }} .brand-slider__title {
+    font-family: {{ block.settings.title_font.family }}, {{ block.settings.title_font.fallback_families }};
+    font-weight: {{ block.settings.title_font.weight }};
+    font-style: {{ block.settings.title_font.style }};
+    font-size: {{ block.settings.title_font_size }}px;
+  }
+  #block-{{ block.id }} .brand-slider__link {
+    font-family: {{ block.settings.link_font.family }}, {{ block.settings.link_font.fallback_families }};
+    font-weight: {{ block.settings.link_font.weight }};
+    font-style: {{ block.settings.link_font.style }};
+    font-size: {{ block.settings.link_font_size }}px;
+  }
+{% endstyle %}
+
+<div id="block-{{ block.id }}" class="brand-slider-section">
+  <div class="page-width">
+    <div class="brand-slider__wrapper">
+     
+      {% if block.settings.title != blank %}
+        <h2 class="brand-slider__title">{{ block.settings.title | escape }}</h2>
+      {% endif %}
+
+      <button type="button" class="brand-slider__nav-button brand-slider__nav-button--prev" aria-label="Önceki">
+        <svg aria-hidden="true" focusable="false" class="icon-caret" viewBox="0 0 10 6"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.354.646a.5.5 0 00-.708 0L5 4.293 1.354.646a.5.5 0 00-.708.708l4 4a.5.5 0 00.708 0l4-4a.5.5 0 000-.708z" fill="currentColor"></path></svg>
+      </button>
+
+      <div
+        class="brand-slider__container"
+        id="BrandSlider-{{ block.id }}"
+        data-autoplay="{{ block.settings.autoplay }}"
+        data-autoplay-speed="{{ block.settings.autoplay_speed }}"
+      >
+        <ul class="brand-slider__list">
+          {% assign requested_group_name = block.settings.group_name | strip %}
+          {% assign brand_groups = shop.metafields.breadcrumb.brand_groups.value %}
+          {% assign found_group = nil %}
+          
+          {% if brand_groups and requested_group_name != blank %}
+            {% for group in brand_groups %}
+               {% if group.title == requested_group_name %}
+                 {% assign found_group = group %}
+                 {% break %}
+               {% endif %}
+            {% endfor %}
+          {% endif %}
+
+          {% if found_group %}
+            {% for vendor in found_group.vendors %}
+              <li class="brand-slider__item">
+                {%- comment -%} Determine URL. Ideally /collections/vendors?q=VendorName or standard collection handle {%- endcomment -%}
+                <a href="/collections/all?filter.p.vendor={{ vendor | url_encode }}" class="brand-slider__link">
+                  {{ vendor }}
+                </a>
+              </li>
+            {% endfor %}
+          {% else %}
+             {% comment %} Placeholder if no group matched {% endcomment %}
+             {% for i in (1..6) %}
+               <li class="brand-slider__item">
+                <span class="brand-slider__link">Marka {{ i }} (Grup: {{ requested_group_name | default: 'Seçilmedi' }})</span>
+               </li>
+             {% endfor %}
+          {% endif %}
+        </ul>
+      </div>
+
+      <button type="button" class="brand-slider__nav-button brand-slider__nav-button--next" aria-label="Sonraki">
+        <svg aria-hidden="true" focusable="false" class="icon-caret" viewBox="0 0 10 6"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.354.646a.5.5 0 00-.708 0L5 4.293 1.354.646a.5.5 0 00-.708.708l4 4a.5.5 0 00.708 0l4-4a.5.5 0 000-.708z" fill="currentColor"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const sliderContainer = document.getElementById('BrandSlider-{{ block.id }}');
+  if (!sliderContainer) return;
+
+  const wrapper = sliderContainer.closest('.brand-slider__wrapper');
+  const prevButton = wrapper.querySelector('.brand-slider__nav-button--prev');
+  const nextButton = wrapper.querySelector('.brand-slider__nav-button--next');
+
+  /* Manuel butonlar */
+  const scrollAmount = () => sliderContainer.clientWidth * 0.5;
+  nextButton.addEventListener('click', () => {
+    sliderContainer.scrollBy({ left: scrollAmount(), behavior: 'smooth' });
+  });
+  prevButton.addEventListener('click', () => {
+     sliderContainer.scrollBy({ left: -scrollAmount(), behavior: 'smooth' });
+  });
+
+  /* ===== AKICI AUTOPLAY ===== */
+  const autoplay = sliderContainer.dataset.autoplay === 'true';
+  const speed = Number(sliderContainer.dataset.autoplaySpeed || 2);
+
+  let rafId = null;
+  let isPaused = false;
+
+  function animate() {
+    if (!isPaused) {
+      if (sliderContainer.scrollLeft >= (sliderContainer.scrollWidth - sliderContainer.clientWidth - 2)) {
+         sliderContainer.scrollLeft = 0;
+      } else {
+         sliderContainer.scrollLeft += speed * 0.5; 
+      }
+    }
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function start() {
+    if (!rafId && autoplay) animate();
+  }
+
+  function stop() {
+    isPaused = true;
+  }
+
+  function resume() {
+    isPaused = false;
+  }
+
+  if (autoplay) {
+    start();
+    sliderContainer.addEventListener('mouseenter', stop);
+    sliderContainer.addEventListener('mouseleave', resume);
+    sliderContainer.addEventListener('touchstart', stop);
+    sliderContainer.addEventListener('touchend', resume);
+  }
+});
+</script>
+
+{% schema %}
+{
+  "name": "Marka Kaydırıcı",
+  "target": "section",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Başlık", "default": "Markalar" },
+    {
+      "type": "text",
+      "id": "group_name",
+      "label": "Tedarikçi Grubu Adı",
+      "info": "Uygulama içinde oluşturduğunuz grubun tam adını yazın (Örn: Bisiklet Markaları)"
+    },
+    {
+      "type": "header",
+      "content": "Otomatik Kaydırma"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Otomatik Kaydır",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Kaydırma Hızı",
+      "info": "1 = Yavaş, 5 = Hızlı",
+      "default": 2
+    },
+    { "type": "header", "content": "Bölüm Stili Ayarları" },
+    { "type": "range", "id": "border_top_thickness", "min": 0, "max": 5, "step": 1, "unit": "px", "label": "Üst Çizgi Kalınlığı", "default": 1 },
+    { "type": "range", "id": "border_bottom_thickness", "min": 0, "max": 5, "step": 1, "unit": "px", "label": "Alt Çizgi Kalınlığı", "default": 1 },
+    { "type": "color", "id": "border_color", "label": "Üst ve Alt Çizgi Rengi", "default": "#e5e5e5" },
+    { "type": "range", "id": "padding_top", "min": 0, "max": 100, "step": 2, "unit": "px", "label": "Üst Boşluk", "default": 20 },
+    { "type": "range", "id": "padding_bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "label": "Alt Boşluk", "default": 20 },
+    { "type": "header", "content": "Başlık Font Ayarları" },
+    { "type": "font_picker", "id": "title_font", "label": "Font Ailesi", "default": "helvetica_n7" },
+    { "type": "range", "id": "title_font_size", "min": 12, "max": 40, "step": 1, "unit": "px", "label": "Font Boyutu", "default": 20 },
+    { "type": "header", "content": "Marka Yazı Font Ayarları" },
+    { "type": "font_picker", "id": "link_font", "label": "Font Ailesi", "default": "helvetica_n4" },
+    { "type": "range", "id": "link_font_size", "min": 10, "max": 24, "step": 1, "unit": "px", "label": "Font Boyutu", "default": 15 }
+  ]
+}
+{% endschema %}

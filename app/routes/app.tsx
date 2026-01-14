@@ -29,6 +29,7 @@ export default function App() {
         <Link to="/app/feeds">XML Feed Oluşturucu</Link>
         <Link to="/app/megamenu">Mega Menü</Link>
         <Link to="/app/tici-to-shopify">Tici to Shopify</Link>
+        <Link to="/app/brands">Marka Grupları</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

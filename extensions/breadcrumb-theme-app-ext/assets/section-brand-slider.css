@@ -1,0 +1,144 @@
+/* Brand Slider Styles */
+.brand-slider-section {
+    width: 100%;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.brand-slider__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 40px;
+    /* Space for buttons */
+}
+
+.brand-slider__title {
+    margin: 0;
+    padding: 0 20px 0 0;
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+.brand-slider__container {
+    flex: 1;
+    overflow: hidden;
+    /* Hide scrollbar */
+    position: relative;
+    white-space: nowrap;
+    /* Smooth scrolling */
+    scroll-behavior: auto;
+    /* Managed by JS for infinite effect */
+}
+
+/* Hide scrollbar for webkit */
+.brand-slider__container::-webkit-scrollbar {
+    display: none;
+}
+
+.brand-slider__list {
+    display: inline-flex;
+    gap: 40px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    align-items: center;
+    transition: transform 0.1s linear;
+}
+
+.brand-slider__item {
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.brand-slider__link {
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+    transition: opacity 0.2s;
+    display: block;
+}
+
+.brand-slider__link:hover {
+    opacity: 0.7;
+    text-decoration: none;
+}
+
+/* App block override for page-width if needed */
+.brand-slider-section .page-width {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Buttons */
+.brand-slider__nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    color: #333;
+    transition: background 0.2s;
+}
+
+.brand-slider__nav-button:hover {
+    background: #e0e0e0;
+}
+
+.brand-slider__nav-button--prev {
+    left: 0;
+}
+
+.brand-slider__nav-button--next {
+    right: 0;
+}
+
+.brand-slider__nav-button svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .brand-slider-section .page-width {
+        padding: 0 1rem;
+    }
+
+    .brand-slider__wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0;
+        gap: 10px;
+    }
+
+    .brand-slider__title {
+        padding: 0;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 10px;
+    }
+
+    .brand-slider__nav-button {
+        display: none;
+        /* Hide buttons on mobile, allow swipe */
+    }
+
+    .brand-slider__container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        /* Space for scrollbar if visible */
+    }
+}

@@ -1,0 +1,103 @@
+{% comment %}
+  Snippet: breadcrumb_lookup.liquid
+  Purpose: Search custom_menu for a collection handle up to 6 levels deep.
+  Inputs: menu, handle, sep
+  Output: "DEPTH|||HTML_PATH" (or empty string if not found)
+{% endcomment %}
+
+{%- assign found_depth = 0 -%}
+{%- assign found_html = "" -%}
+
+{%- for l1 in menu -%}
+  {%- if l1.handle == handle -%}
+    {%- assign found_depth = 1 -%}
+    {%- capture found_html -%}
+      <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+    {%- endcapture -%}
+    {%- break -%}
+  {%- endif -%}
+  
+  {%- if l1.children != blank -%}
+    {%- for l2 in l1.children -%}
+      {%- if l2.handle == handle -%}
+        {%- assign found_depth = 2 -%}
+        {%- capture found_html -%}
+          <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+          <a href="{{ l2.url }}">{{ l2.title }}</a><span class="sep">{{ sep }}</span>
+        {%- endcapture -%}
+        {%- break -%}
+      {%- endif -%}
+      
+      {%- if l2.children != blank -%}
+        {%- for l3 in l2.children -%}
+          {%- if l3.handle == handle -%}
+            {%- assign found_depth = 3 -%}
+            {%- capture found_html -%}
+              <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+              <a href="{{ l2.url }}">{{ l2.title }}</a><span class="sep">{{ sep }}</span>
+              <a href="{{ l3.url }}">{{ l3.title }}</a><span class="sep">{{ sep }}</span>
+            {%- endcapture -%}
+            {%- break -%}
+          {%- endif -%}
+          
+          {%- if l3.children != blank -%}
+            {%- for l4 in l3.children -%}
+              {%- if l4.handle == handle -%}
+                {%- assign found_depth = 4 -%}
+                {%- capture found_html -%}
+                  <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+                  <a href="{{ l2.url }}">{{ l2.title }}</a><span class="sep">{{ sep }}</span>
+                  <a href="{{ l3.url }}">{{ l3.title }}</a><span class="sep">{{ sep }}</span>
+                  <a href="{{ l4.url }}">{{ l4.title }}</a><span class="sep">{{ sep }}</span>
+                {%- endcapture -%}
+                {%- break -%}
+              {%- endif -%}
+              
+              {%- if l4.children != blank -%}
+                {%- for l5 in l4.children -%}
+                  {%- if l5.handle == handle -%}
+                    {%- assign found_depth = 5 -%}
+                    {%- capture found_html -%}
+                      <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+                      <a href="{{ l2.url }}">{{ l2.title }}</a><span class="sep">{{ sep }}</span>
+                      <a href="{{ l3.url }}">{{ l3.title }}</a><span class="sep">{{ sep }}</span>
+                      <a href="{{ l4.url }}">{{ l4.title }}</a><span class="sep">{{ sep }}</span>
+                      <a href="{{ l5.url }}">{{ l5.title }}</a><span class="sep">{{ sep }}</span>
+                    {%- endcapture -%}
+                    {%- break -%}
+                  {%- endif -%}
+                  
+                  {%- if l5.children != blank -%}
+                    {%- for l6 in l5.children -%}
+                      {%- if l6.handle == handle -%}
+                        {%- assign found_depth = 6 -%}
+                        {%- capture found_html -%}
+                          <a href="{{ l1.url }}">{{ l1.title }}</a><span class="sep">{{ sep }}</span>
+                          <a href="{{ l2.url }}">{{ l2.title }}</a><span class="sep">{{ sep }}</span>
+                          <a href="{{ l3.url }}">{{ l3.title }}</a><span class="sep">{{ sep }}</span>
+                          <a href="{{ l4.url }}">{{ l4.title }}</a><span class="sep">{{ sep }}</span>
+                          <a href="{{ l5.url }}">{{ l5.title }}</a><span class="sep">{{ sep }}</span>
+                          <a href="{{ l6.url }}">{{ l6.title }}</a><span class="sep">{{ sep }}</span>
+                        {%- endcapture -%}
+                        {%- break -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                  {%- endif -%}
+                  {%- if found_depth > 0 -%}{%- break -%}{%- endif -%}
+                {%- endfor -%}
+              {%- endif -%}
+              {%- if found_depth > 0 -%}{%- break -%}{%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- if found_depth > 0 -%}{%- break -%}{%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {%- if found_depth > 0 -%}{%- break -%}{%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- if found_depth > 0 -%}{%- break -%}{%- endif -%}
+{%- endfor -%}
+
+{%- if found_depth > 0 -%}
+{{ found_depth }}|||{{ found_html }}
+{%- endif -%}

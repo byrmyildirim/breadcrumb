@@ -1,0 +1,22 @@
+.breadcrumb-pro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+}
+
+.breadcrumb-pro a {
+    text-decoration: none;
+}
+
+.breadcrumb-pro a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-pro .sep {
+    margin: 0 8px;
+}
+
+.breadcrumb-pro .current {
+    font-weight: 600;
+}

@@ -1,0 +1,203 @@
+/* ============================
+   MEGA MENU – FULL OPTIMIZED STYLE
+   ============================ */
+
+/* ANA WRAPPER */
+.mega-wrapper {
+    width: 100%;
+    position: relative;
+    z-index: 40;
+    overflow-x: hidden;
+}
+
+
+/* ============================
+   ÜST MENÜ (ORTALANMIŞ)
+   ============================ */
+.mega-top {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    padding: 14px 0;
+}
+
+.mega-top-item {
+    position: relative;
+    padding: 0 16px;
+    font-size: 15px;
+    font-weight: 400;
+    cursor: pointer;
+    text-decoration: none;
+    color: #111;
+}
+
+.mega-top-item:hover {
+    text-decoration: underline;
+    color: #c0392b;
+}
+
+.mega-top-item.active {
+    text-decoration: underline;
+    color: #c0392b;
+}
+
+.mega-top-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 16px;
+    background-color: #ddd;
+}
+
+/* ============================
+   MEGA PANEL
+   ============================ */
+.mega-panel {
+    display: none;
+    width: 100%;
+    background: white;
+    margin-top: 0;
+    border: 1px solid #ddd;
+    border-top: none;
+    padding: 28px 0;
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+    position: relative;
+    z-index: 999;
+}
+
+.mega-panel.active {
+    display: block;
+}
+
+
+/* ============================
+   GRID YAPI
+   Sol: 28% görsel — Sağ: 72% kolonlar
+   ============================ */
+.mega-grid {
+    width: 100%;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 28% 72%;
+    gap: 40px;
+    align-items: start;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+
+/* ============================
+   SOL GÖRSEL — ABSOLUTE POSITION
+   (Grid yüksekliğini BOZMAMASI için)
+   ============================ */
+.mega-image {
+    position: relative;
+    min-height: 280px;
+}
+
+.mega-image img {
+    width: 100%;
+    height: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+
+/* ============================
+   SAĞ TARAF — 4 KOLON
+   ============================ */
+.mega-cols {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 32px;
+}
+
+
+/* ============================
+   KOLON (PARENT)
+   ============================ */
+.mega-col {
+    margin: 0;
+    padding: 0;
+}
+
+
+/* ============================
+   PARENT BAŞLIK + ÇİZGİ
+   ============================ */
+.mega-col-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #222;
+    padding: 4px 0;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+}
+
+.mega-col-title a {
+    color: #222;
+    text-decoration: none;
+}
+
+.mega-col-title a:hover {
+    text-decoration: underline;
+}
+
+/* OK İKONU */
+.mega-col-title .arrow {
+    font-size: 12px;
+    margin-left: 6px;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: transform .2s ease;
+}
+
+.mega-col.open .arrow {
+    transform: rotate(180deg);
+}
+
+
+/* ============================
+   CHILD (ALT MENÜ) LİNKLERİ
+   ============================ */
+.mega-col-links {
+    display: none;
+    margin: 4px 0 0 0;
+    padding: 0;
+}
+
+.mega-col-links a {
+    display: block;
+    text-decoration: none;
+    color: #444;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.mega-col-links a:hover {
+    text-decoration: underline;
+}
+
+
+/* ============================
+   AÇILMIŞ KOLON
+   ============================ */
+.mega-col.open .mega-col-links {
+    display: block;
+}
+
+/* MOBİL GİZLEME */
+@media (max-width: 768px) {
+    .mega-wrapper {
+        display: none !important;
+    }
+}

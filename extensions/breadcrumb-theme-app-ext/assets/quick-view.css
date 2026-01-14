@@ -1,0 +1,488 @@
+/* Core & Reset */
+.qv-modal {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #111;
+    line-height: 1.4;
+}
+
+.qv-modal * {
+    box-sizing: border-box;
+}
+
+/* Modal Positioning */
+.qv-modal {
+    position: fixed;
+    z-index: 2147483647;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+.qv-modal.open {
+    opacity: 1;
+    visibility: visible;
+    display: flex !important;
+}
+
+.qv-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.qv-container {
+    position: relative;
+    background: #fff;
+    width: 950px;
+    max-width: 95%;
+    height: auto;
+    min-height: 550px;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    overflow: hidden;
+}
+
+.qv-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    z-index: 20;
+    padding: 5px;
+}
+
+/* Image Col */
+.qv-image-col {
+    width: 55%;
+    background: #f9f9f9;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.qv-image-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.qv-image-col img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    max-height: 600px;
+    padding: 20px;
+    mix-blend-mode: multiply;
+}
+
+/* Arrows */
+.qv-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    z-index: 5;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.qv-arrow:hover {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.qv-prev {
+    left: 20px;
+}
+
+.qv-next {
+    right: 20px;
+}
+
+/* Info Col */
+.qv-info-col {
+    width: 45%;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* Typography */
+.qv-vendor-tag {
+    display: inline-block;
+    background: #f4f4f4;
+    color: #666;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.qv-product-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+    color: #000;
+}
+
+.qv-price-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #000;
+}
+
+.qv-compare-price {
+    font-size: 16px;
+    text-decoration: line-through;
+    color: #999;
+    font-weight: 400;
+}
+
+/* Swatches */
+.qv-option-header {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #000;
+    display: flex;
+    gap: 5px;
+}
+
+.qv-active-val {
+    font-weight: 400;
+    color: #666;
+}
+
+.qv-option-group {
+    margin-bottom: 20px;
+}
+
+.qv-option-group.hidden {
+    display: none;
+}
+
+.qv-swatch-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* UNIFIED SWATCH STYLE (Colors & Sizes both Boxes) */
+.qv-swatch-rect {
+    height: 44px;
+    min-width: 48px;
+    padding: 0 15px;
+    border: 1px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    transition: all 0.2s;
+    border-radius: 2px;
+    text-transform: uppercase;
+}
+
+.qv-swatch-rect:hover {
+    border-color: #000;
+}
+
+.qv-swatch-rect.selected {
+    border-color: #000;
+    background: #fff;
+    color: #000;
+    box-shadow: inset 0 0 0 1px #000, 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+}
+
+.qv-swatch-rect.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    background: #f9f9f9;
+    color: #aaa;
+}
+
+/* Shipping */
+.qv-shipping-box {
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 24px;
+    border: 1px solid #eee;
+}
+
+.qv-shipping-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #888;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.qv-shipping-date {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Buttons */
+.qv-footer-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.qv-add-btn {
+    flex: 1;
+    height: 52px;
+    /* background handled via var */
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 2px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.qv-add-btn:hover {
+    opacity: 0.9;
+}
+
+.qv-add-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.qv-details-btn {
+    width: 52px;
+    height: 52px;
+    border: 1px solid #ddd;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 2px;
+    color: #333;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.qv-details-btn:hover {
+    border-color: #000;
+    color: #000;
+}
+
+.qv-details-link-wrapper {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.qv-details-link {
+    font-size: 13px;
+    color: #666;
+    text-decoration: underline;
+}
+
+/* Spinner */
+.qv-loading {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.qv-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #eee;
+    /* border-top-color handled via var */
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Headers visibility */
+.qv-mobile-header {
+    display: none;
+}
+
+.qv-desktop-header {
+    display: block;
+    margin-bottom: 20px;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+    .qv-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .qv-container {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: 90vh;
+        border-radius: 12px 12px 0 0;
+        flex-direction: column;
+        margin: 0;
+        box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .qv-close {
+        display: none;
+    }
+
+    .qv-drag-handle {
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: #ddd;
+        border-radius: 2px;
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 25;
+        cursor: pointer;
+    }
+
+    .qv-image-col {
+        display: none;
+    }
+
+    .qv-desktop-header {
+        display: none;
+    }
+
+    /* FIX: Added huge bottom padding to clear the sticky button */
+    .qv-info-col {
+        width: 100%;
+        padding: 24px 20px;
+        padding-bottom: 100px;
+        padding-top: 30px;
+        overflow-y: scroll;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .qv-info-col::-webkit-scrollbar {
+        display: none;
+    }
+
+    .qv-mobile-header {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 24px;
+        align-items: start;
+    }
+
+    .qv-mob-img-wrap {
+        width: 90px;
+        height: 110px;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #f4f4f4;
+        flex-shrink: 0;
+    }
+
+    .qv-mob-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .qv-mob-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        pt: 5px;
+    }
+
+    .qv-product-title {
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .qv-vendor-tag {
+        font-size: 10px;
+        margin-bottom: 6px;
+        align-self: flex-start;
+    }
+
+    .qv-price-wrapper {
+        font-size: 18px;
+    }
+
+    /* Buttons Sticky */
+    .qv-footer-actions {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding-top: 10px;
+        background: #fff;
+        padding: 15px 20px;
+        border-top: 1px solid #eee;
+        z-index: 10;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

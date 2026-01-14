@@ -1,17 +1,4 @@
-{%- comment -%}
-  BREADCRUMB PRO - Hierarchical Breadcrumbs
-  
-  HOW IT WORKS:
-  1. Reads the navigation menu you select in settings
-  2. For product pages: finds which collection the product belongs to
-  3. Traces the menu path back to find parent categories
-  4. Displays: Home > Parent > Child > Product
-  
-  REQUIREMENTS:
-  - Your navigation menu must have nested items (sub-menus)
-  - Menu items must link to collections (not generic URLs)
-  - Products must be assigned to the correct collections
-{%- endcomment -%}
+{{ 'breadcrumb.css' | asset_url | stylesheet_tag }}
 
 {%- assign t = template | split: '.' | first -%}
 {%- assign sep = block.settings.separator -%}
@@ -19,30 +6,14 @@
 
 <style>
   .breadcrumb-pro {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0;
     padding: {{ block.settings.padding_y }}px {{ block.settings.padding_x }}px;
     margin-bottom: {{ block.settings.margin_bottom }}px;
     font-size: {{ block.settings.font_size }}px;
     background: {{ block.settings.bg_color }};
   }
-  .breadcrumb-pro a {
-    color: {{ block.settings.link_color }};
-    text-decoration: none;
-  }
-  .breadcrumb-pro a:hover {
-    text-decoration: underline;
-  }
-  .breadcrumb-pro .sep {
-    margin: 0 8px;
-    color: {{ block.settings.sep_color }};
-  }
-  .breadcrumb-pro .current {
-    color: {{ block.settings.current_color }};
-    font-weight: 600;
-  }
+  .breadcrumb-pro a { color: {{ block.settings.link_color }}; }
+  .breadcrumb-pro .sep { color: {{ block.settings.sep_color }}; }
+  .breadcrumb-pro .current { color: {{ block.settings.current_color }}; }
 </style>
 
 <nav class="breadcrumb-pro" aria-label="Breadcrumb">
@@ -61,144 +32,36 @@
   {%- case t -%}
 
     {%- when 'collection' -%}
-      {%- comment -%} COLLECTION PAGE: Find this collection in custom menu and show parents {%- endcomment -%}
       {%- assign custom_menu = shop.metafields.breadcrumb.custom_menu.value -%}
       {%- assign col_handle = collection.handle -%}
       {%- assign found = false -%}
-      {%- assign path_html = "" -%}
       
       {%- if block.settings.use_app_menu and custom_menu != blank -%}
-        {%- comment -%} --- CUSTOM MENU LOGIC (6 Levels) --- {%- endcomment -%}
+        {%- capture lookup_result -%}
+          {%- render 'breadcrumb_lookup', menu: custom_menu, handle: col_handle, sep: sep -%}
+        {%- endcapture -%}
         
-        {%- for l1 in custom_menu -%}
-          {%- if l1.handle == col_handle -%}
-            {%- assign found = true -%}
-            {%- break -%}
-          {%- endif -%}
-          
-          {%- if l1.children != blank -%}
-            {%- for l2 in l1.children -%}
-              {%- if l2.handle == col_handle -%}
-                {%- assign found = true -%}
-                {%- capture path_html -%}
-                  <a href="{{ l1.url }}">{{ l1.title }}</a>
-                  <span class="sep">{{ sep }}</span>
-                {%- endcapture -%}
-                {%- break -%}
-              {%- endif -%}
-              
-              {%- if l2.children != blank -%}
-                {%- for l3 in l2.children -%}
-                  {%- if l3.handle == col_handle -%}
-                    {%- assign found = true -%}
-                    {%- capture path_html -%}
-                      <a href="{{ l1.url }}">{{ l1.title }}</a>
-                      <span class="sep">{{ sep }}</span>
-                      <a href="{{ l2.url }}">{{ l2.title }}</a>
-                      <span class="sep">{{ sep }}</span>
-                    {%- endcapture -%}
-                    {%- break -%}
-                  {%- endif -%}
-                  
-                  {%- if l3.children != blank -%}
-                    {%- for l4 in l3.children -%}
-                      {%- if l4.handle == col_handle -%}
-                        {%- assign found = true -%}
-                        {%- capture path_html -%}
-                          <a href="{{ l1.url }}">{{ l1.title }}</a>
-                          <span class="sep">{{ sep }}</span>
-                          <a href="{{ l2.url }}">{{ l2.title }}</a>
-                          <span class="sep">{{ sep }}</span>
-                          <a href="{{ l3.url }}">{{ l3.title }}</a>
-                          <span class="sep">{{ sep }}</span>
-                        {%- endcapture -%}
-                        {%- break -%}
-                      {%- endif -%}
-                      
-                      {%- if l4.children != blank -%}
-                        {%- for l5 in l4.children -%}
-                          {%- if l5.handle == col_handle -%}
-                            {%- assign found = true -%}
-                            {%- capture path_html -%}
-                              <a href="{{ l1.url }}">{{ l1.title }}</a>
-                              <span class="sep">{{ sep }}</span>
-                              <a href="{{ l2.url }}">{{ l2.title }}</a>
-                              <span class="sep">{{ sep }}</span>
-                              <a href="{{ l3.url }}">{{ l3.title }}</a>
-                              <span class="sep">{{ sep }}</span>
-                              <a href="{{ l4.url }}">{{ l4.title }}</a>
-                              <span class="sep">{{ sep }}</span>
-                            {%- endcapture -%}
-                            {%- break -%}
-                          {%- endif -%}
-                          
-                          {%- if l5.children != blank -%}
-                            {%- for l6 in l5.children -%}
-                              {%- if l6.handle == col_handle -%}
-                                {%- assign found = true -%}
-                                {%- capture path_html -%}
-                                  <a href="{{ l1.url }}">{{ l1.title }}</a>
-                                  <span class="sep">{{ sep }}</span>
-                                  <a href="{{ l2.url }}">{{ l2.title }}</a>
-                                  <span class="sep">{{ sep }}</span>
-                                  <a href="{{ l3.url }}">{{ l3.title }}</a>
-                                  <span class="sep">{{ sep }}</span>
-                                  <a href="{{ l4.url }}">{{ l4.title }}</a>
-                                  <span class="sep">{{ sep }}</span>
-                                  <a href="{{ l5.url }}">{{ l5.title }}</a>
-                                  <span class="sep">{{ sep }}</span>
-                                {%- endcapture -%}
-                                {%- break -%}
-                              {%- endif -%}
-                            {%- endfor -%}
-                          {%- endif -%}
-                          {%- if found -%}{%- break -%}{%- endif -%}
-                        {%- endfor -%}
-                      {%- endif -%}
-                      {%- if found -%}{%- break -%}{%- endif -%}
-                    {%- endfor -%}
-                  {%- endif -%}
-                  {%- if found -%}{%- break -%}{%- endif -%}
-                {%- endfor -%}
-              {%- endif -%}
-              {%- if found -%}{%- break -%}{%- endif -%}
-            {%- endfor -%}
-          {%- endif -%}
-          {%- if found -%}{%- break -%}{%- endif -%}
-        {%- endfor -%}
-        
-        {%- if found -%}
-          {{ path_html }}
-          <span class="current">{{ collection.title }}</span>
-        {%- else -%}
-          <span class="current">{{ collection.title }}</span>
+        {%- if lookup_result contains '|||' -%}
+          {%- assign parts = lookup_result | split: '|||' -%}
+          {{ parts[1] }}
+          {%- assign found = true -%}
         {%- endif -%}
-        
-      {%- else -%}
-        {%- comment -%} --- FALLBACK TO STANDARD SHOPIFY MENU (3 Levels) --- {%- endcomment -%}
+      {%- endif -%}
+      
+      {%- unless found -%}
+        {%- comment -%} Fallback to Standard Menu {%- endcomment -%}
         {%- for level1 in menu.links -%}
-          {%- if level1.url == collection.url -%}
-            <span class="current">{{ collection.title }}</span>
-            {%- assign found = true -%}
-            {%- break -%}
-          {%- endif -%}
-          
+          {%- if level1.url == collection.url -%}{%- assign found = true -%}{%- break -%}{%- endif -%}
           {%- for level2 in level1.links -%}
             {%- if level2.url == collection.url -%}
-              <a href="{{ level1.url }}">{{ level1.title }}</a>
-              <span class="sep">{{ sep }}</span>
-              <span class="current">{{ collection.title }}</span>
+              <a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span>
               {%- assign found = true -%}
               {%- break -%}
             {%- endif -%}
-            
             {%- for level3 in level2.links -%}
               {%- if level3.url == collection.url -%}
-                <a href="{{ level1.url }}">{{ level1.title }}</a>
-                <span class="sep">{{ sep }}</span>
-                <a href="{{ level2.url }}">{{ level2.title }}</a>
-                <span class="sep">{{ sep }}</span>
-                <span class="current">{{ collection.title }}</span>
+                <a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span>
+                <a href="{{ level2.url }}">{{ level2.title }}</a><span class="sep">{{ sep }}</span>
                 {%- assign found = true -%}
                 {%- break -%}
               {%- endif -%}
@@ -207,165 +70,59 @@
           {%- endfor -%}
           {%- if found -%}{%- break -%}{%- endif -%}
         {%- endfor -%}
-        
-        {%- unless found -%}
-          <span class="current">{{ collection.title }}</span>
-        {%- endunless -%}
-      {%- endif -%}
+      {%- endunless -%}
+      
+      <span class="current">{{ collection.title }}</span>
 
     {%- when 'product' -%}
-      {%- comment -%} 
-        PRODUCT PAGE: 
-        1. Check for Custom Menu Metafield (shop.metafields.breadcrumb.custom_menu.value)
-        2. If exists, search THAT for deepest match (up to 6 levels)
-        3. If not, fallback to Standard Menu
-      {%- endcomment -%}
-      
       {%- assign custom_menu = shop.metafields.breadcrumb.custom_menu.value -%}
       {%- assign best_depth = 0 -%}
-      {%- assign path_html = "" -%}
+      {%- assign final_path = "" -%}
       
       {%- if block.settings.use_app_menu and custom_menu != blank -%}
-         {%- comment -%} --- CUSTOM MENU LOGIC (6 Levels) --- {%- endcomment -%}
-         
          {%- for col in product.collections -%}
-           {%- assign col_handle = col.handle -%}
+           {%- capture lookup_result -%}
+             {%- render 'breadcrumb_lookup', menu: custom_menu, handle: col.handle, sep: sep -%}
+           {%- endcapture -%}
            
-           {%- for l1 in custom_menu -%}
-             {%- if l1.handle == col_handle and best_depth < 1 -%}
-                {%- assign best_depth = 1 -%}
-                {%- capture path_html -%}
-                   <a href="{{ l1.url }}">{{ l1.title }}</a>
-                   <span class="sep">{{ sep }}</span>
-                {%- endcapture -%}
-             {%- endif -%}
-             
-             {%- if l1.children != blank -%}
-               {%- for l2 in l1.children -%}
-                 {%- if l2.handle == col_handle and best_depth < 2 -%}
-                    {%- assign best_depth = 2 -%}
-                    {%- capture path_html -%}
-                       <a href="{{ l1.url }}">{{ l1.title }}</a>
-                       <span class="sep">{{ sep }}</span>
-                       <a href="{{ l2.url }}">{{ l2.title }}</a>
-                       <span class="sep">{{ sep }}</span>
-                    {%- endcapture -%}
-                 {%- endif -%}
-                 
-                 {%- if l2.children != blank -%}
-                   {%- for l3 in l2.children -%}
-                     {%- if l3.handle == col_handle and best_depth < 3 -%}
-                        {%- assign best_depth = 3 -%}
-                        {%- capture path_html -%}
-                           <a href="{{ l1.url }}">{{ l1.title }}</a>
-                           <span class="sep">{{ sep }}</span>
-                           <a href="{{ l2.url }}">{{ l2.title }}</a>
-                           <span class="sep">{{ sep }}</span>
-                           <a href="{{ l3.url }}">{{ l3.title }}</a>
-                           <span class="sep">{{ sep }}</span>
-                        {%- endcapture -%}
-                     {%- endif -%}
-                     
-                     {%- if l3.children != blank -%}
-                       {%- for l4 in l3.children -%}
-                         {%- if l4.handle == col_handle and best_depth < 4 -%}
-                            {%- assign best_depth = 4 -%}
-                            {%- capture path_html -%}
-                               <a href="{{ l1.url }}">{{ l1.title }}</a>
-                               <span class="sep">{{ sep }}</span>
-                               <a href="{{ l2.url }}">{{ l2.title }}</a>
-                               <span class="sep">{{ sep }}</span>
-                               <a href="{{ l3.url }}">{{ l3.title }}</a>
-                               <span class="sep">{{ sep }}</span>
-                               <a href="{{ l4.url }}">{{ l4.title }}</a>
-                               <span class="sep">{{ sep }}</span>
-                            {%- endcapture -%}
-                         {%- endif -%}
-                         
-                         {%- if l4.children != blank -%}
-                           {%- for l5 in l4.children -%}
-                             {%- if l5.handle == col_handle and best_depth < 5 -%}
-                                {%- assign best_depth = 5 -%}
-                                {%- capture path_html -%}
-                                   <a href="{{ l1.url }}">{{ l1.title }}</a>
-                                   <span class="sep">{{ sep }}</span>
-                                   <a href="{{ l2.url }}">{{ l2.title }}</a>
-                                   <span class="sep">{{ sep }}</span>
-                                   <a href="{{ l3.url }}">{{ l3.title }}</a>
-                                   <span class="sep">{{ sep }}</span>
-                                   <a href="{{ l4.url }}">{{ l4.title }}</a>
-                                   <span class="sep">{{ sep }}</span>
-                                   <a href="{{ l5.url }}">{{ l5.title }}</a>
-                                   <span class="sep">{{ sep }}</span>
-                                {%- endcapture -%}
-                             {%- endif -%}
-
-                             {%- if l5.children != blank -%}
-                               {%- for l6 in l5.children -%}
-                                 {%- if l6.handle == col_handle and best_depth < 6 -%}
-                                    {%- assign best_depth = 6 -%}
-                                    {%- capture path_html -%}
-                                       <a href="{{ l1.url }}">{{ l1.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                       <a href="{{ l2.url }}">{{ l2.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                       <a href="{{ l3.url }}">{{ l3.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                       <a href="{{ l4.url }}">{{ l4.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                       <a href="{{ l5.url }}">{{ l5.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                       <a href="{{ l6.url }}">{{ l6.title }}</a>
-                                       <span class="sep">{{ sep }}</span>
-                                    {%- endcapture -%}
-                                 {%- endif -%}
-                               {%- endfor -%}
-                             {%- endif -%}
-
-                           {%- endfor -%}
-                         {%- endif -%}
-
-                       {%- endfor -%}
-                     {%- endif -%}
-
-                   {%- endfor -%}
-                 {%- endif -%}
-
-               {%- endfor -%}
-             {%- endif -%}
-           {%- endfor -%}
+           {%- if lookup_result contains '|||' -%}
+              {%- assign parts = lookup_result | split: '|||' -%}
+              {%- assign depth = parts[0] | plus: 0 -%}
+              {%- if depth > best_depth -%}
+                {%- assign best_depth = depth -%}
+                {%- assign final_path = parts[1] -%}
+              {%- endif -%}
+           {%- endif -%}
          {%- endfor -%}
+      {%- endif -%}
       
-      {%- else -%}
-        {%- comment -%} --- FALLBACK TO STANDARD SHOPIFY MENU (3 Levels) --- {%- endcomment -%}
-        
+      {%- if best_depth == 0 -%}
+        {%- comment -%} Fallback Standard Menu {%- endcomment -%}
         {%- for col in product.collections -%}
           {%- assign col_url = col.url -%}
           {%- for level1 in menu.links -%}
             {%- if level1.url == col_url and best_depth < 1 -%}
               {%- assign best_depth = 1 -%}
-              {%- capture path_html -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
+              {%- capture final_path -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
             {%- endif -%}
             {%- for level2 in level1.links -%}
               {%- if level2.url == col_url and best_depth < 2 -%}
                 {%- assign best_depth = 2 -%}
-                {%- capture path_html -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level2.url }}">{{ level2.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
+                {%- capture final_path -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level2.url }}">{{ level2.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
               {%- endif -%}
               {%- for level3 in level2.links -%}
                 {%- if level3.url == col_url and best_depth < 3 -%}
                   {%- assign best_depth = 3 -%}
-                  {%- capture path_html -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level2.url }}">{{ level2.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level3.url }}">{{ level3.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
+                  {%- capture final_path -%}<a href="{{ level1.url }}">{{ level1.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level2.url }}">{{ level2.title }}</a><span class="sep">{{ sep }}</span><a href="{{ level3.url }}">{{ level3.title }}</a><span class="sep">{{ sep }}</span>{%- endcapture -%}
                 {%- endif -%}
               {%- endfor -%}
             {%- endfor -%}
           {%- endfor -%}
         {%- endfor -%}
-      
       {%- endif -%}
       
-      {%- comment -%} Output result {%- endcomment -%}
       {%- if best_depth > 0 -%}
-        {{ path_html }}
+        {{ final_path }}
       {%- elsif product.collections.size > 0 -%}
         <a href="{{ product.collections.first.url }}">{{ product.collections.first.title }}</a>
         <span class="sep">{{ sep }}</span>
@@ -436,15 +193,13 @@
       "type": "checkbox",
       "id": "use_app_menu",
       "label": "Gelişmiş Uygulama Menüsünü Kullan",
-      "default": true,
-      "info": "İşaretlenirse, Breadcrumb Pro uygulamasında oluşturduğunuz özel menü yapısı kullanılır. İşaretlenmezse aşağıdaki seçili menü kullanılır."
+      "default": true
     },
     {
       "type": "link_list",
       "id": "menu",
-      "label": "Alternatif Menü (Opsiyonel)",
-      "default": "main-menu",
-      "info": "Sadece yukarıdaki seçenek kapalıysa veya özel menü boşsa kullanılır."
+      "label": "Alternatif Menü",
+      "default": "main-menu"
     },
     {
       "type": "text",
@@ -455,13 +210,13 @@
     {
       "type": "checkbox",
       "id": "home_icon",
-      "label": "Anasayfa İkonu Kullan",
+      "label": "Anasayfa İkonu",
       "default": true
     },
     {
       "type": "range",
       "id": "font_size",
-      "label": "Yazı Boyutu (px)",
+      "label": "Yazı Boyutu",
       "min": 10,
       "max": 20,
       "step": 1,
@@ -470,7 +225,7 @@
     {
       "type": "range",
       "id": "padding_x",
-      "label": "Yatay Padding (px)",
+      "label": "Yatay Padding",
       "min": 0,
       "max": 40,
       "step": 5,
@@ -479,7 +234,7 @@
     {
       "type": "range",
       "id": "padding_y",
-      "label": "Dikey Padding (px)",
+      "label": "Dikey Padding",
       "min": 0,
       "max": 40,
       "step": 5,
@@ -488,7 +243,7 @@
     {
       "type": "range",
       "id": "margin_bottom",
-      "label": "Alt Boşluk (px)",
+      "label": "Alt Boşluk",
       "min": 0,
       "max": 40,
       "step": 5,
@@ -497,7 +252,7 @@
     {
       "type": "color",
       "id": "bg_color",
-      "label": "Arka Plan Rengi",
+      "label": "Arka Plan",
       "default": "transparent"
     },
     {
@@ -515,7 +270,7 @@
     {
       "type": "color",
       "id": "current_color",
-      "label": "Aktif Sayfa Rengi",
+      "label": "Aktif Renk",
       "default": "#333333"
     }
   ]

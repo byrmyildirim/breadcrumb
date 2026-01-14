@@ -1,0 +1,57 @@
+{% comment %}
+  Snippet: Mega Menu Panel
+  Params:
+  - link: The parent link object
+  - sub_level_items: Collection of child items
+  - matching_config: Custom config object for this item
+  - block: The section block object
+{% endcomment %}
+
+{% if sub_level_items.size > 0 %}
+  {% comment %} Determine which image to use {% endcomment %}
+  {% assign panel_image = nil %}
+  {% if matching_config.imageUrl != blank %}
+    {% assign panel_image = matching_config.imageUrl %}
+  {% elsif block.settings.show_sidebar_image and block.settings.sidebar_image %}
+    {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
+  {% endif %}
+  
+  <div class="mega-panel" data-key="{{ link.title | handleize }}">
+    <div class="mega-grid">
+      
+      <!-- SOL GÖRSEL (Her zaman görünür) -->
+      <div class="mega-image">
+        {% if panel_image %}
+          <img src="{{ panel_image }}" alt="{{ link.title }}">
+        {% endif %}
+      </div>
+
+      <!-- SAĞ: 4 KOLON -->
+      <div class="mega-cols">
+        {% for parent in sub_level_items %}
+          <div class="mega-col">
+            
+            <div class="mega-col-title">
+              <a href="{{ parent.url }}">{{ parent.title }}</a>
+              
+              {% assign parent_children = parent.links | default: parent.children %}
+              {% if parent_children.size > 0 %}
+                <span class="arrow">▼</span>
+              {% endif %}
+            </div>
+            
+            {% if parent_children.size > 0 %}
+              <div class="mega-col-links">
+                {% for child in parent_children %}
+                  <a href="{{ child.url }}">{{ child.title }}</a>
+                {% endfor %}
+              </div>
+            {% endif %}
+            
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+{% endif %}

@@ -1,0 +1,78 @@
+{% comment %}
+  Price Guard: Disables Add to Cart / Buy Now buttons if variant price is 0
+  Server-side check for immediate effect
+{% endcomment %}
+
+{{ 'price-guard.css' | asset_url | stylesheet_tag }}
+
+{% assign current_variant = product.selected_or_first_available_variant %}
+{% assign is_zero_price = false %}
+
+{% comment %} Check if price is 0 or less than 1 cent {% endcomment %}
+{% if current_variant.price == 0 or current_variant.price < 1 %}
+  {% assign is_zero_price = true %}
+{% endif %}
+
+{% comment %} Also check all variants - if ALL are 0, definitely block {% endcomment %}
+{% assign all_zero = true %}
+{% for variant in product.variants %}
+  {% if variant.price > 0 %}
+    {% assign all_zero = false %}
+    {% break %}
+  {% endif %}
+{% endfor %}
+
+{% if is_zero_price or all_zero %}
+<div class="price-guard-message is-visible" id="PriceGuardMessage">
+  ⚠️ Bu ürünün fiyatı henüz belirlenmemiştir. Şu anda satın alınamaz.
+</div>
+
+<style>
+  /* Immediate CSS override - no JS delay */
+  button[name="add"],
+  button[type="submit"][name="add"],
+  .product-form__submit,
+  .shopify-payment-button,
+  .shopify-payment-button__button,
+  [data-add-to-cart],
+  .add-to-cart,
+  .btn-add-to-cart,
+  .product__submit__add,
+  #AddToCart,
+  #add-to-cart,
+  .product-form button[type="submit"],
+  form[action*="/cart/add"] button[type="submit"],
+  .product-single__add-to-cart {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    position: relative;
+  }
+</style>
+
+<script>
+  // Backup: Also disable via JS for dynamic themes
+  document.addEventListener('DOMContentLoaded', function() {
+    var buttons = document.querySelectorAll('button[name="add"], .product-form__submit, .shopify-payment-button, .shopify-payment-button__button, [data-add-to-cart], #AddToCart');
+    buttons.forEach(function(btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+    });
+  });
+</script>
+{% else %}
+  {%- comment -%} Price is OK, load JS for variant change detection {%- endcomment -%}
+  <div class="price-guard-message" id="PriceGuardMessage">
+    ⚠️ Bu ürünün fiyatı henüz belirlenmemiştir. Şu anda satın alınamaz.
+  </div>
+  <script src="{{ 'price-guard.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Fiyat Koruma",
+  "target": "body",
+  "templates": ["product"],
+  "settings": []
+}
+{% endschema %}

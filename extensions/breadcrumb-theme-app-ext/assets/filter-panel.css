@@ -1,0 +1,555 @@
+/* ========== BASE STYLES ========== */
+.filter-panel-container {
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 10;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* When panel is open, increase z-index */
+.filter-panel-container:has(.filter-dropdown-panel.is-open) {
+    z-index: 100;
+}
+
+/* ========== TOP BAR ========== */
+.filter-panel-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e5e5;
+    gap: 16px;
+    flex-wrap: nowrap;
+}
+
+/* Left: Filter Toggle + Count */
+.filter-panel-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Right: Sort Dropdown */
+.filter-panel-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Toggle Button - REDESIGNED (Black Box) */
+.filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    height: 48px;
+    /* Fixed height match image */
+    background-color: #000;
+    color: #fff;
+    border: none;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+    /* Minimal radius */
+}
+
+.filter-toggle-btn:hover {
+    background-color: #333;
+}
+
+/* Icon */
+.filter-toggle-btn svg.icon-filter {
+    width: 20px;
+    height: 20px;
+}
+
+.filter-product-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.filter-product-count strong {
+    font-weight: 600;
+    color: #000;
+}
+
+/* Sort Dropdown - REDESIGNED (Minimal) */
+.filter-sort-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.filter-sort-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    padding: 0 40px 0 16px;
+    /* Right padding for arrow */
+    height: 48px;
+    /* Match filter button height */
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    border-radius: 4px;
+    outline: none;
+    width: 200px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: inherit;
+}
+
+.filter-sort-select:hover {
+    border-color: #ccc;
+}
+
+.filter-sort-select:focus {
+    border-color: #000;
+}
+
+.filter-sort-icon {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #666;
+    width: 10px;
+    height: 10px;
+}
+
+/* ========== DROPDOWN PANEL ========== */
+.filter-dropdown-panel {
+    display: none;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-top: none;
+    /* Connected visually or separate? Image shows top bar separate. */
+    margin-top: 10px;
+    /* Slight gap as per image potentially */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    /* Softer shadow */
+    z-index: 1000;
+}
+
+.filter-dropdown-panel.is-open {
+    display: block;
+}
+
+/* Overlay for loading state */
+.filter-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 1001;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.filter-dropdown-panel.is-loading .filter-loading-overlay {
+    display: flex;
+}
+
+/* ========== DESKTOP LAYOUT ========== */
+@media (min-width: 769px) {
+    .filter-columns-desktop {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0;
+        align-items: start;
+        border-top: 1px solid #f0f0f0;
+        /* Consistent internal border */
+    }
+
+    /* Vertical Dividers */
+    .filter-column {
+        padding: 25px 20px;
+        border-right: 1px solid #f0f0f0;
+        min-height: 250px;
+    }
+
+    .filter-column:last-child {
+        border-right: none;
+    }
+
+    .filter-columns-mobile {
+        display: none;
+    }
+
+    .filter-dropdown-panel {
+        padding-bottom: 0;
+    }
+}
+
+/* ========== MOBILE LAYOUT ========== */
+@media (max-width: 768px) {
+    .filter-columns-desktop {
+        display: none;
+    }
+
+    .filter-columns-mobile {
+        display: block;
+    }
+
+    .filter-panel-topbar {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 15px;
+        padding: 8px 0;
+        align-items: flex-end !important;
+        /* Force items to sit on the bottom line */
+    }
+
+    .filter-panel-left {
+        flex: 1;
+        width: 50%;
+        min-width: 0;
+        display: flex !important;
+        flex-direction: column;
+        justify-content: flex-end;
+        /* Ensure content is at bottom */
+    }
+
+    .filter-panel-right {
+        flex: 1;
+        width: 50%;
+        min-width: 0;
+        display: flex !important;
+        flex-direction: column;
+        justify-content: flex-end;
+        /* Ensure content is at bottom */
+    }
+
+    .filter-product-count {
+        display: none !important;
+    }
+
+    /* Black Button Style */
+    .filter-toggle-btn {
+        width: 100%;
+        height: 35px;
+        font-size: 12px;
+        padding: 0 4px;
+        border-radius: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        line-height: 1.2;
+        /* Neutralize line-height */
+    }
+
+    .filter-sort-wrapper {
+        width: 100%;
+        display: block;
+        line-height: 0;
+        /* Removing spacing */
+    }
+
+    /* Sort Dropdown Style */
+    .filter-sort-select {
+        width: 100%;
+        height: 35px;
+        font-size: 12px;
+        padding: 0 25px 0 10px;
+        border-radius: 4px;
+        background-position: right 8px center;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        line-height: 1.2;
+    }
+
+    .filter-sort-icon {
+        right: 8px;
+    }
+
+    .filter-dropdown-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        z-index: 9999;
+        overflow-y: auto;
+        border: none;
+        padding-bottom: 80px;
+    }
+
+    .filter-mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid #e5e5e5;
+        background: #fff;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+
+    .filter-accordion-item {
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+    .filter-accordion-header {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        font-weight: 600;
+        background: #fff;
+    }
+
+    .filter-accordion-content {
+        display: none;
+        padding: 0 16px 16px;
+        background: #fff;
+    }
+
+    .filter-accordion-item.is-open .filter-accordion-content {
+        display: block;
+    }
+
+    .filter-content-wrapper {
+        min-height: 100%;
+        padding-bottom: 20px;
+        background: #fff;
+    }
+}
+
+/* ========== FILTER ITEMS ========== */
+.filter-column-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+    /* Distinct header line */
+    display: inline-block;
+    color: #000;
+    min-width: 40px;
+}
+
+.filter-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.filter-items-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.filter-items-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+}
+
+.filter-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    cursor: pointer;
+    font-size: 13px;
+    color: #444;
+    transition: color 0.1s;
+}
+
+/* Hide native */
+.filter-native-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* Styled Checkbox - Square Clean */
+.filter-checkbox-styled {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #e5e5e5;
+    border-radius: 2px;
+    /* Sharper corners */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9f9f9;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.filter-native-checkbox:checked+.filter-checkbox-styled {
+    background: #000;
+    border-color: #000;
+}
+
+.filter-checkbox-icon {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.filter-native-checkbox:checked+.filter-checkbox-styled .filter-checkbox-icon {
+    opacity: 1;
+}
+
+.filter-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-count {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Price Fields */
+.filter-price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-price-field {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex: 1;
+    background: #fff;
+}
+
+.filter-price-currency {
+    padding: 8px;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    color: #666;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-price-input {
+    border: none;
+    padding: 8px;
+    width: 100%;
+    font-size: 13px;
+    background: #fff;
+}
+
+.filter-price-input:focus {
+    outline: none;
+}
+
+/* ========== ACTIONS BAR ========== */
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+    /* Clear Left, Apply Right */
+    align-items: center;
+    padding: 20px 30px;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+}
+
+@media (max-width: 768px) {
+    .filter-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+        padding: 16px;
+    }
+}
+
+.filter-apply-btn {
+    padding: 10px 40px;
+    /* background handled via var */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+}
+
+.filter-apply-btn:hover {
+    opacity: 0.9;
+}
+
+.filter-clear-btn {
+    text-decoration: underline;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.filter-clear-btn:hover {
+    color: #000;
+}
+
+.filter-show-more {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    /* color handled via var */
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+/* Loading Spinner */
+.filter-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    /* border-top-color handled via var */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
