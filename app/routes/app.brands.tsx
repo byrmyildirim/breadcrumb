@@ -282,7 +282,7 @@ export default function BrandGroups() {
                                         {filteredVendors.length === 0 && (
                                             <Text as="p" tone="subdued" alignment="center">Sonuç bulunamadı.</Text>
                                         )}
-                                        <InlineStack gap="200">
+                                        <InlineStack gap="200" wrap>
                                             {filteredVendors.map(vendor => {
                                                 const isSelected = selectedGroup.vendors.includes(vendor);
                                                 return (
@@ -291,7 +291,7 @@ export default function BrandGroups() {
                                                         onClick={() => handleToggleVendor(vendor)}
                                                         style={{ cursor: 'pointer' }}
                                                     >
-                                                        <Tag onClick={() => handleToggleVendor(vendor)}>
+                                                        <Tag>
                                                             {isSelected ? (
                                                                 <span style={{ fontWeight: 'bold', color: '#005fcc' }}>✓ {vendor}</span>
                                                             ) : (
