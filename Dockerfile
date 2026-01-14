@@ -22,6 +22,10 @@ RUN npm run build
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Startup script with retry logic for database connection
-CMD ["sh", "-c", "echo 'Waiting for database...' && sleep 5 && npx prisma db push --skip-generate && npm run start"]
+# Copy and make startup script executable
+COPY wait-for-db.sh /app/wait-for-db.sh
+RUN chmod +x /app/wait-for-db.sh
+
+# Use startup script with database retry logic
+CMD ["/app/wait-for-db.sh"]
 
