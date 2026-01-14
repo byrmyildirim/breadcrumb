@@ -23,6 +23,6 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # Use Node.js startup script with database retry logic
-CMD ["node", "start.js"]
+CMD ["node", "start.cjs"]
 
 
