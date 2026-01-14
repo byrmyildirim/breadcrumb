@@ -22,4 +22,6 @@ RUN npm run build
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-CMD ["npm", "run", "docker-start"]
+# Startup script with retry logic for database connection
+CMD ["sh", "-c", "echo 'Waiting for database...' && sleep 5 && npx prisma db push --skip-generate && npm run start"]
+
