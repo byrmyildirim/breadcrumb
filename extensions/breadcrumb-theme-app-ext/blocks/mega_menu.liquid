@@ -521,6 +521,19 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   {% endif %}
 
+  /* ANASAYFA: Akış aktif */
+  {% if template == 'index' %}
+    localStorage.removeItem("lastMainCategory");
+    function setAkis(){document.querySelectorAll("li.active,.mobile-category-item.active").forEach(e=>e.classList.remove("active"));document.querySelectorAll(".menu-item").forEach(e=>e.classList.remove("breadcrumb-active-category"));document.querySelectorAll(".menu-item,.mobile-category-item").forEach(e=>{const s=e.querySelector("span");if(s&&s.textContent.trim().toLowerCase()==="akış"){if(e.classList.contains("mobile-category-item"))e.classList.add("active");else{const p=e.closest("li");if(p)p.classList.add("active");e.classList.add("breadcrumb-active-category")}const h=e.getAttribute("href");if(h)localStorage.setItem("lastMainCategory",h)}});}
+    setAkis();setTimeout(setAkis,100);setTimeout(setAkis,400);setTimeout(setAkis,800);
+    window.addEventListener('pageshow',()=>{localStorage.removeItem("lastMainCategory");setAkis();setTimeout(setAkis,200);});
+  {% endif %}
+
+  {% assign mobile_groups = shop.metafields.breadcrumb.mobile_menu_groups.value %}
+  
+  /* MOBIL MENÜ: DİNAMİK (Compressed) */
+  function restructureMobileMenu(){const c=document.querySelector('.mobile-category-bar');if(!c)return;const groups={{ mobile_groups | json }}||[];if(!groups.length)return;groups.forEach(g=>{if(c.querySelector(`[data-group-title="${g.groupTitle}"]`))return;const targets=g.childrenMenus||[];if(!targets.length)return;const ref=c.querySelector('li');if(!ref)return;const p=ref.cloneNode(!1);p.className='akis-parent-item custom-mobile-group';p.setAttribute('data-group-title',g.groupTitle);p.classList.remove('active');const l=document.createElement('a');l.href=g.groupLink||"/";l.className="mobile-category-item";l.innerHTML=`<span>${g.groupTitle}</span>`;const ar=document.createElement('span');ar.className='icon-arrow';ar.style.cssText="float:right;cursor:pointer;padding:0 10px;font-size:12px;";ar.innerHTML="▼";p.append(l,ar);const ul=document.createElement('ul');ul.className="mobile-sub-menu";ul.style.cssText="display:none;padding-left:20px;list-style:none;";const all=Array.from(c.querySelectorAll('li'));let m=0;all.forEach(li=>{if(li===p)return;const lnk=li.querySelector('.mobile-category-item');if(lnk&&targets.includes(lnk.textContent.trim())){ul.appendChild(li);m++}});if(m>0){p.appendChild(ul);c.prepend(p);ar.onclick=(e)=>{e.preventDefault();e.stopPropagation();const o=ul.style.display==="block";ul.style.display=o?"none":"block";ar.style.transform=o?"rotate(0deg)":"rotate(180deg)"}}})}setTimeout(restructureMobileMenu,500);setTimeout(restructureMobileMenu,1500);setTimeout(restructureMobileMenu,3000);
+
 });
 </script>
 

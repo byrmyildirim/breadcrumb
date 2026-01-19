@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon } from "@shopify/polaris";
-import { useState, useCallback } from "react";
+import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox } from "@shopify/polaris";
+import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { PlusCircleIcon, DeleteIcon } from "@shopify/polaris-icons";
@@ -96,7 +96,27 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse extra menu items", e);
     }
 
-    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems });
+    // 6. Fetch Mobile Menu Groups (NEW)
+    const mobileGroupsQuery = await admin.graphql(
+        `query {
+            shop {
+                metafield(namespace: "breadcrumb", key: "mobile_menu_groups") {
+                    value
+                }
+            }
+        }`
+    );
+    const mobileGroupsJson = await mobileGroupsQuery.json();
+    let initialMobileGroups = [];
+    try {
+        const raw = mobileGroupsJson.data?.shop?.metafield?.value;
+        if (raw) initialMobileGroups = JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to parse mobile menu groups", e);
+    }
+
+
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -106,6 +126,7 @@ export async function action({ request }: { request: Request }) {
     const configString = formData.get("config") as string;
     const pageMappingsString = formData.get("pageMappings") as string;
     const extraMenuItemsString = formData.get("extraMenuItems") as string;
+    const mobileGroupsString = formData.get("mobileGroups") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -127,7 +148,7 @@ export async function action({ request }: { request: Request }) {
     mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
       metafieldsSet(metafields: $metafields) {
         metafields {
-           id
+          id
         }
         userErrors {
           field
@@ -158,6 +179,13 @@ export async function action({ request }: { request: Request }) {
                         key: "extra_menu_items",
                         type: "json",
                         value: extraMenuItemsString,
+                    },
+                    {
+                        ownerId: shopId,
+                        namespace: "breadcrumb",
+                        key: "mobile_menu_groups",
+                        type: "json",
+                        value: mobileGroupsString,
                     }
                 ]
             }
@@ -168,7 +196,7 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
@@ -176,6 +204,7 @@ export default function MegaMenuPage() {
     const [items, setItems] = useState(Array.isArray(initialConfig) ? initialConfig : []);
     const [pageMappings, setPageMappings] = useState(Array.isArray(initialPageMappings) ? initialPageMappings : []);
     const [extraMenuItems, setExtraMenuItems] = useState(Array.isArray(initialExtraMenuItems) ? initialExtraMenuItems : []);
+    const [mobileGroups, setMobileGroups] = useState(Array.isArray(initialMobileGroups) ? initialMobileGroups : []);
 
     // --- Mega Menu Config Functions ---
     const addItem = () => {
@@ -228,11 +257,42 @@ export default function MegaMenuPage() {
         setExtraMenuItems(newItems);
     };
 
+    // --- Mobile Groups Functions ---
+    const addMobileGroup = () => {
+        setMobileGroups([...mobileGroups, { groupTitle: " Akış", groupLink: "/", childrenMenus: [] }]);
+    };
+
+    const removeMobileGroup = (index: number) => {
+        const newGroups = [...mobileGroups];
+        newGroups.splice(index, 1);
+        setMobileGroups(newGroups);
+    };
+
+    const updateMobileGroup = (index: number, key: string, value: any) => {
+        const newGroups = [...mobileGroups];
+        newGroups[index] = { ...newGroups[index], [key]: value };
+        setMobileGroups(newGroups);
+    };
+
+    // Toggle menu in group children
+    const toggleGroupChild = (groupIndex: number, menuTitle: string) => {
+        const newGroups = [...mobileGroups];
+        const currentChildren = newGroups[groupIndex].childrenMenus || [];
+        if (currentChildren.includes(menuTitle)) {
+            newGroups[groupIndex].childrenMenus = currentChildren.filter((t: string) => t !== menuTitle);
+        } else {
+            newGroups[groupIndex].childrenMenus = [...currentChildren, menuTitle];
+        }
+        setMobileGroups(newGroups);
+    }
+
+
     const handleSave = () => {
         const formData = new FormData();
         formData.append("config", JSON.stringify(items));
         formData.append("pageMappings", JSON.stringify(pageMappings));
         formData.append("extraMenuItems", JSON.stringify(extraMenuItems));
+        formData.append("mobileGroups", JSON.stringify(mobileGroups));
         submit(formData, { method: "post" });
     };
 
@@ -259,14 +319,16 @@ export default function MegaMenuPage() {
     const pageMenuOptions = [{ label: "Seçiniz...", value: "" }];
     if (customMenuItems && customMenuItems.length > 0) {
         customMenuItems.forEach((item: any) => {
-            if (item.children && item.children.length > 0) {
-                pageMenuOptions.push({
-                    label: item.title,
-                    value: item.title
-                });
-            }
+            pageMenuOptions.push({
+                label: item.title,
+                value: item.title
+            });
         });
     }
+
+    // Options for Multi-Select (Mobile Groups) - using all available top-level titles
+    const availableMobileOptions = customMenuItems.map((item: any) => ({ label: item.title, value: item.title }));
+
 
     return (
         <Page
@@ -279,6 +341,102 @@ export default function MegaMenuPage() {
             }}
         >
             <Layout>
+                {/* === SECTION 0: MOBILE MENU GROUPS (AKIŞ) === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                📱 Mobil Menü Gruplandırma (Akış vb.)
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Mobilde mevcut menüleri (Bisiklet, Koşu vb.) yeni bir üst menü (örn: "Akış") altında toplayın.
+                            </Text>
+
+                            {mobileGroups.map((group: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "12px",
+                                    background: "#f0f8ff"
+                                }}>
+                                    <BlockStack gap="400">
+                                        <InlineStack gap="400" align="space-between">
+                                            <Text variant="headingSm" as="h6">Grup #{index + 1}</Text>
+                                            <Button tone="critical" onClick={() => removeMobileGroup(index)} variant="plain" icon={DeleteIcon} />
+                                        </InlineStack>
+
+                                        <InlineStack gap="400">
+                                            <Box width="45%">
+                                                <TextField
+                                                    label="Grup Başlığı"
+                                                    value={group.groupTitle}
+                                                    onChange={(val) => updateMobileGroup(index, "groupTitle", val)}
+                                                    placeholder="Örn: Akış"
+                                                    autoComplete="off"
+                                                />
+                                            </Box>
+                                            <Box width="45%">
+                                                <TextField
+                                                    label="Grup Linki"
+                                                    value={group.groupLink}
+                                                    onChange={(val) => updateMobileGroup(index, "groupLink", val)}
+                                                    placeholder="Örn: /"
+                                                    autoComplete="off"
+                                                    helpText="Başlığa tıklandığında gidilecek adres"
+                                                />
+                                            </Box>
+                                        </InlineStack>
+
+                                        <Box>
+                                            <Text as="p" variant="bodySm" fontWeight="bold">Dahil Edilecek Menüler:</Text>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                                                {availableMobileOptions.map((opt: any) => {
+                                                    const isSelected = (group.childrenMenus || []).includes(opt.value);
+                                                    return (
+                                                        <div
+                                                            key={opt.value}
+                                                            onClick={() => toggleGroupChild(index, opt.value)}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '20px',
+                                                                border: isSelected ? '1px solid #2c6ecb' : '1px solid #dcdcdc',
+                                                                background: isSelected ? '#3b82f6' : '#fff',
+                                                                color: isSelected ? '#fff' : '#333',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                userSelect: 'none'
+                                                            }}
+                                                        >
+                                                            {opt.label} {isSelected ? '✓' : ''}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div style={{ marginTop: '5px', fontSize: '12px', color: '#666' }}>
+                                                Seçilen menüler "{group.groupTitle}" altına taşınacaktır.
+                                            </div>
+                                        </Box>
+                                    </BlockStack>
+                                </div>
+                            ))}
+
+                            {mobileGroups.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz mobil grup oluşturulmamış. "Akış" menüsü oluşturmak için ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addMobileGroup} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Mobil Grup Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
                 {/* === SECTION 1: PAGE-MENU MAPPINGS === */}
                 <Layout.Section>
                     <Card>
