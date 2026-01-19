@@ -27,7 +27,10 @@
 {% endif %}
 </style>
 
-{% if block.settings.hide_desktop %}
+</style>
+
+{% assign mobile_settings = shop.metafields.breadcrumb.mobile_menu_settings.value %}
+{% if block.settings.hide_desktop or mobile_settings.hideDesktop %}
 <style>
   @media (min-width: 990px) {
     #mega-{{ block.id }} {

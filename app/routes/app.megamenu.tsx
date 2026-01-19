@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox, Checkbox } from "@shopify/polaris";
 import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -115,8 +115,27 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse mobile menu groups", e);
     }
 
+    // 7. Fetch General Settings (NEW - Hide Desktop)
+    const mobileSettingsQuery = await admin.graphql(
+        `query {
+            shop {
+                metafield(namespace: "breadcrumb", key: "mobile_menu_settings") {
+                     value
+                }
+            }
+        }`
+    );
+    const mobileSettingsJson = await mobileSettingsQuery.json();
+    let initialMobileSettings = { hideDesktop: false };
+    try {
+        const raw = mobileSettingsJson.data?.shop?.metafield?.value;
+        if (raw) initialMobileSettings = JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to parse mobile menu settings", e);
+    }
 
-    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups });
+
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -127,6 +146,7 @@ export async function action({ request }: { request: Request }) {
     const pageMappingsString = formData.get("pageMappings") as string;
     const extraMenuItemsString = formData.get("extraMenuItems") as string;
     const mobileGroupsString = formData.get("mobileGroups") as string;
+    const mobileSettingsString = formData.get("mobileSettings") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -186,6 +206,13 @@ export async function action({ request }: { request: Request }) {
                         key: "mobile_menu_groups",
                         type: "json",
                         value: mobileGroupsString,
+                    },
+                    {
+                        ownerId: shopId,
+                        namespace: "breadcrumb",
+                        key: "mobile_menu_settings",
+                        type: "json",
+                        value: mobileSettingsString,
                     }
                 ]
             }
@@ -196,7 +223,7 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
@@ -205,6 +232,7 @@ export default function MegaMenuPage() {
     const [pageMappings, setPageMappings] = useState(Array.isArray(initialPageMappings) ? initialPageMappings : []);
     const [extraMenuItems, setExtraMenuItems] = useState(Array.isArray(initialExtraMenuItems) ? initialExtraMenuItems : []);
     const [mobileGroups, setMobileGroups] = useState(Array.isArray(initialMobileGroups) ? initialMobileGroups : []);
+    const [mobileSettings, setMobileSettings] = useState(initialMobileSettings || { hideDesktop: false });
 
     // --- Mega Menu Config Functions ---
     const addItem = () => {
@@ -293,6 +321,7 @@ export default function MegaMenuPage() {
         formData.append("pageMappings", JSON.stringify(pageMappings));
         formData.append("extraMenuItems", JSON.stringify(extraMenuItems));
         formData.append("mobileGroups", JSON.stringify(mobileGroups));
+        formData.append("mobileSettings", JSON.stringify(mobileSettings));
         submit(formData, { method: "post" });
     };
 
@@ -341,6 +370,23 @@ export default function MegaMenuPage() {
             }}
         >
             <Layout>
+                {/* === SECTION -1: GENERAL SETTINGS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                ⚙️ Görünürlük Ayarları
+                            </Text>
+                            <Checkbox
+                                label="Mega Menüyü Masaüstünde Gizle"
+                                checked={mobileSettings.hideDesktop}
+                                onChange={(newChecked) => setMobileSettings({ ...mobileSettings, hideDesktop: newChecked })}
+                                helpText="Bu seçenek işaretlendiğinde menü şeridi masaüstü cihazlarda gizlenir (display: none), ancak mobil yapılandırma çalışmaya devam eder."
+                            />
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
                 {/* === SECTION 0: MOBILE MENU GROUPS (AKIŞ) === */}
                 <Layout.Section>
                     <Card>
