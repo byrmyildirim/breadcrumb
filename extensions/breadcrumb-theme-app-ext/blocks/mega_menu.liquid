@@ -27,6 +27,16 @@
 {% endif %}
 </style>
 
+{% if block.settings.hide_desktop %}
+<style>
+  @media (min-width: 990px) {
+    #mega-{{ block.id }} {
+      display: none !important;
+    }
+  }
+</style>
+{% endif %}
+
 {% assign mega_config = shop.metafields.breadcrumb.mega_menu_config.value %}
 {% assign page_menu_map = shop.metafields.breadcrumb.page_menu_map.value %}
 {% assign extra_menu_items = shop.metafields.breadcrumb.extra_menu_items.value %}
@@ -422,103 +432,44 @@ document.addEventListener("DOMContentLoaded", function () {
       const activeCategoryLower = activeCategory.toLowerCase();
       const firstWord = activeCategoryLower.split(' ')[0];
       
-      console.log('[Mega Menu] Aktif kategori:', activeCategory, 'İlk kelime:', firstWord);
-      
-      // === 1. WEB MENÜSÜ (.menu-item) ===
-      // Tüm li.active ve menu-item stillerini temizle
-      document.querySelectorAll("li.active").forEach(li => {
-        if (li.querySelector(".menu-item")) {
-          li.classList.remove("active");
-        }
+      // 1. WEB MENÜSÜ (.menu-item)
+      document.querySelectorAll("li.active").forEach(li => { if (li.querySelector(".menu-item")) li.classList.remove("active"); });
+      document.querySelectorAll(".menu-item").forEach(item => {
+        const s = item.querySelector("span"); if (s) { s.style.color = ""; s.style.fontWeight = ""; }
+        item.style.color = ""; item.classList.remove("breadcrumb-active-category");
+        const img = item.querySelector("img"); if (img) img.style.filter = "";
       });
       
       document.querySelectorAll(".menu-item").forEach(item => {
         const spanText = item.querySelector("span");
         if (spanText) {
-          spanText.style.color = "";
-          spanText.style.fontWeight = "";
-        }
-        item.style.color = "";
-        item.classList.remove("breadcrumb-active-category");
-        const img = item.querySelector("img");
-        if (img) {
-          img.style.filter = "";
-        }
-      });
-      
-      // Doğru menu-item'ı bul ve vurgula
-      document.querySelectorAll(".menu-item").forEach(item => {
-        const spanText = item.querySelector("span");
-        if (spanText) {
-          const itemTitle = spanText.textContent.trim();
-          const itemTitleLower = itemTitle.toLowerCase();
-          
-          const isMatch = (
-            itemTitle === activeCategory ||
-            activeCategoryLower.includes(itemTitleLower) ||
-            itemTitleLower.includes(firstWord) ||
-            (firstWord.length > 2 && firstWord.includes(itemTitleLower))
-          );
-          
+          const t = spanText.textContent.trim(); const tl = t.toLowerCase();
+          const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
           if (isMatch) {
-            console.log('[Mega Menu] Web eşleşme bulundu:', itemTitle);
-            const parentLi = item.closest("li");
-            if (parentLi) {
-              parentLi.classList.add("active");
-            }
+            const p = item.closest("li"); if (p) p.classList.add("active");
             item.classList.add("breadcrumb-active-category");
           }
         }
       });
       
-      // === 2. MOBİL MENÜSÜ (.mobile-category-item) ===
-      // Tüm mobile-category-item'lardan active kaldır
-      document.querySelectorAll(".mobile-category-item").forEach(item => {
-        item.classList.remove("active");
-      });
-      
-      // Doğru mobile-category-item'ı bul ve vurgula
+      // 2. MOBİL MENÜSÜ (.mobile-category-item)
+      document.querySelectorAll(".mobile-category-item").forEach(i => i.classList.remove("active"));
       let matchedHref = null;
       document.querySelectorAll(".mobile-category-item").forEach(item => {
-        const spanText = item.querySelector("span");
-        if (spanText) {
-          const itemTitle = spanText.textContent.trim();
-          const itemTitleLower = itemTitle.toLowerCase();
-          
-          const isMatch = (
-            itemTitle === activeCategory ||
-            activeCategoryLower.includes(itemTitleLower) ||
-            itemTitleLower.includes(firstWord) ||
-            (firstWord.length > 2 && firstWord.includes(itemTitleLower))
-          );
-          
-          if (isMatch) {
-            console.log('[Mega Menu] Mobil eşleşme bulundu:', itemTitle);
-            item.classList.add("active");
-            matchedHref = item.getAttribute("href");
-          }
+        const s = item.querySelector("span");
+        if (s) {
+          const t = s.textContent.trim(); const tl = t.toLowerCase();
+          const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
+          if (isMatch) { item.classList.add("active"); matchedHref = item.getAttribute("href"); }
         }
       });
       
-      // === 3. LOCALSTORAGE'I GÜNCELLE (Tema scriptini override et) ===
-      if (matchedHref) {
-        localStorage.setItem("lastMainCategory", matchedHref);
-        console.log('[Mega Menu] localStorage güncellendi:', matchedHref);
-      }
+      // 3. LOCALSTORAGE
+      if (matchedHref) localStorage.setItem("lastMainCategory", matchedHref);
     }
     
-    // Theme scripti DOMContentLoaded'da çalışıyor, biz ondan SONRA çalışmalıyız
-    // Daha uzun gecikme kullan
-    setTimeout(applyActiveMenuState, 400);
-    setTimeout(applyActiveMenuState, 800);
-    
-    // Geri/ileri butonları ve bfcache için
-    window.addEventListener('pageshow', function(event) {
-      if (event.persisted) {
-        console.log('[Mega Menu] Pageshow (bfcache) - yeniden uyguluyorum');
-        setTimeout(applyActiveMenuState, 200);
-      }
-    });
+    setTimeout(applyActiveMenuState, 400); setTimeout(applyActiveMenuState, 800);
+    window.addEventListener('pageshow', function(ev) { if (ev.persisted) setTimeout(applyActiveMenuState, 200); });
   {% endif %}
 
   /* ANASAYFA: Akış aktif */
@@ -533,7 +484,7 @@ document.addEventListener("DOMContentLoaded", function () {
   
   /* MOBIL MENÜ: DİNAMİK (Compressed) */
   function restructureMobileMenu(){const c=document.querySelector('.mobile-category-bar');if(!c)return;const groups={{ mobile_groups | json }}||[];if(!groups.length)return;groups.forEach(g=>{if(c.querySelector(`[data-group-title="${g.groupTitle}"]`))return;const targets=g.childrenMenus||[];if(!targets.length)return;const ref=c.querySelector('li');if(!ref)return;const p=ref.cloneNode(!1);p.className='akis-parent-item custom-mobile-group';p.setAttribute('data-group-title',g.groupTitle);p.classList.remove('active');const l=document.createElement('a');l.href=g.groupLink||"/";l.className="mobile-category-item";l.innerHTML=`<span>${g.groupTitle}</span>`;const ar=document.createElement('span');ar.className='icon-arrow';ar.style.cssText="float:right;cursor:pointer;padding:0 10px;font-size:12px;";ar.innerHTML="▼";p.append(l,ar);const ul=document.createElement('ul');ul.className="mobile-sub-menu";ul.style.cssText="display:none;padding-left:20px;list-style:none;";const all=Array.from(c.querySelectorAll('li'));let m=0;all.forEach(li=>{if(li===p)return;const lnk=li.querySelector('.mobile-category-item');if(lnk&&targets.includes(lnk.textContent.trim())){ul.appendChild(li);m++}});if(m>0){p.appendChild(ul);c.prepend(p);ar.onclick=(e)=>{e.preventDefault();e.stopPropagation();const o=ul.style.display==="block";ul.style.display=o?"none":"block";ar.style.transform=o?"rotate(0deg)":"rotate(180deg)"}}})}setTimeout(restructureMobileMenu,500);setTimeout(restructureMobileMenu,1500);setTimeout(restructureMobileMenu,3000);
-
+  
 });
 </script>
 
@@ -581,6 +532,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "id": "sidebar_image",
       "label": "Sol Görsel",
       "info": "Panel açıldığında sol tarafta görünecek resim"
+    },
+    {
+      "type": "header",
+      "content": "Görünürlük Ayarları"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_desktop",
+      "label": "Masaüstünde Gizle",
+      "default": false,
+      "info": "İşaretlenirse, bu menü bandı masaüstünde gizlenir."
     }
   ]
 }
