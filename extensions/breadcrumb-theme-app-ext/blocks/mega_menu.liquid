@@ -33,15 +33,11 @@
 {% if block.settings.hide_desktop or mobile_settings.hideDesktop %}
 <style>
   @media (min-width: 990px) {
-    /* Sadece Akış/Mobil Grupları Masaüstünde Gizle */
-    .akis-parent-item,
-    .custom-mobile-group,
-    li.akis-parent-item,
-    li.custom-mobile-group {
+    /* Masaüstünde Tüm Mega Menü Bloğunu Gizle */
+    #mega-{{ block.id }},
+    .mega-wrapper {
       display: none !important;
       visibility: hidden !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
     }
   }
 </style>
