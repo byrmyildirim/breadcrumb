@@ -1,8 +1,7 @@
 {{ 'mega-menu.css' | asset_url | stylesheet_tag }}
 
 <style>
-/* TEMA AKTİF STİLLERİNİ SIFIRLAMA - Bizim kontrolümüzde olsun */
-{% if matched_parent %}
+/* TEMA AKTİF STİLLERİNİ SIFIRLAMA (tüm sayfalarda aktif stil için hazır) */
 .mobile-category-bar li .menu-item span,
 .mobile-category-bar li.active .menu-item span,
 .category-bar li .menu-item span,
@@ -16,7 +15,7 @@
 .category-bar li.active .menu-item img {
   filter: none !important;
 }
-/* Bizim aktif class'ımız */
+/* Bizim aktif class'ımız - HER ZAMAN aktif */
 .breadcrumb-active-category span {
   color: #e68b59 !important;
   font-weight: 700 !important;
@@ -24,10 +23,8 @@
 .breadcrumb-active-category img {
   filter: invert(72%) sepia(35%) saturate(907%) hue-rotate(335deg) brightness(92%) contrast(89%) !important;
 }
-{% endif %}
 </style>
 
-</style>
 
 {% assign mobile_settings = shop.metafields.breadcrumb.mobile_menu_settings.value %}
 {% if block.settings.hide_desktop or mobile_settings.hideDesktop %}
@@ -432,52 +429,76 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  /* TEMA İKON MENÜSÜ AKTİF DURUMU (Web + Mobil) */
-  {% if matched_parent %}
-    function applyActiveMenuState() {
-      const activeCategory = "{{ matched_parent.title | escape }}";
-      const activeCategoryLower = activeCategory.toLowerCase();
-      const firstWord = activeCategoryLower.split(' ')[0];
-      
-      // 1. WEB MENÜSÜ (.menu-item)
-      document.querySelectorAll("li.active").forEach(li => { if (li.querySelector(".menu-item")) li.classList.remove("active"); });
-      document.querySelectorAll(".menu-item").forEach(item => {
-        const s = item.querySelector("span"); if (s) { s.style.color = ""; s.style.fontWeight = ""; }
-        item.style.color = ""; item.classList.remove("breadcrumb-active-category");
-        const img = item.querySelector("img"); if (img) img.style.filter = "";
-      });
-      
-      document.querySelectorAll(".menu-item").forEach(item => {
-        const spanText = item.querySelector("span");
-        if (spanText) {
-          const t = spanText.textContent.trim(); const tl = t.toLowerCase();
-          const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
-          if (isMatch) {
-            const p = item.closest("li"); if (p) p.classList.add("active");
-            item.classList.add("breadcrumb-active-category");
-          }
-        }
-      });
-      
-      // 2. MOBİL MENÜSÜ (.mobile-category-item)
-      document.querySelectorAll(".mobile-category-item").forEach(i => i.classList.remove("active"));
-      let matchedHref = null;
-      document.querySelectorAll(".mobile-category-item").forEach(item => {
-        const s = item.querySelector("span");
-        if (s) {
-          const t = s.textContent.trim(); const tl = t.toLowerCase();
-          const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
-          if (isMatch) { item.classList.add("active"); matchedHref = item.getAttribute("href"); }
-        }
-      });
-      
-      // 3. LOCALSTORAGE
-      if (matchedHref) localStorage.setItem("lastMainCategory", matchedHref);
+  /* TEMA İKON MENÜSÜ AKTİF DURUMU (Web + Mobil) - URL tabanlı algılama */
+  function applyActiveMenuState() {
+    // URL'den kategori algıla
+    const path = window.location.pathname.toLowerCase();
+    const categoryMap = {
+      'bisiklet': 'Bisiklet Sporu',
+      'kosu': 'Koşu Sporu',
+      'yuzme': 'Yüzme Sporu',
+      'beslenme': 'Beslenme',
+      'aksesuar': 'Günlük Spor Giyim ve Aksesuar',
+      'teknoloji': 'Giyilebilir Teknolojiler',
+      'destek': 'Sporcu Destek Ürünleri'
+    };
+    
+    let activeCategory = null;
+    for (const [key, value] of Object.entries(categoryMap)) {
+      if (path.includes(key)) {
+        activeCategory = value;
+        break;
+      }
     }
     
-    setTimeout(applyActiveMenuState, 400); setTimeout(applyActiveMenuState, 800);
-    window.addEventListener('pageshow', function(ev) { if (ev.persisted) setTimeout(applyActiveMenuState, 200); });
-  {% endif %}
+    // Eğer Liquid'den gelen değer varsa onu kullan
+    {% if matched_parent %}
+    activeCategory = "{{ matched_parent.title | escape }}";
+    {% endif %}
+    
+    if (!activeCategory) return;
+    
+    const activeCategoryLower = activeCategory.toLowerCase();
+    const firstWord = activeCategoryLower.split(' ')[0];
+    
+    // 1. WEB MENÜSÜ (.menu-item)
+    document.querySelectorAll("li.active").forEach(li => { if (li.querySelector(".menu-item")) li.classList.remove("active"); });
+    document.querySelectorAll(".menu-item").forEach(item => {
+      const s = item.querySelector("span"); if (s) { s.style.color = ""; s.style.fontWeight = ""; }
+      item.style.color = ""; item.classList.remove("breadcrumb-active-category");
+      const img = item.querySelector("img"); if (img) img.style.filter = "";
+    });
+    
+    document.querySelectorAll(".menu-item").forEach(item => {
+      const spanText = item.querySelector("span");
+      if (spanText) {
+        const t = spanText.textContent.trim(); const tl = t.toLowerCase();
+        const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
+        if (isMatch) {
+          const p = item.closest("li"); if (p) p.classList.add("active");
+          item.classList.add("breadcrumb-active-category");
+        }
+      }
+    });
+    
+    // 2. MOBİL MENÜSÜ (.mobile-category-item)
+    document.querySelectorAll(".mobile-category-item").forEach(i => i.classList.remove("active"));
+    let matchedHref = null;
+    document.querySelectorAll(".mobile-category-item").forEach(item => {
+      const s = item.querySelector("span");
+      if (s) {
+        const t = s.textContent.trim(); const tl = t.toLowerCase();
+        const isMatch = (t===activeCategory || activeCategoryLower.includes(tl) || tl.includes(firstWord) || (firstWord.length>2 && firstWord.includes(tl)));
+        if (isMatch) { item.classList.add("active"); matchedHref = item.getAttribute("href"); }
+      }
+    });
+    
+    // 3. LOCALSTORAGE
+    if (matchedHref) localStorage.setItem("lastMainCategory", matchedHref);
+  }
+  
+  setTimeout(applyActiveMenuState, 400); setTimeout(applyActiveMenuState, 800);
+  window.addEventListener('pageshow', function(ev) { if (ev.persisted) setTimeout(applyActiveMenuState, 200); });
 
   /* ANASAYFA: Akış aktif */
   {% if template == 'index' %}
