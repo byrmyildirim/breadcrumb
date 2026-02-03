@@ -30,6 +30,7 @@ export default function App() {
         <Link to="/app/megamenu">Mega Menü</Link>
         <Link to="/app/tici-to-shopify">Tici to Shopify</Link>
         <Link to="/app/brands">Marka Grupları</Link>
+        <Link to="/app/customer-mail-update">Müşteri Mail Güncelleme</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
