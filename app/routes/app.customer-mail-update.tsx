@@ -196,9 +196,59 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     }
                 } catch (draftErr) {
                     console.error("Draft order update error:", draftErr);
-                    // We don't block the valid customer update, but maybe log it?
                 }
                 // --- DRAFT ORDER UPDATE END ---
+
+                // --- ORDER UPDATE START ---
+                try {
+                    // 1. Find orders for this customer (any status)
+                    const orderResponse = await admin.graphql(
+                        `#graphql
+                        query getOrders($query: String) {
+                            orders(first: 50, query: $query) {
+                                edges {
+                                    node {
+                                        id
+                                    }
+                                }
+                            }
+                        }`,
+                        {
+                            variables: {
+                                query: `customer_id:${id.split('/').pop()}`
+                            }
+                        }
+                    );
+                    const orderJson = await orderResponse.json();
+                    const orders = orderJson.data.orders.edges;
+
+                    // 2. Update each order
+                    for (const orderEdge of orders) {
+                        const orderId = orderEdge.node.id;
+                        await admin.graphql(
+                            `#graphql
+                            mutation orderUpdate($input: OrderInput!) {
+                                orderUpdate(input: $input) {
+                                    userErrors {
+                                        field
+                                        message
+                                    }
+                                }
+                            }`,
+                            {
+                                variables: {
+                                    input: {
+                                        id: orderId,
+                                        email: newEmail
+                                    }
+                                }
+                            }
+                        );
+                    }
+                } catch (orderErr) {
+                    console.error("Order update error:", orderErr);
+                }
+                // --- ORDER UPDATE END ---
             }
         } catch (err) {
             errors.push({ id, message: (err as Error).message });
