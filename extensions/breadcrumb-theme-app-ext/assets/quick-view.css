@@ -486,3 +486,82 @@
         transform: rotate(360deg);
     }
 }
+
+/* ========== COLOR INDICATOR ON PRODUCT CARDS ========== */
+.qv-color-indicator {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 2px;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.qv-color-dots {
+    display: flex;
+    align-items: center;
+}
+
+.qv-color-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-left: -6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.qv-color-dot:first-child {
+    margin-left: 0;
+}
+
+/* Gradient preset colors */
+.qv-color-dot.gradient-1 {
+    background: linear-gradient(135deg, #36D1DC 0%, #5B86E5 100%);
+    /* Blue tones */
+}
+
+.qv-color-dot.gradient-2 {
+    background: linear-gradient(135deg, #FF512F 0%, #F09819 100%);
+    /* Orange tones */
+}
+
+.qv-color-count {
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    white-space: nowrap;
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .qv-color-indicator {
+        display: inline-flex !important;
+        bottom: 8px;
+        left: 8px;
+    }
+
+    .qv-color-dot {
+        width: 16px;
+        height: 16px;
+        margin-left: -5px;
+    }
+
+    .qv-color-dot:first-child {
+        margin-left: 0;
+    }
+
+    .qv-color-count {
+        font-size: 11px;
+        margin-left: 4px;
+    }
+}
+/* Safety: Hide color indicator inside Quick View Modal */
+.qv-modal .qv-color-indicator,
+#quick-view-modal .qv-color-indicator {
+    display: none !important;
+}
+

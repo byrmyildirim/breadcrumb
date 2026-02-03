@@ -1,0 +1,121 @@
+{% schema %}
+{
+  "name": "Taksit Tablosu (Vendor)",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Başlık",
+      "default": "Taksit Seçenekleri"
+    },
+    {
+      "type": "color",
+      "id": "table_header_bg",
+      "label": "Tablo Başlık Rengi",
+      "default": "#f4f4f4"
+    },
+    {
+       "type": "header",
+       "content": "Varsayılan Ayarlar"
+    },
+    {
+      "type": "range",
+      "id": "default_max_installments",
+      "label": "Varsayılan Max Taksit",
+      "min": 1,
+      "max": 12,
+      "step": 1,
+      "default": 12,
+      "info": "Eğer markaya özel kural bulunamazsa bu değer kullanılır."
+    }
+  ]
+}
+{% endschema %}
+
+{% assign current_vendor = product.vendor %}
+{% assign matched_rule = shop.metaobjects.installment_rules[current_vendor] %}
+
+{% assign max_installments = section.settings.default_max_installments %}
+{% if matched_rule %}
+  {% assign max_installments = matched_rule.max_installments.value %}
+{% endif %}
+
+<div class="installment-table-wrapper" style="padding: 20px 0;">
+  {% if section.settings.heading != blank %}
+    <h3 class="installment-heading">{{ section.settings.heading }}</h3>
+    {% if matched_rule %}
+        <p class="installment-vendor-note">
+            <strong>{{ current_vendor }}</strong> markasına özel taksit imkanları listelenmektedir.
+        </p>
+    {% endif %}
+  {% endif %}
+
+  <div class="installment-table-container">
+    <table class="installment-table">
+      <thead>
+        <tr style="background-color: {{ section.settings.table_header_bg }};">
+          <th>Taksit Sayısı</th>
+          <th>Aylık Tutar</th>
+          <th>Toplam Tutar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="single-shot">
+          <td><strong>Tek Çekim</strong></td>
+          <td>{{ product.price | money }}</td>
+          <td>{{ product.price | money }}</td>
+        </tr>
+
+        {% for i in (2..12) %}
+          {% if i <= max_installments %}
+             {% comment %}
+                Basit mantık: Vade farkı yoksa direkt böler. 
+                Vade farkı eklemek isterseniz 'commission_rate' metaobject alanını kullanacağız.
+             {% endcomment %}
+             
+             {% assign interest_rate = 0 %}
+             {% if matched_rule and matched_rule.commission_rate %}
+                {% assign interest_rate = matched_rule.commission_rate.value | default: 0 %}
+             {% endif %}
+             
+             {% comment %} Faiz Hesaplama (Basit): Anapara * (1 + (Oran/100)) {% endcomment %}
+             {% assign multiplier = interest_rate | divided_by: 100.0 | plus: 1.0 %}
+             {% assign total_price_float = product.price | times: multiplier %}
+             {% assign monthly_price_float = total_price_float | divided_by: i %}
+
+            <tr>
+              <td>{{ i }} Taksit</td>
+              <td>{{ monthly_price_float | money }}</td>
+              <td>{{ total_price_float | money }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .installment-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .installment-table th, .installment-table td {
+    border: 1px solid #e5e5e5;
+    padding: 10px;
+    text-align: left;
+  }
+  .installment-heading {
+    margin-bottom: 5px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .installment-vendor-note {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 15px;
+  }
+</style>

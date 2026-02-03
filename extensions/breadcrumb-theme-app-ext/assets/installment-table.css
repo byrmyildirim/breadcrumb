@@ -1,0 +1,28 @@
+.installment-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.installment-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: inherit;
+}
+
+.installment-table th {
+    font-weight: 600;
+    color: #333;
+}
+
+.installment-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.installment-table td {
+    color: #555;
+}
+
+.single-shot td {
+    font-weight: 600;
+    color: #000;
+}

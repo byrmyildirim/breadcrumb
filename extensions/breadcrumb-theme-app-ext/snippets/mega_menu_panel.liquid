@@ -16,20 +16,20 @@
     {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
   {% endif %}
   
-  <div class="mega-panel" data-key="{{ link.title | handleize }}">
-    <div class="mega-grid">
+  <div class="mega-panel {{ block.settings.menu_design_style }}" data-key="{{ link.title | handleize }}">
+    <div class="mega-grid {% unless panel_image %}no-image{% endunless %}">
       
       <!-- SOL GÖRSEL (Her zaman görünür) -->
+      {% if panel_image %}
       <div class="mega-image">
-        {% if panel_image %}
           <img src="{{ panel_image }}" alt="{{ link.title }}">
-        {% endif %}
       </div>
+      {% endif %}
 
       <!-- SAĞ: 4 KOLON -->
       <div class="mega-cols">
         {% for parent in sub_level_items %}
-          <div class="mega-col">
+          <div class="mega-col {% if block.settings.expand_submenus_default %}open{% endif %}">
             
             <div class="mega-col-title">
               <a href="{{ parent.url }}">{{ parent.title }}</a>
@@ -42,9 +42,37 @@
             
             {% if parent_children.size > 0 %}
               <div class="mega-col-links">
+                {% assign max_items = block.settings.max_visible_items | default: 5 %}
+                {% assign hidden_count = 0 %}
+                
                 {% for child in parent_children %}
-                  <a href="{{ child.url }}">{{ child.title }}</a>
+                  {% assign item_class = "" %}
+                  {% if forloop.index > max_items %}
+                    {% assign item_class = "hidden-item" %}
+                    {% assign hidden_count = hidden_count | plus: 1 %}
+                  {% endif %}
+                  
+                  <div class="mega-sub-item {{ item_class }}">
+                    <a href="{{ child.url }}">{{ child.title }}</a>
+                    
+                    {% comment %} GRANDCHILDREN RENDER (3. SEVİYE) {% endcomment %}
+                    {% if block.settings.show_grandchild_menus %}
+                      {% assign grand_children = child.links | default: child.children %}
+                      {% if grand_children.size > 0 %}
+                        <div class="mega-grandchild-links">
+                          {% for grand in grand_children %}
+                             <a href="{{ grand.url }}">{{ grand.title }}</a>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+
                 {% endfor %}
+                
+                {% if hidden_count > 0 %}
+                  <button class="show-more-btn" type="button">Devamını Gör ({{ hidden_count }}) ▼</button>
+                {% endif %}
               </div>
             {% endif %}
             
