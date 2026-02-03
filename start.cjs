@@ -11,7 +11,7 @@ async function sleep(ms) {
 async function tryDbPush() {
     try {
         console.log('Attempting prisma db push...');
-        execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+        execSync('npx prisma db push --skip-generate --accept-data-loss', { stdio: 'inherit' });
         return true;
     } catch (error) {
         return false;
