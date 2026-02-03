@@ -147,6 +147,58 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 errors.push({ id, message: result.data.customerUpdate.userErrors[0].message });
             } else {
                 updatedCount++;
+
+                // --- DRAFT ORDER UPDATE START ---
+                try {
+                    // 1. Find open draft orders for this customer
+                    const draftResponse = await admin.graphql(
+                        `#graphql
+                    query getDraftOrders($query: String) {
+                        draftOrders(first: 50, query: $query) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }`,
+                        {
+                            variables: {
+                                query: `customer_id:${id.split('/').pop()} AND status:open`
+                            }
+                        }
+                    );
+                    const draftJson = await draftResponse.json();
+                    const draftOrders = draftJson.data.draftOrders.edges;
+
+                    // 2. Update each draft order
+                    for (const draftEdge of draftOrders) {
+                        const draftId = draftEdge.node.id;
+                        await admin.graphql(
+                            `#graphql
+                        mutation draftOrderUpdate($id: ID!, $input: DraftOrderInput!) {
+                            draftOrderUpdate(id: $id, input: $input) {
+                                userErrors {
+                                    field
+                                    message
+                                }
+                            }
+                        }`,
+                            {
+                                variables: {
+                                    id: draftId,
+                                    input: {
+                                        email: newEmail
+                                    }
+                                }
+                            }
+                        );
+                    }
+                } catch (draftErr) {
+                    console.error("Draft order update error:", draftErr);
+                    // We don't block the valid customer update, but maybe log it?
+                }
+                // --- DRAFT ORDER UPDATE END ---
             }
         } catch (err) {
             errors.push({ id, message: (err as Error).message });
