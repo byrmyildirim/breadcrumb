@@ -108,5 +108,3 @@ model TicimaxOrder {
   @@unique([shop, ticimaxOrderNo])
   @@index([shop, status])
 }
-
-

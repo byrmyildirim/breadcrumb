@@ -9,7 +9,7 @@ echo "Waiting for database to be ready..."
 
 while [ $COUNTER -lt $MAX_RETRIES ]; do
   # Try to run prisma db push
-  npx prisma db push --skip-generate 2>&1
+  npx prisma db push --skip-generate --accept-data-loss 2>&1
   RESULT=$?
   
   if [ $RESULT -eq 0 ]; then

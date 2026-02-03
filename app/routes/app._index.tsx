@@ -72,7 +72,7 @@ export default function Index() {
                       </BlockStack>
                     </InlineStack>
                     <InlineStack align="end">
-                      <Button url="/app/megamenu" variant="primary">
+                      <Button as={RemixLink} to="/app/megamenu" variant="primary">
                         Yönet
                       </Button>
                     </InlineStack>
@@ -94,7 +94,7 @@ export default function Index() {
                       </BlockStack>
                     </InlineStack>
                     <InlineStack align="end">
-                      <Button url="/app/filter" variant="primary">
+                      <Button as={RemixLink} to="/app/filter" variant="primary">
                         Ayarlar
                       </Button>
                     </InlineStack>
@@ -116,7 +116,7 @@ export default function Index() {
                       </BlockStack>
                     </InlineStack>
                     <InlineStack align="end">
-                      <Button url="/app/feeds" variant="primary">
+                      <Button as={RemixLink} to="/app/feeds" variant="primary">
                         Feed Oluştur
                       </Button>
                     </InlineStack>
@@ -160,7 +160,7 @@ export default function Index() {
                       </BlockStack>
                     </InlineStack>
                     <InlineStack align="end">
-                      <Button url="/app/tici-to-shopify" variant="primary">
+                      <Button as={RemixLink} to="/app/tici-to-shopify" variant="primary">
                         Siparişleri Yönet
                       </Button>
                     </InlineStack>
@@ -182,14 +182,12 @@ export default function Index() {
                       </BlockStack>
                     </InlineStack>
                     <InlineStack align="end">
-                      <Button url="/app/price-audit" variant="primary" tone="critical">
+                      <Button as={RemixLink} to="/app/price-audit" variant="primary" tone="critical">
                         Denetle
                       </Button>
                     </InlineStack>
                   </BlockStack>
                 </Card>
-
-
 
               </div>
 
