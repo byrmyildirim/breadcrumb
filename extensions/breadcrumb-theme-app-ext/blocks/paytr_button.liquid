@@ -1,0 +1,166 @@
+{% comment %}
+  PayTR ile Öde Butonu
+  Sepet sayfasına eklenir ve müşteriyi PayTR checkout sayfasına yönlendirir.
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "PayTR Ödeme Butonu",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Buton Metni",
+      "default": "💳 Kredi Kartı ile Öde"
+    },
+    {
+      "type": "color",
+      "id": "button_bg",
+      "label": "Buton Arkaplan",
+      "default": "#2563eb"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Buton Yazı Rengi",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "subtext",
+      "label": "Alt Metin",
+      "default": "Taksitli ödeme imkanı"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="paytr-checkout-wrapper" id="paytr-checkout-wrapper">
+  <button 
+    type="button" 
+    class="paytr-checkout-btn" 
+    id="paytr-checkout-btn"
+    style="
+      background: {{ section.settings.button_bg }};
+      color: {{ section.settings.button_text_color }};
+    "
+  >
+    {{ section.settings.button_text }}
+  </button>
+  {% if section.settings.subtext != blank %}
+    <p class="paytr-subtext">{{ section.settings.subtext }}</p>
+  {% endif %}
+</div>
+
+<style>
+  .paytr-checkout-wrapper {
+    margin: 16px 0;
+    text-align: center;
+  }
+  
+  .paytr-checkout-btn {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .paytr-checkout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  }
+  
+  .paytr-checkout-btn:active {
+    transform: translateY(0);
+  }
+  
+  .paytr-checkout-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .paytr-subtext {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+  }
+  
+  .paytr-divider {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+    color: #999;
+    font-size: 13px;
+  }
+  
+  .paytr-divider::before,
+  .paytr-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ddd;
+  }
+  
+  .paytr-divider::before { margin-right: 12px; }
+  .paytr-divider::after { margin-left: 12px; }
+</style>
+
+<script>
+(function() {
+  const btn = document.getElementById('paytr-checkout-btn');
+  const shop = '{{ shop.permanent_domain }}';
+  
+  if (!btn) return;
+  
+  btn.addEventListener('click', async function() {
+    btn.disabled = true;
+    btn.textContent = 'Yükleniyor...';
+    
+    try {
+      // Sepet verilerini al
+      const cartResponse = await fetch('/cart.js');
+      const cart = await cartResponse.json();
+      
+      if (!cart.items || cart.items.length === 0) {
+        alert('Sepetiniz boş!');
+        btn.disabled = false;
+        btn.textContent = '{{ section.settings.button_text }}';
+        return;
+      }
+      
+      // Sepet verilerini hazırla
+      const cartData = {
+        items: cart.items.map(item => ({
+          title: item.title,
+          vendor: item.vendor,
+          price: item.final_line_price, // Kuruş cinsinden
+          quantity: item.quantity,
+          variant_id: item.variant_id
+        })),
+        total: cart.total_price // Kuruş cinsinden
+      };
+      
+      // sessionStorage'a kaydet
+      sessionStorage.setItem('paytr_cart', JSON.stringify(cartData));
+      
+      // PayTR checkout sayfasına yönlendir
+      const checkoutUrl = `/apps/breadcrumb/paytr/checkout?shop=${encodeURIComponent(shop)}&cartData=${encodeURIComponent(JSON.stringify(cartData))}`;
+      
+      window.location.href = checkoutUrl;
+      
+    } catch (error) {
+      console.error('PayTR checkout error:', error);
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+      btn.disabled = false;
+      btn.textContent = '{{ section.settings.button_text }}';
+    }
+  });
+})();
+</script>
