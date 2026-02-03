@@ -109,48 +109,4 @@ model TicimaxOrder {
   @@index([shop, status])
 }
 
-// PayTR API yapılandırması
-model PaytrConfig {
-  id           String   @id @default(cuid())
-  shop         String   @unique
-  merchantId   String   // PayTR Merchant ID
-  merchantKey  String   // PayTR Merchant Key
-  merchantSalt String   // PayTR Merchant Salt
-  testMode     Boolean  @default(true) // Test/Sandbox mode
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
 
-// Marka bazlı taksit kuralları
-model InstallmentRule {
-  id               String   @id @default(cuid())
-  shop             String
-  vendorName       String   // Marka adı (product.vendor)
-  maxInstallments  Int      // Max taksit sayısı (1 = tek çekim)
-  commissionRate   Float    @default(0) // Vade farkı oranı (%)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@unique([shop, vendorName])
-  @@index([shop])
-}
-
-// PayTR işlem logları
-model PaytrTransaction {
-  id              String    @id @default(cuid())
-  shop            String
-  merchantOid     String    // Benzersiz sipariş numarası
-  shopifyOrderId  String?   // Shopify Order ID (başarılı ödemeden sonra)
-  totalAmount     Float     // Toplam tutar (kuruş)
-  maxInstallment  Int       // Uygulanan max taksit
-  status          String    // "pending" | "success" | "failed"
-  paytrToken      String?   // PayTR token
-  errorMessage    String?
-  createdAt       DateTime  @default(now())
-  completedAt     DateTime?
-
-  @@unique([shop, merchantOid])
-  @@index([shop, status])
-}

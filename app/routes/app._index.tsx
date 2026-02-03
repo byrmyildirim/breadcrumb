@@ -189,27 +189,7 @@ export default function Index() {
                   </BlockStack>
                 </Card>
 
-                {/* PayTR Entegrasyonu */}
-                <Card>
-                  <BlockStack gap="400">
-                    <InlineStack align="start" gap="400">
-                      <div style={{ background: "#e8f5e9", padding: "10px", borderRadius: "8px" }}>
-                        <Icon source={ShieldCheckMarkIcon} tone="success" />
-                      </div>
-                      <BlockStack gap="200">
-                        <Text as="h3" variant="headingSm">PayTR Entegrasyonu</Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Marka bazlı taksit kısıtlama ve özel ödeme akışı yönetimi.
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
-                    <InlineStack align="end">
-                      <Button url="/app/paytr" variant="primary">
-                        Ayarlar
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
+
 
               </div>
 
