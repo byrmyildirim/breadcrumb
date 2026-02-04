@@ -4,7 +4,7 @@ import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner
 import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PlusCircleIcon, DeleteIcon, MobileIcon, PaintBrushIcon, ImageIcon, CheckIcon, HelperIcon } from "@shopify/polaris-icons";
+import { PlusCircleIcon, DeleteIcon, MobileIcon, EditIcon, ImageIcon, CheckIcon, ListIcon } from "@shopify/polaris-icons";
 
 export async function loader({ request }: { request: Request }) {
     const { admin, session } = await authenticate.admin(request);
