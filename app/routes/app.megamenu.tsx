@@ -826,6 +826,4 @@ export default function MegaMenuPage() {
         </Page>
     );
 }
-<BlockStack gap="400">
-    <InlineStack align="space-between">
-}
+
