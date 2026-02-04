@@ -46,55 +46,65 @@
       {% endif %}
 
       <!-- SAĞ: 4 KOLON -->
-      <div class="mega-cols">
-        {% for parent in sub_level_items %}
-          <div class="mega-col {% if use_expand %}open{% endif %}">
-            
-            <div class="mega-col-title">
-              <a href="{{ parent.url }}">{{ parent.title }}</a>
-              
-              {% assign parent_children = parent.links | default: parent.children %}
-              {% if parent_children.size > 0 %}
-                <span class="arrow">▼</span>
-              {% endif %}
-            </div>
-            
-            {% if parent_children.size > 0 %}
-              <div class="mega-col-links">
-                {% assign hidden_count = 0 %}
-                
-                {% for child in parent_children %}
-                  {% assign item_class = "" %}
-                  {% if forloop.index > use_max_items %}
-                    {% assign item_class = "hidden-item" %}
-                    {% assign hidden_count = hidden_count | plus: 1 %}
-                  {% endif %}
-                  
-                  <div class="mega-sub-item {{ item_class }}">
-                    <a href="{{ child.url }}">{{ child.title }}</a>
+      <div class="mega-cols" style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: nowrap;">
+        {% comment %} 4 Columns Masonry Simulation {% endcomment %}
+        {% for col_idx in (0..3) %}
+         <div class="mega-masonry-col" style="flex: 1; display: flex; flex-direction: column; gap: 30px; min-width: 0;">
+            {% for parent in sub_level_items %}
+               {% assign remainder = forloop.index0 | modulo: 4 %}
+               {% if remainder == col_idx %}
+                 
+                  <div class="mega-col {% if use_expand %}open{% endif %}" style="width: 100%; margin: 0;">
                     
-                    {% comment %} GRANDCHILDREN RENDER (3. SEVİYE) {% endcomment %}
-                    {% if use_grandchild %}
-                      {% assign grand_children = child.links | default: child.children %}
-                      {% if grand_children.size > 0 %}
-                        <div class="mega-grandchild-links">
-                          {% for grand in grand_children %}
-                             <a href="{{ grand.url }}">{{ grand.title }}</a>
-                          {% endfor %}
-                        </div>
+                    <div class="mega-col-title">
+                      <a href="{{ parent.url }}">{{ parent.title }}</a>
+                      
+                      {% assign parent_children = parent.links | default: parent.children %}
+                      {% if parent_children.size > 0 %}
+                        <span class="arrow">▼</span>
                       {% endif %}
+                    </div>
+                    
+                    {% if parent_children.size > 0 %}
+                      <div class="mega-col-links">
+                        {% assign hidden_count = 0 %}
+                        
+                        {% for child in parent_children %}
+                          {% assign item_class = "" %}
+                          {% if forloop.index > use_max_items %}
+                            {% assign item_class = "hidden-item" %}
+                            {% assign hidden_count = hidden_count | plus: 1 %}
+                          {% endif %}
+                          
+                          <div class="mega-sub-item {{ item_class }}">
+                            <a href="{{ child.url }}">{{ child.title }}</a>
+                            
+                            {% comment %} GRANDCHILDREN RENDER (3. SEVİYE) {% endcomment %}
+                            {% if use_grandchild %}
+                              {% assign grand_children = child.links | default: child.children %}
+                              {% if grand_children.size > 0 %}
+                                <div class="mega-grandchild-links">
+                                  {% for grand in grand_children %}
+                                    <a href="{{ grand.url }}">{{ grand.title }}</a>
+                                  {% endfor %}
+                                </div>
+                              {% endif %}
+                            {% endif %}
+                          </div>
+
+                        {% endfor %}
+                        
+                        {% if hidden_count > 0 %}
+                          <button class="show-more-btn" type="button">Devamını Gör ({{ hidden_count }}) ▼</button>
+                        {% endif %}
+                      </div>
                     {% endif %}
+                    
                   </div>
 
-                {% endfor %}
-                
-                {% if hidden_count > 0 %}
-                  <button class="show-more-btn" type="button">Devamını Gör ({{ hidden_count }}) ▼</button>
-                {% endif %}
-              </div>
-            {% endif %}
-            
-          </div>
+               {% endif %}
+            {% endfor %}
+         </div>
         {% endfor %}
       </div>
 

@@ -118,11 +118,10 @@
 /* ============================
    SAĞ TARAF — 5 KOLON (MASONRY LAYOUT)
    ============================ */
+/* .mega-cols handled inline by liquid for masonry layout */
 .mega-cols {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 tane yan yana */
-    gap: 30px;
-    align-content: start;
+    display: block;
+    /* Fallback */
 }
 
 /* ============================
