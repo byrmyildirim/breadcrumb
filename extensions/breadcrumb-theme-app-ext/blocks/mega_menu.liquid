@@ -27,22 +27,7 @@
 
 
 {% assign mobile_settings = shop.metafields.breadcrumb.mobile_menu_settings.value %}
-{% assign theme_settings_raw = shop.metafields.breadcrumb.mega_menu_theme_settings.value %}
-{% assign theme_settings = empty %}
-
-{% if theme_settings_raw %}
-  {% assign theme_settings = theme_settings_raw %}
-{% else %}
-  {% comment %} Default fallback values {% endcomment %}
-  {% assign theme_settings = '{"heightMode": "default", "fixedHeight": 400, "hideDesktop": false, "showGrandchild": false, "expandSubmenus": true, "maxVisibleItems": 5, "menuStyle": "style-default", "displayMode": "push"}' | json_parse %}
-{% endif %}
-
-{% assign menu_height_mode = theme_settings.heightMode | default: 'default' %}
-{% assign fixed_height = theme_settings.fixedHeight | default: 400 %}
-{% assign hide_desktop = theme_settings.hideDesktop | default: false %}
-{% assign display_mode = theme_settings.displayMode | default: 'push' %}
-
-{% if block.settings.hide_desktop or mobile_settings.hideDesktop or theme_settings.hideDesktop %}
+{% if block.settings.hide_desktop or mobile_settings.hideDesktop %}
 <style>
   @media (min-width: 990px) {
     /* Masaüstünde Tüm Mega Menü Bloğunu Gizle */
@@ -220,7 +205,7 @@
 {% endif %}
 
 
-<div class="mega-wrapper {{ display_mode }}-mode {% if theme_settings.heightMode == 'fixed' %}fixed-height-mode{% endif %} {% if hide_desktop %}hide-desktop{% endif %}" id="mega-{{ block.id }}">
+<div class="mega-wrapper" id="mega-{{ block.id }}">
 
   <!-- DEBUG: template='{{ template }}' collection='{{ collection.handle }}' nav_items.size={{ nav_items.size }} matched_parent='{{ matched_parent.title }}' use_custom_root={{ use_custom_root }} auto_drill_down={{ auto_drill_down }} -->
 
@@ -319,7 +304,7 @@
               {% endif %}
             {% endfor %}
         
-            {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block, theme_settings: theme_settings %}
+            {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block %}
 
         {% endif %}
     {% endfor %}
@@ -355,7 +340,7 @@
       {% endif %}
     {% endfor %}
 
-    {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block, theme_settings: theme_settings %}
+    {% render 'mega_menu_panel', link: link, sub_level_items: sub_level_items, matching_config: matching_config, block: block %}
 
   {% endfor %}
 
@@ -368,17 +353,34 @@
           {% for menu_item in custom_full_menu %}
               {% if menu_item.title == extra_item.menuTitle and menu_item.children.size > 0 %}
                   
-                  {% assign menu_handle = menu_item.title | handleize %}
-                  
-                  {% if extra_item.displayMode == 'parent' %}
-                      {% assign custom_key = "extra-" | append: menu_handle | append: "-parent" %}
-                  {% else %}
-                      {% assign custom_key = "extra-" | append: menu_handle %}
-                  {% endif %}
-
-                  {% render 'mega_menu_panel', link: menu_item, sub_level_items: menu_item.children, matching_config: nil, block: block, theme_settings: theme_settings, custom_data_key: custom_key %}
-                  
-                  {% break %}
+                  <div class="mega-panel" data-key="{% if extra_item.displayMode == 'parent' %}extra-{{ menu_item.title | handleize }}-parent{% else %}extra-{{ menu_item.title | handleize }}{% endif %}">
+                      <div class="mega-grid">
+                          {% comment %} Sol Görsel (genel ayardan) {% endcomment %}
+                          <div class="mega-image">
+                              {% if block.settings.show_sidebar_image and block.settings.sidebar_image %}
+                                  <img src="{{ block.settings.sidebar_image | image_url: width: 600 }}" alt="{{ menu_item.title }}">
+                              {% endif %}
+                          </div>
+                          
+                          <div class="mega-cols">
+                              {% for parent in menu_item.children %}
+                                  <div class="mega-col">
+                                      <div class="mega-col-title">
+                                          <a href="{{ parent.url }}">{{ parent.title }}</a>
+                                          {% if parent.children.size > 0 %}<span class="arrow">▼</span>{% endif %}
+                                      </div>
+                                      {% if parent.children.size > 0 %}
+                                          <div class="mega-col-links">
+                                              {% for child in parent.children %}
+                                                  <a href="{{ child.url }}">{{ child.title }}</a>
+                                              {% endfor %}
+                                          </div>
+                                      {% endif %}
+                                  </div>
+                              {% endfor %}
+                          </div>
+                      </div>
+                  </div>
                   {% break %}
               {% endif %}
           {% endfor %}
@@ -575,35 +577,77 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "header",
-      "content": "⚠️ TEMA AYARLARI ⚠️",
-      "info": "Menü yüksekliği, stili ve gelişmiş ayarlar artık uygulama yönetici panelinden yönetilmektedir. Blok ayarları geçersizdir."
-    },
-    {
-      "type": "header",
-      "content": "Legacy Settings (Deprecated)"
+      "content": "Yükseklik Ayarları"
     },
     {
       "type": "select",
       "id": "height_mode",
-      "label": "Menü Yüksekliği (Eski)",
+      "label": "Menü Yüksekliği",
       "options": [
-        { "value": "auto", "label": "İçeriğe Göre" },
+        { "value": "auto", "label": "İçeriğe Göre (Otomatik)" },
         { "value": "default", "label": "Varsayılan" }
       ],
       "default": "default"
     },
     {
+      "type": "header",
+      "content": "Görünürlük Ayarları"
+    },
+    {
       "type": "checkbox",
       "id": "hide_desktop",
-      "label": "Masaüstünde Gizle (Eski)",
-      "default": false
+      "label": "Masaüstünde Gizle",
+      "default": false,
+      "info": "İşaretlenirse, bu menü bandı masaüstünde gizlenir."
+    },
+    {
+      "type": "header",
+      "content": "Gelişmiş Ayarlar"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_grandchild_menus",
+      "label": "Torun Menüleri Göster (3. Seviye)",
+      "default": false,
+      "info": "İşaretlenirse, alt menülerin altındaki menüler de listelenir."
+    },
+    {
+      "type": "checkbox",
+      "id": "expand_submenus_default",
+      "label": "Alt Menüleri Varsayılan Olarak Aç (2. Seviye)",
+      "default": true,
+      "info": "İşaretlenirse, menü başlıkları açık gelir ve alt linkler görünür."
+    },
+    {
+      "type": "range",
+      "id": "max_visible_items",
+      "label": "Gösterilecek Maksimum Alt Menü Sayısı",
+      "min": 3,
+      "max": 20,
+      "step": 1,
+      "default": 5,
+      "info": "Bu sayıdan fazla alt menü varsa 'Devamını Gör' butonu çıkar."
+    },
+    {
+      "type": "select",
+      "id": "menu_design_style",
+      "label": "Menü Tasarım Stili",
+      "options": [
+        { "value": "style-default", "label": "Varsayılan" },
+        { "value": "style-modern", "label": "Modern - Yuvarlak Hatlar" },
+        { "value": "style-minimal", "label": "Minimal - Sade" },
+        { "value": "style-bold", "label": "Bold - Kalın Başlıklar" },
+        { "value": "style-compact", "label": "Kompakt - Sıkışık" },
+        { "value": "style-grid-line", "label": "Grid Çizgili" }
+      ],
+      "default": "style-default"
     }
   ]
 }
 {% endschema %}
 
 <style>
-  {% if theme_settings.heightMode == 'auto' or block.settings.height_mode == 'auto' %}
+  {% if block.settings.height_mode == 'auto' %}
   /* İçeriğe göre yükseklik - tüm min-height kısıtlamaları kaldırıldı */
   #mega-{{ block.id }} .mega-panel {
     height: auto !important;
@@ -621,36 +665,7 @@ document.addEventListener("DOMContentLoaded", function () {
     object-fit: cover;
   }
   {% endif %}
-  
-  {% if theme_settings.heightMode == 'fixed' %}
-  /* SABİT YÜKSEKLİK MODU */
-  #mega-{{ block.id }} .mega-panel {
-    height: {{ theme_settings.fixedHeight | default: 400 }}px !important;
-    overflow-y: hidden; /* Scrollbar'ı CSS ile yöneteceğiz, panel içinde */
-    min-height: {{ theme_settings.fixedHeight | default: 400 }}px !important;
-  }
-  
-  #mega-{{ block.id }} .mega-grid {
-     height: 100%;
-     overflow: hidden;
-  }
-  
-  #mega-{{ block.id }} .mega-image {
-     height: 100%;
-     min-height: 100% !important;
-  }
-  
-  #mega-{{ block.id }} .mega-image img {
-     height: 100%;
-     object-fit: cover;
-  }
-  
-  #mega-{{ block.id }} .mega-cols {
-      height: 100%;
-      overflow-y: auto; /* Scroll burada olacak */
-      padding-bottom: 20px;
-  }
-  {% endif %}
+  /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */
 </style>
 
 

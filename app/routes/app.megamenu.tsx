@@ -1,10 +1,10 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox, Checkbox, RangeSlider, Tabs, ResourceList, ResourceItem, Avatar, Thumbnail, EmptyState } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox, Checkbox } from "@shopify/polaris";
 import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PlusCircleIcon, DeleteIcon, MobileIcon, EditIcon, ImageIcon, CheckIcon, ListIcon } from "@shopify/polaris-icons";
+import { PlusCircleIcon, DeleteIcon } from "@shopify/polaris-icons";
 
 export async function loader({ request }: { request: Request }) {
     const { admin, session } = await authenticate.admin(request);
@@ -134,39 +134,8 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse mobile menu settings", e);
     }
 
-    // 8. Fetch Theme Settings (NEW - Global Design)
-    const themeSettingsQuery = await admin.graphql(
-        `query {
-            shop {
-                metafield(namespace: "breadcrumb", key: "mega_menu_theme_settings") {
-                     value
-                }
-            }
-        }`
-    );
-    const themeSettingsJson = await themeSettingsQuery.json();
-    let initialThemeSettings = {
-        heightMode: "default", // default, auto, fixed
-        fixedHeight: 400,
-        hideDesktop: false,
-        showGrandchild: false,
-        expandSubmenus: true,
-        maxVisibleItems: 5,
-        menuStyle: "style-default",
-        displayMode: "push"
-    };
-    try {
-        const raw = themeSettingsJson.data?.shop?.metafield?.value;
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            initialThemeSettings = { ...initialThemeSettings, ...parsed };
-        }
-    } catch (e) {
-        console.error("Failed to parse theme settings", e);
-    }
 
-
-    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings, initialThemeSettings });
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -178,7 +147,6 @@ export async function action({ request }: { request: Request }) {
     const extraMenuItemsString = formData.get("extraMenuItems") as string;
     const mobileGroupsString = formData.get("mobileGroups") as string;
     const mobileSettingsString = formData.get("mobileSettings") as string;
-    const themeSettingsString = formData.get("themeSettings") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -245,13 +213,6 @@ export async function action({ request }: { request: Request }) {
                         key: "mobile_menu_settings",
                         type: "json",
                         value: mobileSettingsString,
-                    },
-                    {
-                        ownerId: shopId,
-                        namespace: "breadcrumb",
-                        key: "mega_menu_theme_settings",
-                        type: "json",
-                        value: themeSettingsString,
                     }
                 ]
             }
@@ -262,7 +223,7 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings, initialThemeSettings } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
@@ -272,53 +233,8 @@ export default function MegaMenuPage() {
     const [extraMenuItems, setExtraMenuItems] = useState(Array.isArray(initialExtraMenuItems) ? initialExtraMenuItems : []);
     const [mobileGroups, setMobileGroups] = useState(Array.isArray(initialMobileGroups) ? initialMobileGroups : []);
     const [mobileSettings, setMobileSettings] = useState(initialMobileSettings || { hideDesktop: false });
-    const [themeSettings, setThemeSettings] = useState(initialThemeSettings || {
-        heightMode: "default",
-        fixedHeight: 400,
-        hideDesktop: false,
-        showGrandchild: false,
-        expandSubmenus: true,
-        maxVisibleItems: 5,
-        menuStyle: "style-default",
-        displayMode: "push"
-    });
 
-    const [selectedTab, setSelectedTab] = useState(0);
-
-    const handleTabChange = useCallback(
-        (selectedTabIndex: number) => setSelectedTab(selectedTabIndex),
-        [],
-    );
-
-    const tabs = [
-        {
-            id: 'general-design',
-            content: 'Genel & Tasarım',
-            accessibilityLabel: 'Genel ve Tasarım Ayarları',
-            panelID: 'general-design-content',
-            icon: EditIcon
-        },
-        {
-            id: 'content-mappings',
-            content: 'İçerik Yönetimi',
-            panelID: 'content-mappings-content',
-            icon: ListIcon
-        },
-        {
-            id: 'menu-visuals',
-            content: 'Menü Görselleri',
-            panelID: 'menu-visuals-content',
-            icon: ImageIcon
-        },
-        {
-            id: 'mobile-menu',
-            content: 'Mobil Menü',
-            panelID: 'mobile-menu-content',
-            icon: MobileIcon
-        },
-    ];
-
-    // --- Mega Menu Config Functions (Visuals) ---
+    // --- Mega Menu Config Functions ---
     const addItem = () => {
         setItems([...items, { triggerTitle: "", submenuHandle: "", imageUrl: "" }]);
     };
@@ -386,6 +302,7 @@ export default function MegaMenuPage() {
         setMobileGroups(newGroups);
     };
 
+    // Toggle menu in group children
     const toggleGroupChild = (groupIndex: number, menuTitle: string) => {
         const newGroups = [...mobileGroups];
         const currentChildren = newGroups[groupIndex].childrenMenus || [];
@@ -405,15 +322,16 @@ export default function MegaMenuPage() {
         formData.append("extraMenuItems", JSON.stringify(extraMenuItems));
         formData.append("mobileGroups", JSON.stringify(mobileGroups));
         formData.append("mobileSettings", JSON.stringify(mobileSettings));
-        formData.append("themeSettings", JSON.stringify(themeSettings));
         submit(formData, { method: "post" });
     };
 
-    // Global Options
+    // Convert menus to options for Select
     const menuOptions = (menus || []).map((m: any) => ({
         label: `Shopify: ${m.title}`,
         value: m.handle,
     }));
+
+    // Add explicit Custom Menu options
     if (customMenuItems && customMenuItems.length > 0) {
         customMenuItems.forEach((item: any) => {
             menuOptions.unshift({
@@ -422,9 +340,11 @@ export default function MegaMenuPage() {
             });
         });
     }
+
     menuOptions.unshift({ label: "★ Özel Menü (Tümü/Otomatik)", value: "custom_menu_special" });
     menuOptions.unshift({ label: "Seçiniz...", value: "" });
 
+    // Custom menu options for page mapping (only top-level items with children)
     const pageMenuOptions = [{ label: "Seçiniz...", value: "" }];
     if (customMenuItems && customMenuItems.length > 0) {
         customMenuItems.forEach((item: any) => {
@@ -435,395 +355,380 @@ export default function MegaMenuPage() {
         });
     }
 
+    // Options for Multi-Select (Mobile Groups) - using all available top-level titles
     const availableMobileOptions = customMenuItems.map((item: any) => ({ label: item.title, value: item.title }));
 
-    // --- RENDER SECTIONS ---
-
-    const renderGeneralDesign = () => (
-        <BlockStack gap="500">
-            <Card>
-                <BlockStack gap="400">
-                    <Text as="h2" variant="headingMd">🎨 Tema ve Görünüm Ayarları</Text>
-                    <Text as="p" tone="subdued">Mega menünün genel stilini, yüksekliğini ve açılma davranışını buradan yönetebilirsiniz.</Text>
-                    <Divider />
-
-                    <InlineStack gap="400" align="start">
-                        <Box width="48%">
-                            <BlockStack gap="400">
-                                <Text as="h3" variant="headingSm">Yükseklik & Davranış</Text>
-                                <Select
-                                    label="Menü Yüksekliği"
-                                    options={[
-                                        { label: "Varsayılan", value: "default" },
-                                        { label: "İçeriğe Göre (Otomatik)", value: "auto" },
-                                        { label: "Sabit Yükseklik", value: "fixed" }
-                                    ]}
-                                    value={themeSettings.heightMode}
-                                    onChange={(val) => setThemeSettings({ ...themeSettings, heightMode: val })}
-                                />
-                                {themeSettings.heightMode === 'fixed' && (
-                                    <TextField
-                                        label="Piksel Değeri"
-                                        type="number"
-                                        value={String(themeSettings.fixedHeight)}
-                                        onChange={(val) => setThemeSettings({ ...themeSettings, fixedHeight: parseInt(val) || 400 })}
-                                        suffix="px"
-                                        autoComplete="off"
-                                    />
-                                )}
-                                <Select
-                                    label="Açılma Davranışı"
-                                    options={[
-                                        { label: "İçeriği Aşağı İt (Push)", value: "push" },
-                                        { label: "Üstüne Bin (Overlay)", value: "overlay" }
-                                    ]}
-                                    value={themeSettings.displayMode || "push"}
-                                    onChange={(val) => setThemeSettings({ ...themeSettings, displayMode: val })}
-                                    helpText="Overlay modu menüyü sayfanın üzerinde açar, push modu içeriği aşağı iter."
-                                />
-                            </BlockStack>
-                        </Box>
-                        <Box width="48%">
-                            <BlockStack gap="400">
-                                <Text as="h3" variant="headingSm">Stil & Görsel</Text>
-                                <Select
-                                    label="Tasarım Stili"
-                                    options={[
-                                        { value: "style-default", label: "Varsayılan" },
-                                        { value: "style-modern", label: "Modern (Yuvarlak)" },
-                                        { value: "style-minimal", label: "Minimal (Sade)" },
-                                        { value: "style-bold", label: "Bold (Kalın)" },
-                                        { value: "style-compact", label: "Kompakt (Sıkışık)" },
-                                        { value: "style-grid-line", label: "Grid Çizgili" }
-                                    ]}
-                                    value={themeSettings.menuStyle}
-                                    onChange={(val) => setThemeSettings({ ...themeSettings, menuStyle: val })}
-                                />
-                                <TextField
-                                    label="Maksimum Alt Menü Sayısı"
-                                    type="number"
-                                    value={String(themeSettings.maxVisibleItems)}
-                                    onChange={(val) => setThemeSettings({ ...themeSettings, maxVisibleItems: parseInt(val) || 5 })}
-                                    helpText="Bu sayıdan sonrası için 'Devamını Gör' açılır."
-                                    autoComplete="off"
-                                />
-                            </BlockStack>
-                        </Box>
-                    </InlineStack>
-
-                    <Divider />
-                    <Text as="h3" variant="headingSm">Gelişmiş Seçenekler</Text>
-                    <InlineStack gap="800">
-                        <Checkbox
-                            label="Masaüstünde Gizle"
-                            checked={themeSettings.hideDesktop}
-                            onChange={(v) => setThemeSettings({ ...themeSettings, hideDesktop: v })}
-                        />
-                        <Checkbox
-                            label="Torun Menüleri Göster (3. Seviye)"
-                            checked={themeSettings.showGrandchild}
-                            onChange={(v) => setThemeSettings({ ...themeSettings, showGrandchild: v })}
-                        />
-                        <Checkbox
-                            label="Alt Menüleri Açık Getir"
-                            checked={themeSettings.expandSubmenus}
-                            onChange={(v) => setThemeSettings({ ...themeSettings, expandSubmenus: v })}
-                        />
-                    </InlineStack>
-                </BlockStack>
-            </Card>
-        </BlockStack>
-    );
-
-    const renderContentMappings = () => (
-        <BlockStack gap="500">
-            <Card>
-                <BlockStack gap="400">
-                    <InlineStack align="space-between">
-                        <Text as="h2" variant="headingMd">📍 Sayfa → Menü Eşleştirmeleri</Text>
-                        <Button tone="success" variant="primary" onClick={addPageMapping} icon={PlusCircleIcon}>Eşleştirme Ekle</Button>
-                    </InlineStack>
-                    <Text as="p" tone="subdued">Belli sayfalarda hangi menünün açılacağını belirleyin.</Text>
-
-                    <ResourceList
-                        resourceName={{ singular: 'eşleştirme', plural: 'eşleştirmeler' }}
-                        items={pageMappings}
-                        emptyState={
-                            <EmptyState
-                                heading="Henüz eşleştirme yok"
-                                action={{ content: 'Eşleştirme Ekle', onAction: addPageMapping }}
-                                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                            >
-                                <p>Sayfalarınızı menülerle eşleştirerek gezintiyi kolaylaştırın.</p>
-                            </EmptyState>
-                        }
-                        renderItem={(item: any, id, index) => {
-                            return (
-                                <ResourceItem
-                                    id={String(index)}
-                                    accessibilityLabel={`Mapping ${index}`}
-                                    persistActions
-                                >
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <Box width="45%">
-                                            <TextField
-                                                label="Sayfa URL"
-                                                labelHidden
-                                                placeholder="/pages/ornek"
-                                                value={item.pageUrl}
-                                                onChange={(v) => updatePageMapping(index, "pageUrl", v)}
-                                                autoComplete="off"
-                                            />
-                                        </Box>
-                                        <Box width="45%">
-                                            <Select
-                                                label="Menü"
-                                                labelHidden
-                                                options={pageMenuOptions}
-                                                value={item.menuTitle}
-                                                onChange={(v) => updatePageMapping(index, "menuTitle", v)}
-                                                placeholder="Menü Seçin"
-                                            />
-                                        </Box>
-                                        <Button icon={DeleteIcon} tone="critical" variant="plain" onClick={() => removePageMapping(index)} />
-                                    </InlineStack>
-                                </ResourceItem>
-                            );
-                        }}
-                    />
-                </BlockStack >
-            </Card >
-
-            <Card>
-                <BlockStack gap="400">
-                    <InlineStack align="space-between">
-                        <Text as="h2" variant="headingMd">➕ Ekstra Menü Öğeleri</Text>
-                        <Button tone="success" variant="primary" onClick={addExtraMenuItem} icon={PlusCircleIcon}>Öğe Ekle</Button>
-                    </InlineStack>
-                    <Text as="p" tone="subdued">Ana menüye eklemek istediğiniz özel öğeler.</Text>
-
-                    <ResourceList
-                        resourceName={{ singular: 'öğe', plural: 'öğeler' }}
-                        items={extraMenuItems}
-                        emptyState={
-                            <EmptyState
-                                heading="Ekstra öğe yok"
-                                action={{ content: 'Öğe Ekle', onAction: addExtraMenuItem }}
-                                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                            >
-                                <p>Buradan menünüze manuel öğeler ekleyebilirsiniz.</p>
-                            </EmptyState>
-                        }
-                        renderItem={(item: any, id, index) => {
-                            return (
-                                <ResourceItem id={String(index)} accessibilityLabel={`Extra Item ${index}`}>
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <Box width="40%">
-                                            <Select
-                                                label="Menü"
-                                                labelHidden
-                                                options={pageMenuOptions}
-                                                value={item.menuTitle}
-                                                onChange={(v) => updateExtraMenuItem(index, "menuTitle", v)}
-                                            />
-                                        </Box>
-                                        <Box width="40%">
-                                            <Select
-                                                label="Mod"
-                                                labelHidden
-                                                options={[
-                                                    { label: "Alt Menüleri Göster", value: "children" },
-                                                    { label: "Sadece Başlık", value: "parent" }
-                                                ]}
-                                                value={item.displayMode}
-                                                onChange={(v) => updateExtraMenuItem(index, "displayMode", v)}
-                                            />
-                                        </Box>
-                                        <Button icon={DeleteIcon} tone="critical" variant="plain" onClick={() => removeExtraMenuItem(index)} />
-                                    </InlineStack>
-                                </ResourceItem>
-                            )
-                        }}
-                    />
-                </BlockStack>
-            </Card>
-        </BlockStack >
-    );
-
-    const renderMenuVisuals = () => (
-        <Card>
-            <BlockStack gap="400">
-                <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">🖼️ Menü Görselleri</Text>
-                    <Button tone="success" variant="primary" onClick={addItem} icon={PlusCircleIcon}>Görsel Ayarı Ekle</Button>
-                </InlineStack>
-                <Text as="p" tone="subdued">Belirli bir menü başlığının üzerine gelindiğinde sol tarafta veya menü içinde çıkacak görselleri ayarlayın.</Text>
-
-                <ResourceList
-                    resourceName={{ singular: 'görsel', plural: 'görseller' }}
-                    items={items}
-                    emptyState={
-                        <EmptyState
-                            heading="Görsel ayarı yok"
-                            action={{ content: 'Ekle', onAction: addItem }}
-                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                        >
-                            <p>Menülerinizi görsellerle zenginleştirin.</p>
-                        </EmptyState>
-                    }
-                    renderItem={(item: any, id, index) => {
-                        return (
-                            <ResourceItem id={String(index)} accessibilityLabel={`Visual ${index}`}>
-                                <BlockStack gap="300">
-                                    <InlineStack gap="400" align="start">
-                                        <Box width="30%">
-                                            <Select
-                                                label="Hangi Başlık İçin?"
-                                                options={pageMenuOptions}
-                                                value={item.triggerTitle}
-                                                onChange={(v) => updateItem(index, "triggerTitle", v)}
-                                                placeholder="Başlık Seçin"
-                                            />
-                                        </Box>
-                                        <Box width="60%">
-                                            <TextField
-                                                label="Görsel URL"
-                                                value={item.imageUrl}
-                                                onChange={(v) => updateItem(index, "imageUrl", v)}
-                                                autoComplete="off"
-                                                prefix={<Icon source={ImageIcon} />}
-                                            />
-                                        </Box>
-                                        <Box>
-                                            <div style={{ marginTop: '28px' }}>
-                                                <Button icon={DeleteIcon} tone="critical" onClick={() => removeItem(index)} />
-                                            </div>
-                                        </Box>
-                                    </InlineStack>
-                                    {item.imageUrl && (
-                                        <Thumbnail
-                                            source={item.imageUrl}
-                                            alt={item.triggerTitle}
-                                            size="large"
-                                        />
-                                    )}
-                                </BlockStack>
-                            </ResourceItem>
-                        )
-                    }}
-                />
-            </BlockStack>
-        </Card>
-    );
-
-    const renderMobileMenu = () => (
-        <Card>
-            <BlockStack gap="400">
-                <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">📱 Mobil Menü Akışları</Text>
-                    <Button tone="success" variant="primary" onClick={addMobileGroup} icon={PlusCircleIcon}>Grup Ekle</Button>
-                </InlineStack>
-                <Text as="p" tone="subdued">Mobilde menüleri gruplayarak daha temiz bir görünüm elde edin (Örn: 'Akış' altında toplama).</Text>
-
-                <ResourceList
-                    resourceName={{ singular: 'grup', plural: 'gruplar' }}
-                    items={mobileGroups}
-                    emptyState={
-                        <EmptyState
-                            heading="Mobil grup yok"
-                            action={{ content: 'Grup Ekle', onAction: addMobileGroup }}
-                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                        >
-                            <p>Mobil menüyü düzenlemek için gruplar oluşturun.</p>
-                        </EmptyState>
-                    }
-                    renderItem={(group: any, id, index) => {
-                        return (
-                            <ResourceItem id={String(index)} accessibilityLabel={`Group ${index}`}>
-                                <BlockStack gap="400">
-                                    <InlineStack align="space-between">
-                                        <Text variant="headingSm" as="h3">Grup #{index + 1}</Text>
-                                        <Button icon={DeleteIcon} tone="critical" variant="plain" onClick={() => removeMobileGroup(index)} />
-                                    </InlineStack>
-
-                                    <InlineStack gap="400">
-                                        <Box width="45%">
-                                            <TextField
-                                                label="Grup Başlığı"
-                                                value={group.groupTitle}
-                                                onChange={(v) => updateMobileGroup(index, "groupTitle", v)}
-                                                autoComplete="off"
-                                            />
-                                        </Box>
-                                        <Box width="45%">
-                                            <TextField
-                                                label="Grup Linki"
-                                                value={group.groupLink}
-                                                onChange={(v) => updateMobileGroup(index, "groupLink", v)}
-                                                autoComplete="off"
-                                            />
-                                        </Box>
-                                    </InlineStack>
-
-                                    <Box>
-                                        <Text as="p" fontWeight="bold">Dahil Edilecek Menüler:</Text>
-                                        <InlineStack gap="200" wrap>
-                                            {availableMobileOptions.map((opt: any) => {
-                                                const isSelected = (group.childrenMenus || []).includes(opt.value);
-                                                return (
-                                                    <div
-                                                        key={opt.value}
-                                                        onClick={() => toggleGroupChild(index, opt.value)}
-                                                        style={{
-                                                            padding: '6px 12px',
-                                                            borderRadius: '16px',
-                                                            border: isSelected ? '1px solid #005bd3' : '1px solid #d1d5db',
-                                                            background: isSelected ? '#f1f8ff' : '#fff',
-                                                            color: isSelected ? '#005bd3' : '#374151',
-                                                            cursor: 'pointer',
-                                                            fontSize: '13px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px'
-                                                        }}
-                                                    >
-                                                        {opt.label} {isSelected && <Icon source={CheckIcon} tone="primary" />}
-                                                    </div>
-                                                )
-                                            })}
-                                        </InlineStack>
-                                    </Box>
-                                </BlockStack>
-                            </ResourceItem>
-                        )
-                    }}
-                />
-            </BlockStack>
-        </Card>
-    );
 
     return (
         <Page
-            title="Mega Menü Yönetimi"
-            subtitle="Mağazanızın menü yapısını profesyonelce yönetin."
+            title="Mega Menü Ayarları"
+            subtitle="Sayfa-menü eşleştirmeleri ve mega menü içeriklerini yapılandırın."
             primaryAction={{
                 content: isSaving ? "Kaydediliyor..." : "Kaydet",
                 onAction: handleSave,
                 loading: isSaving,
             }}
-            fullWidth
         >
-            <BlockStack gap="500">
-                <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange}>
-                    <Box padding="400">
-                        {selectedTab === 0 && renderGeneralDesign()}
-                        {selectedTab === 1 && renderContentMappings()}
-                        {selectedTab === 2 && renderMenuVisuals()}
-                        {selectedTab === 3 && renderMobileMenu()}
-                    </Box>
-                </Tabs>
-            </BlockStack>
+            <Layout>
+                {/* === SECTION -1: GENERAL SETTINGS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                ⚙️ Görünürlük Ayarları
+                            </Text>
+                            <Checkbox
+                                label="Mega Menüyü Masaüstünde Gizle"
+                                checked={mobileSettings.hideDesktop}
+                                onChange={(newChecked) => setMobileSettings({ ...mobileSettings, hideDesktop: newChecked })}
+                                helpText="Bu seçenek işaretlendiğinde menü şeridi masaüstü cihazlarda gizlenir (display: none), ancak mobil yapılandırma çalışmaya devam eder."
+                            />
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                {/* === SECTION 0: MOBILE MENU GROUPS (AKIŞ) === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                📱 Mobil Menü Gruplandırma (Akış vb.)
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Mobilde mevcut menüleri (Bisiklet, Koşu vb.) yeni bir üst menü (örn: "Akış") altında toplayın.
+                            </Text>
+
+                            {mobileGroups.map((group: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "12px",
+                                    background: "#f0f8ff"
+                                }}>
+                                    <BlockStack gap="400">
+                                        <InlineStack gap="400" align="space-between">
+                                            <Text variant="headingSm" as="h6">Grup #{index + 1}</Text>
+                                            <Button tone="critical" onClick={() => removeMobileGroup(index)} variant="plain" icon={DeleteIcon} />
+                                        </InlineStack>
+
+                                        <InlineStack gap="400">
+                                            <Box width="45%">
+                                                <TextField
+                                                    label="Grup Başlığı"
+                                                    value={group.groupTitle}
+                                                    onChange={(val) => updateMobileGroup(index, "groupTitle", val)}
+                                                    placeholder="Örn: Akış"
+                                                    autoComplete="off"
+                                                />
+                                            </Box>
+                                            <Box width="45%">
+                                                <TextField
+                                                    label="Grup Linki"
+                                                    value={group.groupLink}
+                                                    onChange={(val) => updateMobileGroup(index, "groupLink", val)}
+                                                    placeholder="Örn: /"
+                                                    autoComplete="off"
+                                                    helpText="Başlığa tıklandığında gidilecek adres"
+                                                />
+                                            </Box>
+                                        </InlineStack>
+
+                                        <Box>
+                                            <Text as="p" variant="bodySm" fontWeight="bold">Dahil Edilecek Menüler:</Text>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                                                {availableMobileOptions.map((opt: any) => {
+                                                    const isSelected = (group.childrenMenus || []).includes(opt.value);
+                                                    return (
+                                                        <div
+                                                            key={opt.value}
+                                                            onClick={() => toggleGroupChild(index, opt.value)}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '20px',
+                                                                border: isSelected ? '1px solid #2c6ecb' : '1px solid #dcdcdc',
+                                                                background: isSelected ? '#3b82f6' : '#fff',
+                                                                color: isSelected ? '#fff' : '#333',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                userSelect: 'none'
+                                                            }}
+                                                        >
+                                                            {opt.label} {isSelected ? '✓' : ''}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div style={{ marginTop: '5px', fontSize: '12px', color: '#666' }}>
+                                                Seçilen menüler "{group.groupTitle}" altına taşınacaktır.
+                                            </div>
+                                        </Box>
+                                    </BlockStack>
+                                </div>
+                            ))}
+
+                            {mobileGroups.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz mobil grup oluşturulmamış. "Akış" menüsü oluşturmak için ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addMobileGroup} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Mobil Grup Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
+                {/* === SECTION 1: PAGE-MENU MAPPINGS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                📍 Sayfa → Menü Eşleştirmeleri
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Her sayfa için hangi menünün gösterileceğini belirleyin.
+                                Örneğin: <code>/pages/bisiklet</code> sayfasında <strong>Bisiklet Sporu</strong> menüsünün alt öğelerini göster.
+                            </Text>
+
+                            {pageMappings.map((mapping: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "8px",
+                                    background: "#fafbfb"
+                                }}>
+                                    <InlineStack gap="400" align="start" blockAlign="end">
+                                        <Box width="45%">
+                                            <TextField
+                                                label="Sayfa URL'si"
+                                                placeholder="/pages/bisiklet"
+                                                helpText="Örn: /pages/bisiklet, /pages/kosu, /collections/spor"
+                                                value={mapping.pageUrl}
+                                                onChange={(val) => updatePageMapping(index, "pageUrl", val)}
+                                                autoComplete="off"
+                                            />
+                                        </Box>
+                                        <Box width="45%">
+                                            <Select
+                                                label="Gösterilecek Menü"
+                                                options={pageMenuOptions}
+                                                value={mapping.menuTitle}
+                                                onChange={(val) => updatePageMapping(index, "menuTitle", val)}
+                                                helpText="Bu sayfada hangi menünün alt öğeleri gösterilsin?"
+                                            />
+                                            {mapping.menuTitle && (() => {
+                                                const foundItem = customMenuItems.find((c: any) => c.title === mapping.menuTitle);
+                                                if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                    return (
+                                                        <div style={{ marginTop: '8px', padding: '8px', background: '#e3f1df', borderRadius: '6px', fontSize: '12px' }}>
+                                                            ✓ {foundItem.children.length} alt öğe gösterilecek: {foundItem.children.slice(0, 3).map((c: any) => c.title).join(", ")}{foundItem.children.length > 3 ? "..." : ""}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </Box>
+                                        <Button
+                                            tone="critical"
+                                            onClick={() => removePageMapping(index)}
+                                            variant="plain"
+                                            icon={DeleteIcon}
+                                        />
+                                    </InlineStack>
+                                </div>
+                            ))}
+
+                            {pageMappings.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz sayfa-menü eşleştirmesi yapılmamış. Aşağıdaki butonla eşleştirme ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addPageMapping} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Yeni Sayfa Eşleştirmesi Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
+                {/* === SECTION 2: EXTRA MENU ITEMS === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                ➕ Ekstra Menü Öğeleri
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Ana menüye ek olarak gösterilecek menü öğelerini seçin.
+                                Her öğe için "sadece başlık" veya "alt menüleriyle birlikte" gösterme seçeneği vardır.
+                            </Text>
+
+                            {extraMenuItems.map((item: any, index: number) => (
+                                <div key={index} style={{
+                                    padding: "16px",
+                                    border: "1px solid #e1e3e5",
+                                    borderRadius: "12px",
+                                    background: "#fafbfb"
+                                }}>
+                                    <InlineStack gap="400" align="start" blockAlign="end">
+                                        <Box width="40%">
+                                            <Select
+                                                label="Menü Öğesi Seç"
+                                                options={pageMenuOptions}
+                                                value={item.menuTitle}
+                                                onChange={(val) => updateExtraMenuItem(index, "menuTitle", val)}
+                                                helpText="Hangi menü öğesini eklemek istiyorsunuz?"
+                                            />
+                                            {item.menuTitle && (() => {
+                                                const foundItem = customMenuItems.find((c: any) => c.title === item.menuTitle);
+                                                if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                    return (
+                                                        <div style={{ marginTop: '8px', padding: '8px', background: '#e3f1df', borderRadius: '6px', fontSize: '12px' }}>
+                                                            ✓ {foundItem.children.length} alt öğe mevcut
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </Box>
+                                        <Box width="40%">
+                                            <Select
+                                                label="Görüntüleme Modu"
+                                                options={[
+                                                    { label: "Alt menüleri göster", value: "children" },
+                                                    { label: "Sadece başlık (link olarak)", value: "parent" }
+                                                ]}
+                                                value={item.displayMode || "children"}
+                                                onChange={(val) => updateExtraMenuItem(index, "displayMode", val)}
+                                                helpText={item.displayMode === "parent"
+                                                    ? "Tıklanınca koleksiyona gider, alt menü açılmaz"
+                                                    : "Hover'da alt menüler açılır"}
+                                            />
+                                        </Box>
+                                        <Button
+                                            tone="critical"
+                                            onClick={() => removeExtraMenuItem(index)}
+                                            variant="plain"
+                                            icon={DeleteIcon}
+                                        />
+                                    </InlineStack>
+                                </div>
+                            ))}
+
+                            {extraMenuItems.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz ekstra menü öğesi eklenmemiş. Aşağıdaki butonla ekleyin.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addExtraMenuItem} variant="primary" tone="success" icon={PlusCircleIcon}>
+                                Ekstra Menü Öğesi Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Divider />
+                </Layout.Section>
+
+                {/* === SECTION 3: MEGA MENU TRIGGER CONFIG === */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="500">
+                            <Text as="h2" variant="headingMd">
+                                🎨 Mega Menü Görsel Ayarları
+                            </Text>
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Üst menü öğelerinin üzerine gelindiğinde açılacak alt menü ve sol görsel ayarlarını yapın.
+                            </Text>
+
+                            {items.map((item: any, index: number) => (
+                                <div key={index} style={{ padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
+                                    <BlockStack gap="400">
+                                        <InlineStack align="space-between">
+                                            <Text variant="headingSm" as="h6">Öğe #{index + 1}</Text>
+                                            <Button tone="critical" onClick={() => removeItem(index)} variant="plain">Sil</Button>
+                                        </InlineStack>
+
+                                        <InlineStack gap="400" wrap={false}>
+                                            <Box width="30%">
+                                                <TextField
+                                                    label="Tetikleyici Başlık"
+                                                    helpText="Örn: 'Bisiklet' veya 'Koşu'"
+                                                    value={item.triggerTitle}
+                                                    onChange={(val) => updateItem(index, "triggerTitle", val)}
+                                                    autoComplete="off"
+                                                />
+                                            </Box>
+                                            <Box width="30%">
+                                                <Select
+                                                    label="Alt Menü"
+                                                    options={menuOptions}
+                                                    value={item.submenuHandle}
+                                                    onChange={(val) => updateItem(index, "submenuHandle", val)}
+                                                />
+                                                {/* Preview selected submenu children */}
+                                                {item.submenuHandle && item.submenuHandle.startsWith('custom_special:') && (() => {
+                                                    const targetTitle = item.submenuHandle.replace('custom_special:', '');
+                                                    const foundItem = customMenuItems.find((c: any) => c.title === targetTitle);
+                                                    if (foundItem && foundItem.children && foundItem.children.length > 0) {
+                                                        return (
+                                                            <div style={{ marginTop: '8px', padding: '8px', background: '#f6f6f7', borderRadius: '6px', fontSize: '12px' }}>
+                                                                <strong>Alt Menü İçeriği ({foundItem.children.length} öğe):</strong>
+                                                                <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                                                                    {foundItem.children.slice(0, 5).map((ch: any, i: number) => (
+                                                                        <li key={i}>{ch.title}</li>
+                                                                    ))}
+                                                                    {foundItem.children.length > 5 && <li>... ve {foundItem.children.length - 5} daha</li>}
+                                                                </ul>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <div style={{ marginTop: '8px', color: '#bf0711', fontSize: '12px' }}>⚠️ "{targetTitle}" bulunamadı veya çocuk öğe yok.</div>;
+                                                })()}
+                                            </Box>
+                                            <Box width="40%">
+                                                <TextField
+                                                    label="Görsel URL"
+                                                    helpText="Sol tarafta görünecek görselin bağlantısı"
+                                                    value={item.imageUrl}
+                                                    onChange={(val) => updateItem(index, "imageUrl", val)}
+                                                    autoComplete="off"
+                                                />
+                                                {item.imageUrl && (
+                                                    <div style={{ marginTop: '8px' }}>
+                                                        <img src={item.imageUrl} alt="Preview" style={{ maxHeight: '40px', borderRadius: '4px' }} />
+                                                    </div>
+                                                )}
+                                            </Box>
+                                        </InlineStack>
+                                    </BlockStack>
+                                </div>
+                            ))}
+
+                            {items.length === 0 && (
+                                <Banner tone="info">
+                                    Henüz bir mega menü öğesi eklenmemiş. "Yeni Ekle" butonunu kullanarak başlayın.
+                                </Banner>
+                            )}
+
+                            <Button onClick={addItem} variant="primary" tone="success">
+                                + Yeni Öğe Ekle
+                            </Button>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+            </Layout>
         </Page>
     );
 }
-
