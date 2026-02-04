@@ -168,42 +168,111 @@
    SAĞ TARAF — FLEX LAYOUT (Fix 2x2 Issue)
    Eski column-count yerine Flex kullanıyoruz.
    ============================ */
+/* ============================
+   SAĞ TARAF — STRICT GRID LAYOUT (Tam Hizalama)
+   Eski Flex yerine Grid kullanıyoruz.
+   ============================ */
 .mega-cols {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 Eşit Kolon */
+    gap: var(--mega-grid-gap, 30px);
+    /* Dinamik Gap */
+    align-items: start;
+    width: 100%;
+}
+
+/* Fixed Height Logic */
+.mega-grid {
+    /* Eğer sabit yükseklik tanımlıysa uygula */
+    max-height: var(--mega-max-height, none);
+    overflow-y: var(--mega-max-height, visible);
+}
+
+/* Eğer scroll oluşursa scrollbarı özelleştir */
+.mega-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.mega-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.mega-grid::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+/* ============================
+   BRAND BAR (FOOTER LOGOS)
+   ============================ */
+.mega-brand-bar {
+    width: 100%;
+    background-color: #f7f7f7;
+    /* Hafif gri zemin */
+    border-top: 1px solid #eee;
+    padding: 15px 0;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mega-brand-bar .brand-track {
     display: flex;
     flex-wrap: wrap;
-    /* Yan yana diz ve sığmazsa aşağı geç */
-    gap: 30px;
-    /* Kolonlar arası boşluk */
-    align-items: flex-start;
+    gap: 40px;
+    justify-content: center;
+    align-items: center;
+}
+
+.mega-brand-bar .brand-item {
+    display: block;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    filter: grayscale(100%);
+    /* Siyah beyaz yap */
+}
+
+.mega-brand-bar .brand-item:hover {
+    opacity: 1;
+    filter: grayscale(0%);
+    /* Üzerine gelince renklen */
+}
+
+.mega-brand-bar .brand-item img {
+    height: 30px;
+    /* Standart yükseklik */
+    width: auto;
+    display: block;
 }
 
 /* ============================
    KOLON (ITEM)
    ============================ */
+/* ============================
+   KOLON (ITEM)
+   ============================ */
 .mega-col {
-    /* 5 Kolonlu görünüm için hesaplama: (100% / 5) - gap payı */
-    /* Flex-basis ile yaklaşık %18-19 veriyoruz */
-    flex: 0 0 calc(20% - 24px);
-    max-width: calc(20% - 24px);
+    /* Grid item olduğu için genişlik ayarına gerek yok, grid halleder */
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* height: 100%; opsiyonel: eşit kutu hissiyatı için */
 }
 
 /* Ekran küçülürse kolon sayısını düşür */
 @media (max-width: 1400px) {
-    .mega-col {
-        flex: 0 0 calc(25% - 23px);
+    .mega-cols {
+        grid-template-columns: repeat(4, 1fr);
         /* 4 Kolon */
-        max-width: calc(25% - 23px);
     }
 }
 
 @media (max-width: 1200px) {
-    .mega-col {
-        flex: 0 0 calc(33.33% - 20px);
+    .mega-cols {
+        grid-template-columns: repeat(3, 1fr);
         /* 3 Kolon */
-        max-width: calc(33.33% - 20px);
     }
 }
 

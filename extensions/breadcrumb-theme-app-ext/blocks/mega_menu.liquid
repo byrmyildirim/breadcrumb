@@ -207,7 +207,7 @@
 
 <div class="mega-wrapper {% if block.settings.menu_push_content %}mega-push-mode{% endif %} {% if block.settings.glass_effect_desktop %}glass-desktop{% endif %} {% if block.settings.glass_effect_mobile %}glass-mobile{% endif %}" 
      id="mega-{{ block.id }}"
-     style="--glass-blur: {{ block.settings.blur_amount }}px;">
+     style="--glass-blur: {{ block.settings.blur_amount }}px; --mega-grid-gap: {{ block.settings.grid_gap_px }}px; {% if block.settings.fixed_height_enabled %}--mega-max-height: {{ block.settings.menu_height_px }}px;{% endif %}">
 
   <!-- DEBUG: template='{{ template }}' collection='{{ collection.handle }}' nav_items.size={{ nav_items.size }} matched_parent='{{ matched_parent.title }}' use_custom_root={{ use_custom_root }} auto_drill_down={{ auto_drill_down }} -->
 
@@ -602,6 +602,54 @@ document.addEventListener("DOMContentLoaded", function () {
       "default": false,
       "info": "İşaretlenirse, bu menü bandı masaüstünde gizlenir."
     },
+    {
+      "type": "header",
+      "content": "Gelişmiş Düzen Ayarları"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap_px",
+      "label": "Menü Arası Boşluk (Gap)",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "default": 30,
+      "unit": "px"
+    },
+    {
+       "type": "checkbox",
+       "id": "fixed_height_enabled",
+       "label": "Sabit Yükseklik Kullan",
+       "default": false
+    },
+    {
+      "type": "range",
+      "id": "menu_height_px",
+      "label": "Menü Yüksekliği",
+      "min": 300,
+      "max": 900,
+      "step": 10,
+      "default": 500,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Marka Logoları (Alt Footer)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_brand_bar",
+      "label": "Marka Barını Göster",
+      "default": false
+    },
+    { "type": "image_picker", "id": "brand_1_img", "label": "Logo 1" }, { "type": "url", "id": "brand_1_link", "label": "Link 1" },
+    { "type": "image_picker", "id": "brand_2_img", "label": "Logo 2" }, { "type": "url", "id": "brand_2_link", "label": "Link 2" },
+    { "type": "image_picker", "id": "brand_3_img", "label": "Logo 3" }, { "type": "url", "id": "brand_3_link", "label": "Link 3" },
+    { "type": "image_picker", "id": "brand_4_img", "label": "Logo 4" }, { "type": "url", "id": "brand_4_link", "label": "Link 4" },
+    { "type": "image_picker", "id": "brand_5_img", "label": "Logo 5" }, { "type": "url", "id": "brand_5_link", "label": "Link 5" },
+    { "type": "image_picker", "id": "brand_6_img", "label": "Logo 6" }, { "type": "url", "id": "brand_6_link", "label": "Link 6" },
+    { "type": "image_picker", "id": "brand_7_img", "label": "Logo 7" }, { "type": "url", "id": "brand_7_link", "label": "Link 7" },
+    { "type": "image_picker", "id": "brand_8_img", "label": "Logo 8" }, { "type": "url", "id": "brand_8_link", "label": "Link 8" },
     {
       "type": "header",
       "content": "Gelişmiş Ayarlar"
