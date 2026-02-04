@@ -364,7 +364,7 @@
                               {% endif %}
                           </div>
                           
-                          <div class="mega-cols">
+                          <div class="mega-cols layout-{{ block.settings.layout_mode }}">
                               {% for parent in menu_item.children %}
                                   <div class="mega-col">
                                       <div class="mega-col-title">
@@ -596,6 +596,17 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       "type": "header",
       "content": "Düzen, Marka ve Glass"
+    },
+    {
+      "type": "select",
+      "id": "layout_mode",
+      "label": "Yerleşim Modu",
+      "options": [
+        { "value": "grid", "label": "Satır Hizalı (Grid)" },
+        { "value": "masonry", "label": "Kompakt (Masonry - Boşluksuz)" }
+      ],
+      "default": "grid",
+      "info": "Masonry seçilirse dikey boşluklar kapanır, menüler iç içe geçer."
     },
     {
       "type": "range",

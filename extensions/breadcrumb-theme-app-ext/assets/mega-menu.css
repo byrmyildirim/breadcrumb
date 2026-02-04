@@ -182,6 +182,34 @@
     width: 100%;
 }
 
+/* MASONRY LAYOUT (Boşluksuz Kompakt) */
+.mega-cols.layout-masonry {
+    display: block;
+    column-count: 5;
+    column-gap: var(--mega-grid-gap, 30px);
+}
+
+.mega-cols.layout-masonry .mega-col {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: var(--mega-grid-gap, 30px);
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/* Masonry Responsive */
+@media (max-width: 1400px) {
+    .mega-cols.layout-masonry {
+        column-count: 4;
+    }
+}
+
+@media (max-width: 1200px) {
+    .mega-cols.layout-masonry {
+        column-count: 3;
+    }
+}
+
 /* Fixed Height Logic */
 .mega-grid {
     /* Eğer sabit yükseklik tanımlıysa uygula */
