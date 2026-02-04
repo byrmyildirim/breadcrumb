@@ -363,10 +363,12 @@
           {% for menu_item in custom_full_menu %}
               {% if menu_item.title == extra_item.menuTitle and menu_item.children.size > 0 %}
                   
+                  {% assign menu_handle = menu_item.title | handleize %}
+                  
                   {% if extra_item.displayMode == 'parent' %}
-                      {% assign custom_key = "extra-" | append: (menu_item.title | handleize) | append: "-parent" %}
+                      {% assign custom_key = "extra-" | append: menu_handle | append: "-parent" %}
                   {% else %}
-                      {% assign custom_key = "extra-" | append: (menu_item.title | handleize) %}
+                      {% assign custom_key = "extra-" | append: menu_handle %}
                   {% endif %}
 
                   {% render 'mega_menu_panel', link: menu_item, sub_level_items: menu_item.children, matching_config: nil, block: block, theme_settings: theme_settings, custom_data_key: custom_key %}
