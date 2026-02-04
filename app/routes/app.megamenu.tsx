@@ -296,13 +296,13 @@ export default function MegaMenuPage() {
             content: 'Genel & Tasarım',
             accessibilityLabel: 'Genel ve Tasarım Ayarları',
             panelID: 'general-design-content',
-            icon: PaintBrushIcon
+            icon: EditIcon
         },
         {
             id: 'content-mappings',
             content: 'İçerik Yönetimi',
             panelID: 'content-mappings-content',
-            icon: HelperIcon
+            icon: ListIcon
         },
         {
             id: 'menu-visuals',
