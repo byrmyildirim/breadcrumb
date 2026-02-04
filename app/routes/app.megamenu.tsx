@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox, Checkbox } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, Button, TextField, Select, Text, Banner, InlineStack, Box, Divider, Icon, Tag, Listbox, Combobox, Checkbox, RangeSlider } from "@shopify/polaris";
 import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -134,8 +134,38 @@ export async function loader({ request }: { request: Request }) {
         console.error("Failed to parse mobile menu settings", e);
     }
 
+    // 8. Fetch Theme Settings (NEW - Global Design)
+    const themeSettingsQuery = await admin.graphql(
+        `query {
+            shop {
+                metafield(namespace: "breadcrumb", key: "mega_menu_theme_settings") {
+                     value
+                }
+            }
+        }`
+    );
+    const themeSettingsJson = await themeSettingsQuery.json();
+    let initialThemeSettings = {
+        heightMode: "default", // default, auto, fixed
+        fixedHeight: 400,
+        hideDesktop: false,
+        showGrandchild: false,
+        expandSubmenus: true,
+        maxVisibleItems: 5,
+        menuStyle: "style-default"
+    };
+    try {
+        const raw = themeSettingsJson.data?.shop?.metafield?.value;
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            initialThemeSettings = { ...initialThemeSettings, ...parsed };
+        }
+    } catch (e) {
+        console.error("Failed to parse theme settings", e);
+    }
 
-    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings });
+
+    return json({ menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings, initialThemeSettings });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -147,6 +177,7 @@ export async function action({ request }: { request: Request }) {
     const extraMenuItemsString = formData.get("extraMenuItems") as string;
     const mobileGroupsString = formData.get("mobileGroups") as string;
     const mobileSettingsString = formData.get("mobileSettings") as string;
+    const themeSettingsString = formData.get("themeSettings") as string;
 
     // 1. Save to Database
     await prisma.megaMenu.upsert({
@@ -213,6 +244,13 @@ export async function action({ request }: { request: Request }) {
                         key: "mobile_menu_settings",
                         type: "json",
                         value: mobileSettingsString,
+                    },
+                    {
+                        ownerId: shopId,
+                        namespace: "breadcrumb",
+                        key: "mega_menu_theme_settings",
+                        type: "json",
+                        value: themeSettingsString,
                     }
                 ]
             }
@@ -223,7 +261,7 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function MegaMenuPage() {
-    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings } = useLoaderData<typeof loader>();
+    const { menus, initialConfig, customMenuItems, initialPageMappings, initialExtraMenuItems, initialMobileGroups, initialMobileSettings, initialThemeSettings } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const nav = useNavigation();
     const isSaving = nav.state === "submitting";
@@ -233,6 +271,15 @@ export default function MegaMenuPage() {
     const [extraMenuItems, setExtraMenuItems] = useState(Array.isArray(initialExtraMenuItems) ? initialExtraMenuItems : []);
     const [mobileGroups, setMobileGroups] = useState(Array.isArray(initialMobileGroups) ? initialMobileGroups : []);
     const [mobileSettings, setMobileSettings] = useState(initialMobileSettings || { hideDesktop: false });
+    const [themeSettings, setThemeSettings] = useState(initialThemeSettings || {
+        heightMode: "default",
+        fixedHeight: 400,
+        hideDesktop: false,
+        showGrandchild: false,
+        expandSubmenus: true,
+        maxVisibleItems: 5,
+        menuStyle: "style-default"
+    });
 
     // --- Mega Menu Config Functions ---
     const addItem = () => {
@@ -322,6 +369,7 @@ export default function MegaMenuPage() {
         formData.append("extraMenuItems", JSON.stringify(extraMenuItems));
         formData.append("mobileGroups", JSON.stringify(mobileGroups));
         formData.append("mobileSettings", JSON.stringify(mobileSettings));
+        formData.append("themeSettings", JSON.stringify(themeSettings));
         submit(formData, { method: "post" });
     };
 
@@ -370,22 +418,114 @@ export default function MegaMenuPage() {
             }}
         >
             <Layout>
-                {/* === SECTION -1: GENERAL SETTINGS === */}
+                {/* === SECTION -1: THEME & DESIGN SETTINGS === */}
                 <Layout.Section>
                     <Card>
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingMd">
-                                ⚙️ Görünürlük Ayarları
+                                🎨 Tema ve Görünüm Ayarları
                             </Text>
-                            <Checkbox
-                                label="Mega Menüyü Masaüstünde Gizle"
-                                checked={mobileSettings.hideDesktop}
-                                onChange={(newChecked) => setMobileSettings({ ...mobileSettings, hideDesktop: newChecked })}
-                                helpText="Bu seçenek işaretlendiğinde menü şeridi masaüstü cihazlarda gizlenir (display: none), ancak mobil yapılandırma çalışmaya devam eder."
-                            />
+                            <Text as="p" variant="bodyMd" tone="subdued">
+                                Mega menünün genel görünümünü ve davranışını buradan yapılandırın. Bu ayarlar tüm mağaza genelinde geçerli olur.
+                            </Text>
+
+                            <BlockStack gap="400">
+                                <Text as="h3" variant="headingSm">Yükseklik Ayarları</Text>
+                                <InlineStack gap="400">
+                                    <Box width="45%">
+                                        <Select
+                                            label="Menü Yüksekliği"
+                                            options={[
+                                                { label: "Varsayılan", value: "default" },
+                                                { label: "İçeriğe Göre (Otomatik)", value: "auto" },
+                                                { label: "Sabit Yükseklik", value: "fixed" }
+                                            ]}
+                                            value={themeSettings.heightMode}
+                                            onChange={(val) => setThemeSettings({ ...themeSettings, heightMode: val })}
+                                        />
+                                    </Box>
+                                    {themeSettings.heightMode === 'fixed' && (
+                                        <Box width="45%">
+                                            <TextField
+                                                label="Yükseklik (px)"
+                                                type="number"
+                                                value={String(themeSettings.fixedHeight)}
+                                                onChange={(val) => setThemeSettings({ ...themeSettings, fixedHeight: parseInt(val) || 400 })}
+                                                autoComplete="off"
+                                                suffix="px"
+                                            />
+                                        </Box>
+                                    )}
+                                </InlineStack>
+                            </BlockStack>
+
+                            <Divider />
+
+                            <BlockStack gap="400">
+                                <Text as="h3" variant="headingSm">Görünürlük Ayarları</Text>
+                                <Checkbox
+                                    label="Masaüstünde Gizle"
+                                    checked={themeSettings.hideDesktop}
+                                    onChange={(newChecked) => setThemeSettings({ ...themeSettings, hideDesktop: newChecked })}
+                                    helpText="İşaretlenirse, bu menü bandı masaüstünde gizlenir."
+                                />
+                            </BlockStack>
+
+                            <Divider />
+
+                            <BlockStack gap="400">
+                                <Text as="h3" variant="headingSm">Gelişmiş Ayarlar</Text>
+                                <Checkbox
+                                    label="Torun Menüleri Göster (3. Seviye)"
+                                    checked={themeSettings.showGrandchild}
+                                    onChange={(newChecked) => setThemeSettings({ ...themeSettings, showGrandchild: newChecked })}
+                                    helpText="İşaretlenirse, alt menülerin altındaki menüler de listelenir."
+                                />
+                                <Checkbox
+                                    label="Alt Menüleri Varsayılan Olarak Aç (2. Seviye)"
+                                    checked={themeSettings.expandSubmenus}
+                                    onChange={(newChecked) => setThemeSettings({ ...themeSettings, expandSubmenus: newChecked })}
+                                    helpText="İşaretlenirse, menü başlıkları açık gelir ve alt linkler görünür."
+                                />
+
+                                <Box width="50%">
+                                    <TextField
+                                        label="Gösterilecek Maksimum Alt Menü Sayısı"
+                                        type="number"
+                                        value={String(themeSettings.maxVisibleItems)}
+                                        onChange={(val) => setThemeSettings({ ...themeSettings, maxVisibleItems: parseInt(val) || 5 })}
+                                        helpText="Bu sayıdan fazla alt menü varsa 'Devamını Gör' butonu çıkar."
+                                        autoComplete="off"
+                                    />
+                                </Box>
+
+                                <Box width="50%">
+                                    <Select
+                                        label="Menü Tasarım Stili"
+                                        options={[
+                                            { value: "style-default", label: "Varsayılan" },
+                                            { value: "style-modern", label: "Modern - Yuvarlak Hatlar" },
+                                            { value: "style-minimal", label: "Minimal - Sade" },
+                                            { value: "style-bold", label: "Bold - Kalın Başlıklar" },
+                                            { value: "style-compact", label: "Kompakt - Sıkışık" },
+                                            { value: "style-grid-line", label: "Grid Çizgili" }
+                                        ]}
+                                        value={themeSettings.menuStyle}
+                                        onChange={(val) => setThemeSettings({ ...themeSettings, menuStyle: val })}
+                                    />
+                                </Box>
+                            </BlockStack>
+
                         </BlockStack>
                     </Card>
                 </Layout.Section>
+
+                {/* === OLD SECTION -1 (Kept for compatibility, but hidden/deprecated if needed) === */}
+                {/* 
+                <Layout.Section>
+                     ... Old Visibility Settings ...
+                </Layout.Section> 
+                */}
 
                 {/* === SECTION 0: MOBILE MENU GROUPS (AKIŞ) === */}
                 <Layout.Section>

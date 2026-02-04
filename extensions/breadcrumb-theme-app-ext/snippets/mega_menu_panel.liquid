@@ -5,7 +5,20 @@
   - sub_level_items: Collection of child items
   - matching_config: Custom config object for this item
   - block: The section block object
+  - theme_settings: Global theme settings object (Optional)
 {% endcomment %}
+
+{% if theme_settings %}
+  {% assign use_style = theme_settings.menuStyle %}
+  {% assign use_expand = theme_settings.expandSubmenus %}
+  {% assign use_grandchild = theme_settings.showGrandchild %}
+  {% assign use_max_items = theme_settings.maxVisibleItems %}
+{% else %}
+  {% assign use_style = block.settings.menu_design_style %}
+  {% assign use_expand = block.settings.expand_submenus_default %}
+  {% assign use_grandchild = block.settings.show_grandchild_menus %}
+  {% assign use_max_items = block.settings.max_visible_items | default: 5 %}
+{% endif %}
 
 {% if sub_level_items.size > 0 %}
   {% comment %} Determine which image to use {% endcomment %}
@@ -16,7 +29,7 @@
     {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
   {% endif %}
   
-  <div class="mega-panel {{ block.settings.menu_design_style }}" data-key="{{ link.title | handleize }}">
+  <div class="mega-panel {{ use_style }}" data-key="{{ link.title | handleize }}">
     <div class="mega-grid {% unless panel_image %}no-image{% endunless %}">
       
       <!-- SOL GÖRSEL (Her zaman görünür) -->
@@ -29,7 +42,7 @@
       <!-- SAĞ: 4 KOLON -->
       <div class="mega-cols">
         {% for parent in sub_level_items %}
-          <div class="mega-col {% if block.settings.expand_submenus_default %}open{% endif %}">
+          <div class="mega-col {% if use_expand %}open{% endif %}">
             
             <div class="mega-col-title">
               <a href="{{ parent.url }}">{{ parent.title }}</a>
@@ -42,12 +55,11 @@
             
             {% if parent_children.size > 0 %}
               <div class="mega-col-links">
-                {% assign max_items = block.settings.max_visible_items | default: 5 %}
                 {% assign hidden_count = 0 %}
                 
                 {% for child in parent_children %}
                   {% assign item_class = "" %}
-                  {% if forloop.index > max_items %}
+                  {% if forloop.index > use_max_items %}
                     {% assign item_class = "hidden-item" %}
                     {% assign hidden_count = hidden_count | plus: 1 %}
                   {% endif %}
@@ -56,7 +68,7 @@
                     <a href="{{ child.url }}">{{ child.title }}</a>
                     
                     {% comment %} GRANDCHILDREN RENDER (3. SEVİYE) {% endcomment %}
-                    {% if block.settings.show_grandchild_menus %}
+                    {% if use_grandchild %}
                       {% assign grand_children = child.links | default: child.children %}
                       {% if grand_children.size > 0 %}
                         <div class="mega-grandchild-links">
