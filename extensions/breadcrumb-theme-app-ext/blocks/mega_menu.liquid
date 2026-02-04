@@ -563,7 +563,7 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "header",
-      "content": "Sol Görsel Ayarları"
+      "content": "Görünüm ve Sol Görsel"
     },
     {
       "type": "checkbox",
@@ -578,33 +578,24 @@ document.addEventListener("DOMContentLoaded", function () {
       "info": "Panel açıldığında sol tarafta görünecek resim"
     },
     {
-      "type": "header",
-      "content": "Yükseklik Ayarları"
-    },
-    {
       "type": "select",
       "id": "height_mode",
-      "label": "Menü Yüksekliği",
+      "label": "Yükseklik Modu (Eski)",
       "options": [
-        { "value": "auto", "label": "İçeriğe Göre (Otomatik)" },
+        { "value": "auto", "label": "Otomatik" },
         { "value": "default", "label": "Varsayılan" }
       ],
       "default": "default"
     },
     {
-      "type": "header",
-      "content": "Görünürlük Ayarları"
-    },
-    {
       "type": "checkbox",
       "id": "hide_desktop",
       "label": "Masaüstünde Gizle",
-      "default": false,
-      "info": "İşaretlenirse, bu menü bandı masaüstünde gizlenir."
+      "default": false
     },
     {
       "type": "header",
-      "content": "Gelişmiş Düzen Ayarları"
+      "content": "Düzen, Marka ve Glass"
     },
     {
       "type": "range",
@@ -633,13 +624,9 @@ document.addEventListener("DOMContentLoaded", function () {
       "unit": "px"
     },
     {
-      "type": "header",
-      "content": "Marka Logoları (Alt Footer)"
-    },
-    {
       "type": "checkbox",
       "id": "show_brand_bar",
-      "label": "Marka Barını Göster",
+      "label": "Marka Barını Göster (Footer)",
       "default": false
     },
     { "type": "image_picker", "id": "brand_1_img", "label": "Logo 1" }, { "type": "url", "id": "brand_1_link", "label": "Link 1" },
@@ -652,35 +639,30 @@ document.addEventListener("DOMContentLoaded", function () {
     { "type": "image_picker", "id": "brand_8_img", "label": "Logo 8" }, { "type": "url", "id": "brand_8_link", "label": "Link 8" },
     {
       "type": "header",
-      "content": "Gelişmiş Ayarlar"
+      "content": "Diğer Ayarlar (Push/Cam/Stil)"
     },
     {
       "type": "checkbox",
       "id": "menu_push_content",
       "label": "Menü İçeriği Aşağı İtsin",
-      "default": false,
-      "info": "İşaretlenirse, menü açıldığında slider ve diğer içerikler aşağı kayar."
-    },
-    {
-      "type": "header",
-      "content": "Liquid Glass Tasarım (Buzlu Cam)"
+      "default": false
     },
     {
       "type": "checkbox",
       "id": "glass_effect_desktop",
-      "label": "Masaüstünde Aktif Et",
+      "label": "Glass Effect (Masaüstü)",
       "default": false
     },
     {
       "type": "checkbox",
       "id": "glass_effect_mobile",
-      "label": "Mobilde Aktif Et",
+      "label": "Glass Effect (Mobil)",
       "default": false
     },
     {
       "type": "range",
       "id": "blur_amount",
-      "label": "Bulanıklık Miktarı (px)",
+      "label": "Glass Bulanıklık (px)",
       "min": 0,
       "max": 20,
       "step": 1,
@@ -689,30 +671,28 @@ document.addEventListener("DOMContentLoaded", function () {
     {
       "type": "checkbox",
       "id": "expand_submenus_default",
-      "label": "Alt Menüleri Varsayılan Olarak Aç (2. Seviye)",
-      "default": true,
-      "info": "İşaretlenirse, menü başlıkları açık gelir ve alt linkler görünür."
+      "label": "Alt Menüleri Aç",
+      "default": true
     },
     {
       "type": "range",
       "id": "max_visible_items",
-      "label": "Gösterilecek Maksimum Alt Menü Sayısı",
+      "label": "Max Alt Menü Sayısı",
       "min": 3,
       "max": 20,
       "step": 1,
-      "default": 5,
-      "info": "Bu sayıdan fazla alt menü varsa 'Devamını Gör' butonu çıkar."
+      "default": 5
     },
     {
       "type": "select",
       "id": "menu_design_style",
-      "label": "Menü Tasarım Stili",
+      "label": "Tasarım Stili",
       "options": [
         { "value": "style-default", "label": "Varsayılan" },
-        { "value": "style-modern", "label": "Modern - Yuvarlak Hatlar" },
-        { "value": "style-minimal", "label": "Minimal - Sade" },
-        { "value": "style-bold", "label": "Bold - Kalın Başlıklar" },
-        { "value": "style-compact", "label": "Kompakt - Sıkışık" },
+        { "value": "style-modern", "label": "Modern" },
+        { "value": "style-minimal", "label": "Minimal" },
+        { "value": "style-bold", "label": "Bold" },
+        { "value": "style-compact", "label": "Kompakt" },
         { "value": "style-grid-line", "label": "Grid Çizgili" }
       ],
       "default": "style-default"
