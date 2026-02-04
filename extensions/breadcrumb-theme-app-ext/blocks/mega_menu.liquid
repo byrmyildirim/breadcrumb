@@ -363,34 +363,15 @@
           {% for menu_item in custom_full_menu %}
               {% if menu_item.title == extra_item.menuTitle and menu_item.children.size > 0 %}
                   
-                  <div class="mega-panel {{ theme_settings.menuStyle }}" data-key="{% if extra_item.displayMode == 'parent' %}extra-{{ menu_item.title | handleize }}-parent{% else %}extra-{{ menu_item.title | handleize }}{% endif %}">
-                      <div class="mega-grid">
-                          {% comment %} Sol Görsel (genel ayardan) {% endcomment %}
-                          <div class="mega-image">
-                              {% if block.settings.show_sidebar_image and block.settings.sidebar_image %}
-                                  <img src="{{ block.settings.sidebar_image | image_url: width: 600 }}" alt="{{ menu_item.title }}">
-                              {% endif %}
-                          </div>
-                          
-                          <div class="mega-cols">
-                              {% for parent in menu_item.children %}
-                                  <div class="mega-col">
-                                      <div class="mega-col-title">
-                                          <a href="{{ parent.url }}">{{ parent.title }}</a>
-                                          {% if parent.children.size > 0 %}<span class="arrow">▼</span>{% endif %}
-                                      </div>
-                                      {% if parent.children.size > 0 %}
-                                          <div class="mega-col-links">
-                                              {% for child in parent.children %}
-                                                  <a href="{{ child.url }}">{{ child.title }}</a>
-                                              {% endfor %}
-                                          </div>
-                                      {% endif %}
-                                  </div>
-                              {% endfor %}
-                          </div>
-                      </div>
-                  </div>
+                  {% if extra_item.displayMode == 'parent' %}
+                      {% assign custom_key = "extra-" | append: (menu_item.title | handleize) | append: "-parent" %}
+                  {% else %}
+                      {% assign custom_key = "extra-" | append: (menu_item.title | handleize) %}
+                  {% endif %}
+
+                  {% render 'mega_menu_panel', link: menu_item, sub_level_items: menu_item.children, matching_config: nil, block: block, theme_settings: theme_settings, custom_data_key: custom_key %}
+                  
+                  {% break %}
                   {% break %}
               {% endif %}
           {% endfor %}

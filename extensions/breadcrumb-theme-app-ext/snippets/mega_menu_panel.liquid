@@ -6,6 +6,7 @@
   - matching_config: Custom config object for this item
   - block: The section block object
   - theme_settings: Global theme settings object (Optional)
+  - custom_data_key: Optional override for the panel's data-key attribute
 {% endcomment %}
 
 {% if theme_settings %}
@@ -29,7 +30,12 @@
     {% assign panel_image = block.settings.sidebar_image | image_url: width: 600 %}
   {% endif %}
   
-  <div class="mega-panel {{ use_style }}" data-key="{{ link.title | handleize }}">
+  {% assign key_value = link.title | handleize %}
+  {% if custom_data_key != blank %}
+    {% assign key_value = custom_data_key %}
+  {% endif %}
+  
+  <div class="mega-panel {{ use_style }}" data-key="{{ key_value }}">
     <div class="mega-grid {% unless panel_image %}no-image{% endunless %}">
       
       <!-- SOL GÖRSEL (Her zaman görünür) -->
