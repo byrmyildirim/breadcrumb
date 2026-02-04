@@ -74,9 +74,9 @@
     border: none;
     padding: 28px 0;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    position: absolute;
+    position: absolute !important;
     /* Varsayılan: OVERLAY (Üstüne biner) */
-    top: 100%;
+    top: 100% !important;
     /* Menünün tam altından başlar */
     z-index: 999;
     box-sizing: border-box;
@@ -85,8 +85,8 @@
 
 /* Push Mode: İçeriği aşağı iter */
 .mega-wrapper.mega-push-mode .mega-panel {
-    position: relative;
-    top: auto;
+    position: relative !important;
+    top: auto !important;
     box-shadow: none;
     border-bottom: 1px solid #eee;
 }
