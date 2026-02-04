@@ -533,18 +533,6 @@ export default function MegaMenuPage() {
                 </BlockStack>
             </Card>
         </BlockStack>
-    );
-
-    const renderContentMappings = () => (
-        <BlockStack gap="500">
-            <Card>
-                <BlockStack gap="400">
-                    <InlineStack align="space-between">
-                        <Text as="h2" variant="headingMd">📍 Sayfa → Menü Eşleştirmeleri</Text>
-                        <Button tone="success" variant="primary" onClick={addPageMapping} icon={PlusCircleIcon}>Eşleştirme Ekle</Button>
-                    </InlineStack>
-                    <Text as="p" tone="subdued">Belli sayfalarda hangi menünün açılacağını belirleyin.</Text>
-
                     <ResourceList
                         resourceName={{ singular: 'eşleştirme', plural: 'eşleştirmeler' }}
                         items={pageMappings}
@@ -591,63 +579,63 @@ export default function MegaMenuPage() {
                             );
                         }}
                     />
-                </BlockStack>
-            </Card>
+                </BlockStack >
+            </Card >
 
-            <Card>
-                <BlockStack gap="400">
-                    <InlineStack align="space-between">
-                        <Text as="h2" variant="headingMd">➕ Ekstra Menü Öğeleri</Text>
-                        <Button tone="success" variant="primary" onClick={addExtraMenuItem} icon={PlusCircleIcon}>Öğe Ekle</Button>
-                    </InlineStack>
-                    <Text as="p" tone="subdued">Ana menüye eklemek istediğiniz özel öğeler.</Text>
+        <Card>
+            <BlockStack gap="400">
+                <InlineStack align="space-between">
+                    <Text as="h2" variant="headingMd">➕ Ekstra Menü Öğeleri</Text>
+                    <Button tone="success" variant="primary" onClick={addExtraMenuItem} icon={PlusCircleIcon}>Öğe Ekle</Button>
+                </InlineStack>
+                <Text as="p" tone="subdued">Ana menüye eklemek istediğiniz özel öğeler.</Text>
 
-                    <ResourceList
-                        resourceName={{ singular: 'öğe', plural: 'öğeler' }}
-                        items={extraMenuItems}
-                        emptyState={
-                            <EmptyState
-                                heading="Ekstra öğe yok"
-                                action={{ content: 'Öğe Ekle', onAction: addExtraMenuItem }}
-                                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                            >
-                                <p>Buradan menünüze manuel öğeler ekleyebilirsiniz.</p>
-                            </EmptyState>
-                        }
-                        renderItem={(item: any, id, index) => {
-                            return (
-                                <ResourceItem id={String(index)} accessibilityLabel={`Extra Item ${index}`}>
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <Box width="40%">
-                                            <Select
-                                                label="Menü"
-                                                labelHidden
-                                                options={pageMenuOptions}
-                                                value={item.menuTitle}
-                                                onChange={(v) => updateExtraMenuItem(index, "menuTitle", v)}
-                                            />
-                                        </Box>
-                                        <Box width="40%">
-                                            <Select
-                                                label="Mod"
-                                                labelHidden
-                                                options={[
-                                                    { label: "Alt Menüleri Göster", value: "children" },
-                                                    { label: "Sadece Başlık", value: "parent" }
-                                                ]}
-                                                value={item.displayMode}
-                                                onChange={(v) => updateExtraMenuItem(index, "displayMode", v)}
-                                            />
-                                        </Box>
-                                        <Button icon={DeleteIcon} tone="critical" variant="plain" onClick={() => removeExtraMenuItem(index)} />
-                                    </InlineStack>
-                                </ResourceItem>
-                            )
-                        }}
-                    />
-                </BlockStack>
-            </Card>
-        </BlockStack>
+                <ResourceList
+                    resourceName={{ singular: 'öğe', plural: 'öğeler' }}
+                    items={extraMenuItems}
+                    emptyState={
+                        <EmptyState
+                            heading="Ekstra öğe yok"
+                            action={{ content: 'Öğe Ekle', onAction: addExtraMenuItem }}
+                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                        >
+                            <p>Buradan menünüze manuel öğeler ekleyebilirsiniz.</p>
+                        </EmptyState>
+                    }
+                    renderItem={(item: any, id, index) => {
+                        return (
+                            <ResourceItem id={String(index)} accessibilityLabel={`Extra Item ${index}`}>
+                                <InlineStack align="space-between" blockAlign="center">
+                                    <Box width="40%">
+                                        <Select
+                                            label="Menü"
+                                            labelHidden
+                                            options={pageMenuOptions}
+                                            value={item.menuTitle}
+                                            onChange={(v) => updateExtraMenuItem(index, "menuTitle", v)}
+                                        />
+                                    </Box>
+                                    <Box width="40%">
+                                        <Select
+                                            label="Mod"
+                                            labelHidden
+                                            options={[
+                                                { label: "Alt Menüleri Göster", value: "children" },
+                                                { label: "Sadece Başlık", value: "parent" }
+                                            ]}
+                                            value={item.displayMode}
+                                            onChange={(v) => updateExtraMenuItem(index, "displayMode", v)}
+                                        />
+                                    </Box>
+                                    <Button icon={DeleteIcon} tone="critical" variant="plain" onClick={() => removeExtraMenuItem(index)} />
+                                </InlineStack>
+                            </ResourceItem>
+                        )
+                    }}
+                />
+            </BlockStack>
+        </Card>
+        </BlockStack >
     );
 
     const renderMenuVisuals = () => (
@@ -825,11 +813,7 @@ export default function MegaMenuPage() {
             </BlockStack>
         </Page>
     );
-        </Text >
-
-    {
-        items.map((item: any, index: number) => (
-            <div key={index} style={{ padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
-                <BlockStack gap="400">
-                    <InlineStack align="space-between">
+}
+<BlockStack gap="400">
+    <InlineStack align="space-between">
 }
