@@ -7,7 +7,7 @@
     width: 100%;
     position: relative;
     z-index: 40;
-    overflow-x: hidden;
+    /* overflow-x: hidden;  REMOVED to prevent clipping transparency/overlay */
 }
 
 /* ============================
