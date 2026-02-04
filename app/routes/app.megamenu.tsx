@@ -152,7 +152,8 @@ export async function loader({ request }: { request: Request }) {
         showGrandchild: false,
         expandSubmenus: true,
         maxVisibleItems: 5,
-        menuStyle: "style-default"
+        menuStyle: "style-default",
+        displayMode: "push"
     };
     try {
         const raw = themeSettingsJson.data?.shop?.metafield?.value;
@@ -278,7 +279,8 @@ export default function MegaMenuPage() {
         showGrandchild: false,
         expandSubmenus: true,
         maxVisibleItems: 5,
-        menuStyle: "style-default"
+        menuStyle: "style-default",
+        displayMode: "push"
     });
 
     // --- Mega Menu Config Functions ---
@@ -457,6 +459,19 @@ export default function MegaMenuPage() {
                                         </Box>
                                     )}
                                 </InlineStack>
+
+                                <Box width="100%">
+                                    <Select
+                                        label="Menü Açılma Davranışı"
+                                        options={[
+                                            { label: "İçeriği Aşağı İt (Push Content)", value: "push" },
+                                            { label: "İçeriğin Üstüne Bin (Overlay Content)", value: "overlay" }
+                                        ]}
+                                        value={themeSettings.displayMode || "push"}
+                                        onChange={(val) => setThemeSettings({ ...themeSettings, displayMode: val })}
+                                        helpText="Menü açıldığında sayfa içeriği aşağı mı kaysın, yoksa menü içeriğin üstüne mi çıksın?"
+                                    />
+                                </Box>
                             </BlockStack>
 
                             <Divider />

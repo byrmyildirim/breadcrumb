@@ -34,8 +34,13 @@
   {% assign theme_settings = theme_settings_raw %}
 {% else %}
   {% comment %} Default fallback values {% endcomment %}
-  {% assign theme_settings = '{"heightMode": "default", "fixedHeight": 400, "hideDesktop": false, "showGrandchild": false, "expandSubmenus": true, "maxVisibleItems": 5, "menuStyle": "style-default"}' | json_parse %}
+  {% assign theme_settings = '{"heightMode": "default", "fixedHeight": 400, "hideDesktop": false, "showGrandchild": false, "expandSubmenus": true, "maxVisibleItems": 5, "menuStyle": "style-default", "displayMode": "push"}' | json_parse %}
 {% endif %}
+
+{% assign menu_height_mode = theme_settings.heightMode | default: 'default' %}
+{% assign fixed_height = theme_settings.fixedHeight | default: 400 %}
+{% assign hide_desktop = theme_settings.hideDesktop | default: false %}
+{% assign display_mode = theme_settings.displayMode | default: 'push' %}
 
 {% if block.settings.hide_desktop or mobile_settings.hideDesktop or theme_settings.hideDesktop %}
 <style>
@@ -215,7 +220,7 @@
 {% endif %}
 
 
-<div class="mega-wrapper {% if theme_settings.heightMode == 'fixed' %}fixed-height-mode{% endif %}" id="mega-{{ block.id }}">
+<div class="mega-wrapper {{ display_mode }}-mode {% if theme_settings.heightMode == 'fixed' %}fixed-height-mode{% endif %} {% if hide_desktop %}hide-desktop{% endif %}" id="mega-{{ block.id }}">
 
   <!-- DEBUG: template='{{ template }}' collection='{{ collection.handle }}' nav_items.size={{ nav_items.size }} matched_parent='{{ matched_parent.title }}' use_custom_root={{ use_custom_root }} auto_drill_down={{ auto_drill_down }} -->
 

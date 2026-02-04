@@ -2,12 +2,32 @@
    MEGA MENU – FULL OPTIMIZED STYLE
    ============================ */
 
-/* ANA WRAPPER */
+/* ============================
+   MEGA WRAPPER & MODES
+   ============================ */
 .mega-wrapper {
     width: 100%;
     position: relative;
     z-index: 40;
     overflow-x: hidden;
+}
+
+/* OVERLAY MODE: Absolute positioning to float over content */
+.mega-wrapper.overlay-mode .mega-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    /* More prominent shadow for overlay */
+    margin-top: 0;
+}
+
+/* PUSH MODE: Default flow (already handled by default block display) */
+.mega-wrapper.push-mode .mega-panel {
+    position: relative;
+    /* Default behavior pushes content down */
 }
 
 /* ============================
