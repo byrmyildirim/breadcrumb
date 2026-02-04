@@ -58,6 +58,9 @@
 /* ============================
    MEGA PANEL
    ============================ */
+/* ============================
+   MEGA PANEL
+   ============================ */
 .mega-panel {
     display: none;
     width: 100%;
@@ -142,6 +145,8 @@
 .mega-grid.no-image {
     grid-template-columns: 1fr;
 }
+
+/* End of clean css block */
 
 /* ============================
    SOL GÖRSEL
