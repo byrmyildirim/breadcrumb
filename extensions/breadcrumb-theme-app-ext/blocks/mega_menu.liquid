@@ -205,7 +205,9 @@
 {% endif %}
 
 
-<div class="mega-wrapper" id="mega-{{ block.id }}">
+<div class="mega-wrapper {% if block.settings.menu_push_content %}mega-push-mode{% endif %} {% if block.settings.glass_effect_desktop %}glass-desktop{% endif %} {% if block.settings.glass_effect_mobile %}glass-mobile{% endif %}" 
+     id="mega-{{ block.id }}"
+     style="--glass-blur: {{ block.settings.blur_amount }}px;">
 
   <!-- DEBUG: template='{{ template }}' collection='{{ collection.handle }}' nav_items.size={{ nav_items.size }} matched_parent='{{ matched_parent.title }}' use_custom_root={{ use_custom_root }} auto_drill_down={{ auto_drill_down }} -->
 
@@ -606,10 +608,35 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "checkbox",
-      "id": "show_grandchild_menus",
-      "label": "Torun Menüleri Göster (3. Seviye)",
+      "id": "menu_push_content",
+      "label": "Menü İçeriği Aşağı İtsin",
       "default": false,
-      "info": "İşaretlenirse, alt menülerin altındaki menüler de listelenir."
+      "info": "İşaretlenirse, menü açıldığında slider ve diğer içerikler aşağı kayar."
+    },
+    {
+      "type": "header",
+      "content": "Liquid Glass Tasarım (Buzlu Cam)"
+    },
+    {
+      "type": "checkbox",
+      "id": "glass_effect_desktop",
+      "label": "Masaüstünde Aktif Et",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "glass_effect_mobile",
+      "label": "Mobilde Aktif Et",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "blur_amount",
+      "label": "Bulanıklık Miktarı (px)",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 10
     },
     {
       "type": "checkbox",

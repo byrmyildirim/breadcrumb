@@ -55,19 +55,37 @@
 /* ============================
    MEGA PANEL
    ============================ */
+/* ============================
+   MEGA PANEL
+   ============================ */
 .mega-panel {
     display: none;
-    width: calc(100% - 20px);
-    margin-left: 10px;
-    margin-right: 10px;
+    width: 100%;
+    /* Tam genişlik */
+    left: 0;
+    right: 0;
+    margin-left: 0;
+    margin-right: 0;
     background: white;
     margin-top: 0;
     border: none;
     padding: 28px 0;
-    box-shadow: none;
-    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    /* Varsayılan: OVERLAY (Üstüne biner) */
+    top: 100%;
+    /* Menünün tam altından başlar */
     z-index: 999;
     box-sizing: border-box;
+    border-top: 1px solid #f1f1f1;
+}
+
+/* Push Mode: İçeriği aşağı iter */
+.mega-wrapper.mega-push-mode .mega-panel {
+    position: relative;
+    top: auto;
+    box-shadow: none;
+    border-bottom: 1px solid #eee;
 }
 
 .mega-panel.active {
@@ -75,20 +93,50 @@
 }
 
 /* ============================
+   GLASSMORPHISM (BUZLU CAM)
+   ============================ */
+/* Desktop Glass */
+@media (min-width: 992px) {
+    .glass-desktop .mega-panel {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(var(--glass-blur, 10px));
+        -webkit-backdrop-filter: blur(var(--glass-blur, 10px));
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Mobile Glass */
+@media (max-width: 991px) {
+
+    .glass-mobile .mega-panel,
+    .glass-mobile .mobile-sub-menu {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(var(--glass-blur, 10px));
+        -webkit-backdrop-filter: blur(var(--glass-blur, 10px));
+    }
+
+    .glass-mobile .mobile-category-bar {
+        background: transparent !important;
+        /* Arka planı transparent yap */
+    }
+}
+
+
+/* ============================
    GRID YAPI
    Sol: görsel — Sağ: kolonlar
    ============================ */
 .mega-grid {
     width: 100%;
-    max-width: 100%;
+    max-width: 1400px;
+    /* İçerik için max genişlik */
     margin: 0 auto;
     display: grid;
     grid-template-columns: 250px 1fr;
-    gap: 30px;
+    gap: 40px;
     align-items: start;
     padding: 0 40px;
     box-sizing: border-box;
-    overflow: hidden;
 }
 
 .mega-grid.no-image {
@@ -96,46 +144,62 @@
 }
 
 /* ============================
-   SOL GÖRSEL — ABSOLUTE POSITION
-   (Grid yüksekliğini BOZMAMASI için)
+   SOL GÖRSEL
    ============================ */
 .mega-image {
     position: relative;
-    min-height: 280px;
+    /* height: auto;  Otomatik yükseklik */
 }
 
 .mega-image img {
     width: 100%;
     height: auto;
-    position: absolute;
-    top: 0;
-    left: 0;
+    border-radius: 8px;
+    /* Hafif oval */
+    display: block;
 }
 
 /* ============================
-   SAĞ TARAF — 4 KOLON (MASONRY LAYOUT)
-   ============================ */
-/* ============================
-   SAĞ TARAF — 5 KOLON (MASONRY LAYOUT)
+   SAĞ TARAF — FLEX LAYOUT (Fix 2x2 Issue)
+   Eski column-count yerine Flex kullanıyoruz.
    ============================ */
 .mega-cols {
-    display: block;
-    column-count: 5;
-    column-gap: 40px;
-    /* Biraz daha geniş boşluk */
+    display: flex;
+    flex-wrap: wrap;
+    /* Yan yana diz ve sığmazsa aşağı geç */
+    gap: 30px;
+    /* Kolonlar arası boşluk */
+    align-items: flex-start;
 }
 
 /* ============================
-   KOLON (PARENT)
+   KOLON (ITEM)
    ============================ */
 .mega-col {
-    margin: 0 0 30px 0;
+    /* 5 Kolonlu görünüm için hesaplama: (100% / 5) - gap payı */
+    /* Flex-basis ile yaklaşık %18-19 veriyoruz */
+    flex: 0 0 calc(20% - 24px);
+    max-width: calc(20% - 24px);
+    margin: 0;
     padding: 0;
-    display: inline-block;
-    width: 100%;
-    break-inside: avoid;
-    page-break-inside: avoid;
-    vertical-align: top;
+    box-sizing: border-box;
+}
+
+/* Ekran küçülürse kolon sayısını düşür */
+@media (max-width: 1400px) {
+    .mega-col {
+        flex: 0 0 calc(25% - 23px);
+        /* 4 Kolon */
+        max-width: calc(25% - 23px);
+    }
+}
+
+@media (max-width: 1200px) {
+    .mega-col {
+        flex: 0 0 calc(33.33% - 20px);
+        /* 3 Kolon */
+        max-width: calc(33.33% - 20px);
+    }
 }
 
 /* ============================
