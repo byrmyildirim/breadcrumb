@@ -567,9 +567,21 @@ document.addEventListener("DOMContentLoaded", function () {
       "label": "Menü Yüksekliği",
       "options": [
         { "value": "auto", "label": "İçeriğe Göre (Otomatik)" },
-        { "value": "default", "label": "Varsayılan" }
+        { "value": "default", "label": "Varsayılan" },
+        { "value": "fixed", "label": "Sabit Yükseklik (Scroll)" }
       ],
       "default": "default"
+    },
+    {
+      "type": "range",
+      "id": "menu_height_px",
+      "label": "Sabit Yükseklik Değeri (px)",
+      "min": 200,
+      "max": 800,
+      "step": 10,
+      "default": 400,
+      "unit": "px",
+      "info": "Sadece 'Sabit Yükseklik' seçildiğinde geçerlidir."
     },
     {
       "type": "header",
@@ -634,6 +646,7 @@ document.addEventListener("DOMContentLoaded", function () {
   #mega-{{ block.id }} .mega-panel {
     height: auto !important;
     min-height: 0 !important;
+    overflow-y: visible;
   }
   
   #mega-{{ block.id }} .mega-image {
@@ -645,6 +658,27 @@ document.addEventListener("DOMContentLoaded", function () {
     position: relative;
     max-height: 250px;
     object-fit: cover;
+  }
+  {% elsif block.settings.height_mode == 'fixed' %}
+  /* Sabit Yükseklik Modu */
+  #mega-{{ block.id }} .mega-panel {
+    height: {{ block.settings.menu_height_px }}px !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+  }
+  /* Scrollbar Stili (Webkit) */
+  #mega-{{ block.id }} .mega-panel::-webkit-scrollbar {
+    width: 6px;
+  }
+  #mega-{{ block.id }} .mega-panel::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+  }
+  #mega-{{ block.id }} .mega-panel::-webkit-scrollbar-thumb {
+    background: #ccc; 
+    border-radius: 3px;
+  }
+  #mega-{{ block.id }} .mega-panel::-webkit-scrollbar-thumb:hover {
+    background: #aaa; 
   }
   {% endif %}
   /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */
