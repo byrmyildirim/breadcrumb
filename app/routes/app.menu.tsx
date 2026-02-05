@@ -748,14 +748,14 @@ export default function MenuPage() {
       return;
     }
 
-    let csvContent = "data:text/csv;charset=utf-8,";
+    // Add BOM for Excel UTF-8 compatibility
+    let csvContent = "\uFEFF";
     csvContent += "Menu Path,URL,Handle\r\n";
 
     const pathStack = [];
 
     items.forEach(item => {
       // Ensure stack is correct size for current depth
-      // We set the current depth's title in the stack
       pathStack[item.depth] = item.title;
 
       // Construct path string by joining stack elements up to current depth
@@ -769,13 +769,16 @@ export default function MenuPage() {
       csvContent += `${escapedPath},${escapedUrl},${escapedHandle}\r\n`;
     });
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", "menu_structure.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Filtering for visual display (Collapse Logic)
