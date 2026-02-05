@@ -603,20 +603,11 @@ document.addEventListener("DOMContentLoaded", function () {
       "label": "Yerleşim Modu",
       "options": [
         { "value": "grid", "label": "Satır Hizalı (Grid)" },
-        { "value": "masonry", "label": "Serbest Akış (Hizasız)" }
+        { "value": "masonry", "label": "Serbest Akış (Hizasız)" },
+        { "value": "xduzen", "label": "X Düzen (Referans Site)" }
       ],
-      "default": "masonry",
-      "info": "Masonry seçilirse dikey boşluklar kapanır, menüler iç içe geçer."
-    },
-    {
-      "type": "range",
-      "id": "grid_gap_px",
-      "label": "Menü Arası Boşluk (Gap)",
-      "min": 0,
-      "max": 60,
-      "step": 2,
-      "default": 16,
-      "unit": "px"
+      "default": "xduzen",
+      "info": "X Düzen: Referans sitedeki gibi yukarıdan aşağıya sütun akışı."
     },
     {
        "type": "checkbox",

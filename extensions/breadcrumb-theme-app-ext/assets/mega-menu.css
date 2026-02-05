@@ -227,6 +227,82 @@
     }
 }
 
+/* ============================
+   X DÜZEN - Referans Site Tarzı
+   Yukarıdan aşağıya temiz sütun akışı
+   ============================ */
+.mega-cols.layout-xduzen {
+    /* Grid'i tamamen kapat */
+    display: block !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    grid-gap: unset !important;
+    gap: unset !important;
+
+    /* 5 sütunlu düzen */
+    column-count: 5 !important;
+    column-gap: 40px !important;
+    column-fill: auto;
+}
+
+/* X Düzen altındaki her kategori */
+.mega-cols.layout-xduzen>.mega-col {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 25px 0 !important;
+    padding: 0 !important;
+
+    /* Bölünmeyi engelle */
+    break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
+
+/* X Düzen için başlık stili */
+.mega-cols.layout-xduzen .mega-col-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 8px;
+    border-bottom: none;
+}
+
+.mega-cols.layout-xduzen .mega-col-title a {
+    color: #333;
+    text-decoration: none;
+}
+
+.mega-cols.layout-xduzen .mega-col-title a:hover {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+/* X Düzen için link stili */
+.mega-cols.layout-xduzen .mega-col-links a {
+    font-size: 13px;
+    color: #0066cc;
+    line-height: 1.6;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.mega-cols.layout-xduzen .mega-col-links a:hover {
+    text-decoration: underline;
+}
+
+/* X Düzen Responsive */
+@media (max-width: 1400px) {
+    .mega-cols.layout-xduzen {
+        column-count: 4 !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .mega-cols.layout-xduzen {
+        column-count: 3 !important;
+    }
+}
+
 /* Fixed Height Logic */
 .mega-grid {
     /* Eğer sabit yükseklik tanımlıysa uygula */
