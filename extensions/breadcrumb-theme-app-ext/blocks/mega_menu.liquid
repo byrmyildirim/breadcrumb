@@ -600,10 +600,10 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "checkbox",
-      "id": "show_grandchild_menus",
-      "label": "Torun Menüleri Göster (3. Seviye)",
+      "id": "enable_glass_effect",
+      "label": "Liquid Glass Efekti (Bulanık Arka Plan)",
       "default": false,
-      "info": "İşaretlenirse, alt menülerin altındaki menüler de listelenir."
+      "info": "Menü arka planına buzlu cam efekti verir."
     },
     {
       "type": "checkbox",
@@ -707,6 +707,15 @@ document.addEventListener("DOMContentLoaded", function () {
     width: 100%;
     z-index: 1000;
     box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+  }
+  {% endif %}
+  {% if block.settings.enable_glass_effect %}
+  /* Glass Effect Style */
+  #mega-{{ block.id }} .mega-panel {
+    background: rgba(255, 255, 255, 0.85); /* Hafif saydam beyaz */
+    backdrop-filter: blur(10px); /* Buzlu cam efekti */
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   }
   {% endif %}
   /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */

@@ -54,18 +54,6 @@
                   
                   <div class="mega-sub-item {{ item_class }}">
                     <a href="{{ child.url }}">{{ child.title }}</a>
-                    
-                    {% comment %} GRANDCHILDREN RENDER (3. SEVİYE) {% endcomment %}
-                    {% if block.settings.show_grandchild_menus %}
-                      {% assign grand_children = child.links | default: child.children %}
-                      {% if grand_children.size > 0 %}
-                        <div class="mega-grandchild-links">
-                          {% for grand in grand_children %}
-                             <a href="{{ grand.url }}">{{ grand.title }}</a>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                    {% endif %}
                   </div>
 
                 {% endfor %}
