@@ -7,7 +7,7 @@
     width: 100%;
     position: relative;
     z-index: 40;
-    /* overflow-x: hidden;  REMOVED to prevent clipping transparency/overlay */
+    overflow-x: hidden;
 }
 
 /* ============================
@@ -55,40 +55,19 @@
 /* ============================
    MEGA PANEL
    ============================ */
-/* ============================
-   MEGA PANEL
-   ============================ */
-/* ============================
-   MEGA PANEL
-   ============================ */
 .mega-panel {
     display: none;
-    width: 100%;
-    /* Tam genişlik */
-    left: 0;
-    right: 0;
-    margin-left: 0;
-    margin-right: 0;
+    width: calc(100% - 20px);
+    margin-left: 10px;
+    margin-right: 10px;
     background: white;
     margin-top: 0;
     border: none;
     padding: 28px 0;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    position: absolute !important;
-    /* Varsayılan: OVERLAY (Üstüne biner) */
-    top: 100% !important;
-    /* Menünün tam altından başlar */
+    box-shadow: none;
+    position: relative;
     z-index: 999;
     box-sizing: border-box;
-    border-top: 1px solid #f1f1f1;
-}
-
-/* Push Mode: İçeriği aşağı iter */
-.mega-wrapper.mega-push-mode .mega-panel {
-    position: relative !important;
-    top: auto !important;
-    box-shadow: none;
-    border-bottom: 1px solid #eee;
 }
 
 .mega-panel.active {
@@ -96,308 +75,67 @@
 }
 
 /* ============================
-   GLASSMORPHISM (BUZLU CAM)
-   ============================ */
-/* Desktop Glass */
-@media (min-width: 992px) {
-    .glass-desktop .mega-panel {
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(var(--glass-blur, 10px));
-        -webkit-backdrop-filter: blur(var(--glass-blur, 10px));
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-}
-
-/* Mobile Glass */
-@media (max-width: 991px) {
-
-    .glass-mobile .mega-panel,
-    .glass-mobile .mobile-sub-menu {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(var(--glass-blur, 10px));
-        -webkit-backdrop-filter: blur(var(--glass-blur, 10px));
-    }
-
-    .glass-mobile .mobile-category-bar {
-        background: transparent !important;
-        /* Arka planı transparent yap */
-    }
-}
-
-
-/* ============================
    GRID YAPI
    Sol: görsel — Sağ: kolonlar
    ============================ */
 .mega-grid {
     width: 100%;
-    max-width: 1400px;
-    /* İçerik için max genişlik */
+    max-width: 100%;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 250px 1fr;
-    gap: 40px;
+    gap: 30px;
     align-items: start;
     padding: 0 40px;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .mega-grid.no-image {
     grid-template-columns: 1fr;
 }
 
-/* End of clean css block */
-
 /* ============================
-   SOL GÖRSEL
+   SOL GÖRSEL — ABSOLUTE POSITION
+   (Grid yüksekliğini BOZMAMASI için)
    ============================ */
 .mega-image {
     position: relative;
-    /* height: auto;  Otomatik yükseklik */
+    min-height: 280px;
 }
 
 .mega-image img {
     width: 100%;
     height: auto;
-    border-radius: 8px;
-    /* Hafif oval */
-    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 /* ============================
-   SAĞ TARAF — FLEX LAYOUT (Fix 2x2 Issue)
-   Eski column-count yerine Flex kullanıyoruz.
+   SAĞ TARAF — 4 KOLON (MASONRY LAYOUT)
    ============================ */
 /* ============================
-   SAĞ TARAF — STRICT GRID LAYOUT (Tam Hizalama)
-   Eski Flex yerine Grid kullanıyoruz.
+   SAĞ TARAF — 5 KOLON (MASONRY LAYOUT)
    ============================ */
 .mega-cols {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    /* 5 Eşit Kolon */
-    gap: var(--mega-grid-gap, 30px);
-    /* Dinamik Gap */
-    align-items: start;
-    width: 100%;
-}
-
-/* ============================
-   MASONRY LAYOUT - Serbest Akış (Satır Hizası YOK)
-   Grid'i tamamen devre dışı bırakıp column-count kullanıyoruz.
-   ============================ */
-.mega-cols.layout-masonry {
-    /* Grid özellikleri tamamen sıfırla */
-    display: block !important;
-    grid-template-columns: unset !important;
-    grid-template-rows: unset !important;
-    grid-gap: unset !important;
-    gap: unset !important;
-
-    /* Column-count ile gerçek masonry */
-    column-count: 5 !important;
-    column-gap: 25px !important;
-    column-fill: balance;
-}
-
-/* Masonry altındaki her kolon öğesi */
-.mega-cols.layout-masonry>.mega-col {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 0 20px 0 !important;
-    padding: 0 !important;
-
-    /* Kolonlar arası bölünmeyi engelle */
-    break-inside: avoid !important;
-    -webkit-column-break-inside: avoid !important;
-    page-break-inside: avoid !important;
-}
-
-/* Masonry Responsive */
-@media (max-width: 1400px) {
-    .mega-cols.layout-masonry {
-        column-count: 4 !important;
-    }
-}
-
-@media (max-width: 1200px) {
-    .mega-cols.layout-masonry {
-        column-count: 3 !important;
-    }
-}
-
-/* ============================
-   X DÜZEN - Referans Site Tarzı
-   Yukarıdan aşağıya temiz sütun akışı
-   ============================ */
-.mega-cols.layout-xduzen {
-    /* Grid'i tamamen kapat */
-    display: block !important;
-    grid-template-columns: unset !important;
-    grid-template-rows: unset !important;
-    grid-gap: unset !important;
-    gap: unset !important;
-
-    /* 5 sütunlu düzen */
-    column-count: 5 !important;
-    column-gap: var(--mega-grid-gap, 25px) !important;
-    column-fill: auto;
-}
-
-/* X Düzen altındaki her kategori */
-.mega-cols.layout-xduzen>.mega-col {
-    display: block !important;
-    width: 100% !important;
-    margin: 0 0 var(--mega-row-gap, 10px) 0 !important;
-    padding: 0 !important;
-
-    /* Bölünmeyi engelle */
-    break-inside: avoid !important;
-    -webkit-column-break-inside: avoid !important;
-    page-break-inside: avoid !important;
-}
-
-/* X Düzen için başlık stili */
-.mega-cols.layout-xduzen .mega-col-title {
-    font-weight: 700;
-    font-size: 14px;
-    color: #333;
-    /* Dikey boşluk: Sadece 4px varsayılan, ama kullanıcı ayarından geliyorsa onu kullan */
-    margin: 0 0 4px 0 !important;
-    padding: 0 !important;
-    border-bottom: none;
-    line-height: 1.2;
-}
-
-.mega-cols.layout-xduzen .mega-col-title a {
-    color: #333;
-    text-decoration: none;
-}
-
-.mega-cols.layout-xduzen .mega-col-title a:hover {
-    color: #0066cc;
-    text-decoration: underline;
-}
-
-/* X Düzen için link stili */
-.mega-cols.layout-xduzen .mega-col-links a {
-    font-size: 13px;
-    color: #0066cc;
-    line-height: 1.6;
     display: block;
-    margin-bottom: 2px;
-}
-
-.mega-cols.layout-xduzen .mega-col-links a:hover {
-    text-decoration: underline;
-}
-
-/* X Düzen Responsive */
-@media (max-width: 1400px) {
-    .mega-cols.layout-xduzen {
-        column-count: 4 !important;
-    }
-}
-
-@media (max-width: 1200px) {
-    .mega-cols.layout-xduzen {
-        column-count: 3 !important;
-    }
-}
-
-/* Fixed Height Logic */
-.mega-grid {
-    /* Eğer sabit yükseklik tanımlıysa uygula */
-    max-height: var(--mega-max-height, none);
-    overflow-y: var(--mega-max-height, visible);
-}
-
-/* Eğer scroll oluşursa scrollbarı özelleştir */
-.mega-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.mega-grid::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-.mega-grid::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 3px;
+    column-count: 5;
+    column-gap: 40px;
+    /* Biraz daha geniş boşluk */
 }
 
 /* ============================
-   BRAND BAR (FOOTER LOGOS)
-   ============================ */
-.mega-brand-bar {
-    width: 100%;
-    background-color: #f7f7f7;
-    /* Hafif gri zemin */
-    border-top: 1px solid #eee;
-    padding: 15px 0;
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.mega-brand-bar .brand-track {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 40px;
-    justify-content: center;
-    align-items: center;
-}
-
-.mega-brand-bar .brand-item {
-    display: block;
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    filter: grayscale(100%);
-    /* Siyah beyaz yap */
-}
-
-.mega-brand-bar .brand-item:hover {
-    opacity: 1;
-    filter: grayscale(0%);
-    /* Üzerine gelince renklen */
-}
-
-.mega-brand-bar .brand-item img {
-    height: 30px;
-    /* Standart yükseklik */
-    width: auto;
-    display: block;
-}
-
-/* ============================
-   KOLON (ITEM)
-   ============================ */
-/* ============================
-   KOLON (ITEM)
+   KOLON (PARENT)
    ============================ */
 .mega-col {
-    /* Grid item olduğu için genişlik ayarına gerek yok, grid halleder */
-    margin: 0;
+    margin: 0 0 30px 0;
     padding: 0;
-    box-sizing: border-box;
-    /* height: 100%; opsiyonel: eşit kutu hissiyatı için */
-}
-
-/* Ekran küçülürse kolon sayısını düşür */
-@media (max-width: 1400px) {
-    .mega-cols {
-        grid-template-columns: repeat(4, 1fr);
-        /* 4 Kolon */
-    }
-}
-
-@media (max-width: 1200px) {
-    .mega-cols {
-        grid-template-columns: repeat(3, 1fr);
-        /* 3 Kolon */
-    }
+    display: inline-block;
+    width: 100%;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    vertical-align: top;
 }
 
 /* ============================

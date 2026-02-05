@@ -205,9 +205,7 @@
 {% endif %}
 
 
-<div class="mega-wrapper {% if block.settings.menu_push_content %}mega-push-mode{% endif %} {% if block.settings.glass_effect_desktop %}glass-desktop{% endif %} {% if block.settings.glass_effect_mobile %}glass-mobile{% endif %}" 
-     id="mega-{{ block.id }}"
-     style="--glass-blur: {{ block.settings.blur_amount }}px; --mega-grid-gap: {{ block.settings.grid_gap_px }}px; --mega-row-gap: {{ block.settings.row_gap_px }}px; {% if block.settings.fixed_height_enabled %}--mega-max-height: {{ block.settings.menu_height_px }}px;{% endif %}">
+<div class="mega-wrapper" id="mega-{{ block.id }}">
 
   <!-- DEBUG: template='{{ template }}' collection='{{ collection.handle }}' nav_items.size={{ nav_items.size }} matched_parent='{{ matched_parent.title }}' use_custom_root={{ use_custom_root }} auto_drill_down={{ auto_drill_down }} -->
 
@@ -219,9 +217,7 @@
     {% comment %} 1. Render Priority Items {% endcomment %}
     {% for priority_title in priority_order %}
       {% for link in nav_items %}
-        {% assign link_handle = link.title | handleize %}
-        {% assign priority_handle = priority_title | handleize %}
-        {% if link_handle == priority_handle %}
+        {% if link.title == priority_title %}
           {% assign rendered_titles = rendered_titles | append: link.title | append: "|||" %}
           <a class="mega-top-item" 
              data-key="{{ link.title | handleize }}" 
@@ -279,9 +275,7 @@
   {% comment %} 1. Priority Panels {% endcomment %}
   {% for priority_title in priority_order %}
     {% for link in nav_items %}
-        {% assign link_handle = link.title | handleize %}
-        {% assign priority_handle = priority_title | handleize %}
-        {% if link_handle == priority_handle %}
+        {% if link.title == priority_title %}
             {% assign rendered_panels = rendered_panels | append: link.title | append: "|||" %}
             
             {% assign sub_level_items = nil %}
@@ -292,10 +286,7 @@
             {% endif %}
         
             {% for item in mega_config %}
-              {% assign trigger_handle = item.triggerTitle | handleize %}
-              {% assign link_handle = link.title | handleize %}
-              
-              {% if trigger_handle == link_handle %}
+              {% if item.triggerTitle == link.title %}
                 {% assign matching_config = item %}
                 
                 {% unless sub_level_items %}
@@ -371,7 +362,7 @@
                               {% endif %}
                           </div>
                           
-                          <div class="mega-cols layout-{{ block.settings.layout_mode }}">
+                          <div class="mega-cols">
                               {% for parent in menu_item.children %}
                                   <div class="mega-col">
                                       <div class="mega-col-title">
@@ -400,7 +391,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("Mega Menu JS v255 (PushFix) loaded");
+  console.log("Mega Menu JS v208 loaded");
 
   const wrapper = document.getElementById("mega-{{ block.id }}");
   if (!wrapper) return;
@@ -570,7 +561,7 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "header",
-      "content": "Görünüm ve Sol Görsel"
+      "content": "Sol Görsel Ayarları"
     },
     {
       "type": "checkbox",
@@ -585,143 +576,68 @@ document.addEventListener("DOMContentLoaded", function () {
       "info": "Panel açıldığında sol tarafta görünecek resim"
     },
     {
+      "type": "header",
+      "content": "Yükseklik Ayarları"
+    },
+    {
       "type": "select",
       "id": "height_mode",
-      "label": "Yükseklik Modu (Eski)",
+      "label": "Menü Yüksekliği",
       "options": [
-        { "value": "auto", "label": "Otomatik" },
+        { "value": "auto", "label": "İçeriğe Göre (Otomatik)" },
         { "value": "default", "label": "Varsayılan" }
       ],
       "default": "default"
     },
     {
+      "type": "header",
+      "content": "Görünürlük Ayarları"
+    },
+    {
       "type": "checkbox",
       "id": "hide_desktop",
       "label": "Masaüstünde Gizle",
-      "default": false
+      "default": false,
+      "info": "İşaretlenirse, bu menü bandı masaüstünde gizlenir."
     },
     {
       "type": "header",
-      "content": "Düzen, Marka ve Glass"
-    },
-    {
-      "type": "select",
-      "id": "layout_mode",
-      "label": "Yerleşim Modu",
-      "options": [
-        { "value": "grid", "label": "Satır Hizalı (Grid)" },
-        { "value": "masonry", "label": "Serbest Akış (Hizasız)" },
-        { "value": "xduzen", "label": "X Düzen (Referans Site)" }
-      ],
-      "default": "xduzen",
-      "info": "X Düzen: Referans sitedeki gibi yukarıdan aşağıya sütun akışı."
-    },
-    {
-      "type": "range",
-      "id": "grid_gap_px",
-      "label": "Yatay Boşluk (Sütun Arası)",
-      "min": 0,
-      "max": 60,
-      "step": 2,
-      "default": 16,
-      "unit": "px"
-    },
-    {
-      "type": "range",
-      "id": "row_gap_px",
-      "label": "Dikey Boşluk (Öğe Arası)",
-      "min": 0,
-      "max": 60,
-      "step": 2,
-      "default": 10,
-      "unit": "px"
-    },
-    {
-       "type": "checkbox",
-       "id": "fixed_height_enabled",
-       "label": "Sabit Yükseklik Kullan",
-       "default": false
-    },
-    {
-      "type": "range",
-      "id": "menu_height_px",
-      "label": "Menü Yüksekliği",
-      "min": 300,
-      "max": 900,
-      "step": 10,
-      "default": 500,
-      "unit": "px"
+      "content": "Gelişmiş Ayarlar"
     },
     {
       "type": "checkbox",
-      "id": "show_brand_bar",
-      "label": "Marka Barını Göster (Footer)",
-      "default": false
-    },
-    { "type": "image_picker", "id": "brand_1_img", "label": "Logo 1" }, { "type": "url", "id": "brand_1_link", "label": "Link 1" },
-    { "type": "image_picker", "id": "brand_2_img", "label": "Logo 2" }, { "type": "url", "id": "brand_2_link", "label": "Link 2" },
-    { "type": "image_picker", "id": "brand_3_img", "label": "Logo 3" }, { "type": "url", "id": "brand_3_link", "label": "Link 3" },
-    { "type": "image_picker", "id": "brand_4_img", "label": "Logo 4" }, { "type": "url", "id": "brand_4_link", "label": "Link 4" },
-    { "type": "image_picker", "id": "brand_5_img", "label": "Logo 5" }, { "type": "url", "id": "brand_5_link", "label": "Link 5" },
-    { "type": "image_picker", "id": "brand_6_img", "label": "Logo 6" }, { "type": "url", "id": "brand_6_link", "label": "Link 6" },
-    { "type": "image_picker", "id": "brand_7_img", "label": "Logo 7" }, { "type": "url", "id": "brand_7_link", "label": "Link 7" },
-    { "type": "image_picker", "id": "brand_8_img", "label": "Logo 8" }, { "type": "url", "id": "brand_8_link", "label": "Link 8" },
-    {
-      "type": "header",
-      "content": "Diğer Ayarlar (Push/Cam/Stil)"
-    },
-    {
-      "type": "checkbox",
-      "id": "menu_push_content",
-      "label": "Menü İçeriği Aşağı İtsin",
-      "default": false
-    },
-    {
-      "type": "checkbox",
-      "id": "glass_effect_desktop",
-      "label": "Glass Effect (Masaüstü)",
-      "default": false
-    },
-    {
-      "type": "checkbox",
-      "id": "glass_effect_mobile",
-      "label": "Glass Effect (Mobil)",
-      "default": false
-    },
-    {
-      "type": "range",
-      "id": "blur_amount",
-      "label": "Glass Bulanıklık (px)",
-      "min": 0,
-      "max": 20,
-      "step": 1,
-      "default": 10
+      "id": "show_grandchild_menus",
+      "label": "Torun Menüleri Göster (3. Seviye)",
+      "default": false,
+      "info": "İşaretlenirse, alt menülerin altındaki menüler de listelenir."
     },
     {
       "type": "checkbox",
       "id": "expand_submenus_default",
-      "label": "Alt Menüleri Aç",
-      "default": true
+      "label": "Alt Menüleri Varsayılan Olarak Aç (2. Seviye)",
+      "default": true,
+      "info": "İşaretlenirse, menü başlıkları açık gelir ve alt linkler görünür."
     },
     {
       "type": "range",
       "id": "max_visible_items",
-      "label": "Max Alt Menü Sayısı",
+      "label": "Gösterilecek Maksimum Alt Menü Sayısı",
       "min": 3,
       "max": 20,
       "step": 1,
-      "default": 5
+      "default": 5,
+      "info": "Bu sayıdan fazla alt menü varsa 'Devamını Gör' butonu çıkar."
     },
     {
       "type": "select",
       "id": "menu_design_style",
-      "label": "Tasarım Stili",
+      "label": "Menü Tasarım Stili",
       "options": [
         { "value": "style-default", "label": "Varsayılan" },
-        { "value": "style-modern", "label": "Modern" },
-        { "value": "style-minimal", "label": "Minimal" },
-        { "value": "style-bold", "label": "Bold" },
-        { "value": "style-compact", "label": "Kompakt" },
+        { "value": "style-modern", "label": "Modern - Yuvarlak Hatlar" },
+        { "value": "style-minimal", "label": "Minimal - Sade" },
+        { "value": "style-bold", "label": "Bold - Kalın Başlıklar" },
+        { "value": "style-compact", "label": "Kompakt - Sıkışık" },
         { "value": "style-grid-line", "label": "Grid Çizgili" }
       ],
       "default": "style-default"
