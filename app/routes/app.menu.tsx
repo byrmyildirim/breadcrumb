@@ -368,7 +368,21 @@ export default function MenuPage() {
   const [items, setItems] = useState(() => flattenTree(initialMenu || []));
 
   // Collapse state map: { [id]: boolean }
-  const [collapsedState, setCollapsedState] = useState({});
+  const [collapsedState, setCollapsedState] = useState(() => {
+    const state = {};
+    const traverse = (nodes) => {
+      if (!nodes) return;
+      nodes.forEach(node => {
+        // If it has children, collapse it by default
+        if (node.children && node.children.length > 0) {
+          state[node.id] = true;
+          traverse(node.children);
+        }
+      });
+    };
+    traverse(initialMenu || []);
+    return state;
+  });
 
   const [importModalActive, setImportModalActive] = useState(false);
   const [importTargetId, setImportTargetId] = useState("");
