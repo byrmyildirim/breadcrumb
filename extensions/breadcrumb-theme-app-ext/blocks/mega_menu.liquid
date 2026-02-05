@@ -634,6 +634,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "info": "Alt alta gelen menü grupları arasındaki mesafeyi ayarlar."
     },
     {
+      "type": "range",
+      "id": "masonry_horizontal_gap",
+      "label": "Menü Blokları Arası Boşluk (Yatay)",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 40,
+      "unit": "px",
+      "info": "Yan yana duran kolonlar arasındaki mesafeyi (gap) ayarlar."
+    },
+    {
       "type": "select",
       "id": "menu_design_style",
       "label": "Menü Tasarım Stili",
@@ -736,6 +747,11 @@ document.addEventListener("DOMContentLoaded", function () {
   /* Masonry Dikey Boşluk Ayarı */
   #mega-{{ block.id }} .mega-col {
     margin-bottom: {{ block.settings.masonry_vertical_gap }}px !important;
+  }
+
+  /* Masonry Yatay Boşluk Ayarı */
+  #mega-{{ block.id }} .mega-cols {
+    column-gap: {{ block.settings.masonry_horizontal_gap }}px !important;
   }
 </style>
 
