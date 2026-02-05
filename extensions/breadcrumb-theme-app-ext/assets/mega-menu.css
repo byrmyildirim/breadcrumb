@@ -186,13 +186,15 @@
 .mega-cols.layout-masonry {
     display: block;
     column-count: 5;
-    column-gap: var(--mega-grid-gap, 30px);
+    column-gap: var(--mega-grid-gap, 20px);
+    /* Kompakt: Varsayılan 20px */
 }
 
 .mega-cols.layout-masonry .mega-col {
     display: inline-block;
     width: 100%;
-    margin-bottom: var(--mega-grid-gap, 30px);
+    margin-bottom: var(--mega-grid-gap, 12px);
+    /* Kompakt: Varsayılan 12px */
     break-inside: avoid;
     page-break-inside: avoid;
 }
