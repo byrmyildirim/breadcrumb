@@ -623,6 +623,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "info": "Bu sayıdan fazla alt menü varsa 'Devamını Gör' butonu çıkar."
     },
     {
+      "type": "range",
+      "id": "masonry_vertical_gap",
+      "label": "Menü Blokları Arası Boşluk (Dikey)",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 30,
+      "unit": "px",
+      "info": "Alt alta gelen menü grupları arasındaki mesafeyi ayarlar."
+    },
+    {
       "type": "select",
       "id": "menu_design_style",
       "label": "Menü Tasarım Stili",
@@ -721,6 +732,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   {% endif %}
   /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */
+  
+  /* Masonry Dikey Boşluk Ayarı */
+  #mega-{{ block.id }} .mega-col {
+    margin-bottom: {{ block.settings.masonry_vertical_gap }}px !important;
+  }
 </style>
 
 
