@@ -691,6 +691,8 @@ document.addEventListener("DOMContentLoaded", function () {
   #mega-{{ block.id }} .mega-panel::-webkit-scrollbar-thumb:hover {
     background: #aaa; 
   }
+  {% endif %}
+
   {% if block.settings.menu_overlay_mode == 'overlay' %}
   /* Overlay Modu: Slider üzerine binme */
   #mega-{{ block.id }} .mega-panel {
