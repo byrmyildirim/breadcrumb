@@ -703,10 +703,12 @@ document.addEventListener("DOMContentLoaded", function () {
   #mega-{{ block.id }} .mega-panel {
     position: absolute;
     top: 100%;
-    left: 0;
-    width: 100%;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important; /* Varsayılan margin-left: 10px'i sıfırlar */
     z-index: 1000;
     box-shadow: none !important;
+    border-radius: 0 !important; /* Köşe yuvarlaklığını da sıfırlayalım */
   }
   {% endif %}
   {% if block.settings.enable_glass_effect %}
