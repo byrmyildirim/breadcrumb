@@ -559,17 +559,64 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     {
       "type": "header",
-      "content": "Yükseklik Ayarları"
+      "content": "Boşluk Ayarları (Padding)"
     },
     {
-      "type": "select",
-      "id": "height_mode",
-      "label": "Menü Yüksekliği",
-      "options": [
-        { "value": "auto", "label": "İçeriğe Göre (Otomatik)" },
-        { "value": "default", "label": "Varsayılan" }
-      ],
-      "default": "default"
+      "type": "range",
+      "id": "padding_top",
+      "label": "Üst Boşluk (px)",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Alt Boşluk (px)",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_left",
+      "label": "Sol Boşluk (px)",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "padding_right",
+      "label": "Sağ Boşluk (px)",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Yükseklik & Yerleşim"
+    },
+    {
+      "type": "range",
+      "id": "menu_fixed_height",
+      "label": "Sabit Menü Yüksekliği (px)",
+      "min": 200,
+      "max": 1000,
+      "step": 10,
+      "default": 450,
+      "info": "Menünün minimum yüksekliğini belirler."
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_overlay",
+      "label": "İçeriğin Üstüne Bindir (Overlay)",
+      "default": false,
+      "info": "İşaretlenirse, menü açıldığında sayfayı aşağı itmez, içeriğin üstünde açılır."
     },
     {
       "type": "header",
@@ -629,25 +676,35 @@ document.addEventListener("DOMContentLoaded", function () {
 {% endschema %}
 
 <style>
-  {% if block.settings.height_mode == 'auto' %}
-  /* İçeriğe göre yükseklik - tüm min-height kısıtlamaları kaldırıldı */
   #mega-{{ block.id }} .mega-panel {
-    height: auto !important;
-    min-height: 0 !important;
+    /* Padding Ayarları */
+    padding-top: {{ block.settings.padding_top }}px !important;
+    padding-bottom: {{ block.settings.padding_bottom }}px !important;
+    padding-left: {{ block.settings.padding_left }}px !important;
+    padding-right: {{ block.settings.padding_right }}px !important;
+    
+    /* Yükseklik Ayarı */
+    min-height: {{ block.settings.menu_fixed_height }}px !important;
+  }
+
+  {% if block.settings.enable_overlay %}
+  /* Overlay Modu: İçeriğin üstüne bindir */
+  #mega-{{ block.id }} .mega-panel {
+    position: absolute !important;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); /* Gölge ekle ki havada olduğu belli olsun */
   }
   
-  #mega-{{ block.id }} .mega-image {
-    min-height: 0 !important;
-    height: auto;
-  }
-  
-  #mega-{{ block.id }} .mega-image img {
+  /* Wrapper relative kalmalı ki absolute children ona göre konumlansın */
+  #mega-{{ block.id }}.mega-wrapper {
     position: relative;
-    max-height: 250px;
-    object-fit: cover;
+    overflow-y: visible !important; /* Overlay için taşmaya izin ver */
   }
   {% endif %}
-  /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */
 </style>
 
 
