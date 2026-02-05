@@ -4,7 +4,7 @@ import { useLoaderData, useSubmit, useActionData, useNavigation } from "@remix-r
 import { Page, Layout, Card, BlockStack, Button, Text, TextField, Banner, Box, InlineStack, Divider, Modal, Tooltip, Icon } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { useState, useMemo, useEffect } from "react";
-import { PlusIcon, DeleteIcon, SaveIcon, ImportIcon, SearchIcon, DragHandleIcon, ChevronDownIcon, ChevronRightIcon } from "@shopify/polaris-icons";
+import { PlusIcon, DeleteIcon, SaveIcon, ImportIcon, SearchIcon, DragHandleIcon, ChevronDownIcon, ChevronRightIcon, ExportIcon } from "@shopify/polaris-icons";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   DndContext,
@@ -727,6 +727,43 @@ export default function MenuPage() {
 
   const activeItem = activeId ? items.find(i => i.id === activeId) : null;
 
+  // --- EXPORT logic ---
+  const handleExportCSV = () => {
+    if (!items || items.length === 0) {
+      shopify.toast.show("İndirilecek menü verisi yok.");
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Menu Path,URL,Handle\r\n";
+
+    const pathStack = [];
+
+    items.forEach(item => {
+      // Ensure stack is correct size for current depth
+      // We set the current depth's title in the stack
+      pathStack[item.depth] = item.title;
+
+      // Construct path string by joining stack elements up to current depth
+      const currentPath = pathStack.slice(0, item.depth + 1).join(" > ");
+
+      // Escape quotes if necessary
+      const escapedPath = `"${currentPath.replace(/"/g, '""')}"`;
+      const escapedUrl = `"${(item.url || "").replace(/"/g, '""')}"`;
+      const escapedHandle = `"${(item.handle || "").replace(/"/g, '""')}"`;
+
+      csvContent += `${escapedPath},${escapedUrl},${escapedHandle}\r\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "menu_structure.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filtering for visual display (Collapse Logic)
   // We don't remove from DOM for DND to work best, usually we hide them.
   // Or better: filter `items` passed to generic rendering BUT DndKit `items` prop needs to match.
@@ -778,7 +815,10 @@ export default function MenuPage() {
     <Page
       title="Menü Düzenleyici (Sürükle & Bırak)"
       primaryAction={{ content: "Kaydet", onAction: handleSave, loading: isSaving, icon: SaveIcon }}
-      secondaryActions={[{ content: "İçe Aktar", icon: ImportIcon, onAction: () => setImportModalActive(true) }]}
+      secondaryActions={[
+        { content: "CSV İndir", icon: ExportIcon, onAction: handleExportCSV },
+        { content: "İçe Aktar", icon: ImportIcon, onAction: () => setImportModalActive(true) }
+      ]}
     >
       <Layout>
         <Layout.Section>
