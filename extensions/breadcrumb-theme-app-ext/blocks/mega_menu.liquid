@@ -695,12 +695,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   {% if block.settings.menu_overlay_mode == 'overlay' %}
   /* Overlay Modu: Slider üzerine binme */
+  #mega-{{ block.id }} {
+    overflow: visible !important; /* Wrapper taşmaya izin vermeli */
+    z-index: 1000 !important; /* Slider'ın üstünde kalması için */
+  }
+  
   #mega-{{ block.id }} .mega-panel {
     position: absolute;
     top: 100%;
     left: 0;
     width: 100%;
-    z-index: 999;
+    z-index: 1000;
     box-shadow: 0 15px 50px rgba(0,0,0,0.15);
   }
   {% endif %}
