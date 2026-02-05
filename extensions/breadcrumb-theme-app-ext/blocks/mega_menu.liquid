@@ -635,6 +635,17 @@ document.addEventListener("DOMContentLoaded", function () {
         { "value": "style-grid-line", "label": "Grid Çizgili" }
       ],
       "default": "style-default"
+    },
+    {
+      "type": "select",
+      "id": "menu_overlay_mode",
+      "label": "Menü Açılma Modu",
+      "options": [
+        { "value": "push", "label": "İçeriği Aşağı İt (Varsayılan)" },
+        { "value": "overlay", "label": "İçeriğin Üzerine Aç (Overlay)" }
+      ],
+      "default": "push",
+      "info": "Overlay: Menü açılınca slider/içeriğin üstüne biner. Push: İçeriği aşağı iter."
     }
   ]
 }
@@ -679,6 +690,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   #mega-{{ block.id }} .mega-panel::-webkit-scrollbar-thumb:hover {
     background: #aaa; 
+  }
+  {% if block.settings.menu_overlay_mode == 'overlay' %}
+  /* Overlay Modu: Slider üzerine binme */
+  #mega-{{ block.id }} .mega-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.15);
   }
   {% endif %}
   /* Varsayılan mod: Orijinal CSS davranışı korunur, ekstra stil eklenmez */
