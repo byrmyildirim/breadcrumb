@@ -251,13 +251,13 @@
                         {% comment %} Parent only - simple link, no dropdown {% endcomment %}
                         <a class="mega-top-item" 
                            href="{{ menu_item.url }}"
-                           data-key="extra-{{ menu_item.title | handleize }}-parent">
+                           data-key="{{ menu_item.title | handleize }}">
                             {{ menu_item.title }}
                         </a>
                     {% else %}
                         {% comment %} Children mode - hoverable with dropdown {% endcomment %}
                         <a class="mega-top-item" 
-                           data-key="extra-{{ menu_item.title | handleize }}" 
+                           data-key="{{ menu_item.title | handleize }}" 
                            href="{{ menu_item.url }}">
                             {{ menu_item.title }}
                         </a>
