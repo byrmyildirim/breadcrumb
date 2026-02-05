@@ -219,7 +219,9 @@
     {% comment %} 1. Render Priority Items {% endcomment %}
     {% for priority_title in priority_order %}
       {% for link in nav_items %}
-        {% if link.title == priority_title %}
+        {% assign link_handle = link.title | handleize %}
+        {% assign priority_handle = priority_title | handleize %}
+        {% if link_handle == priority_handle %}
           {% assign rendered_titles = rendered_titles | append: link.title | append: "|||" %}
           <a class="mega-top-item" 
              data-key="{{ link.title | handleize }}" 
@@ -277,7 +279,9 @@
   {% comment %} 1. Priority Panels {% endcomment %}
   {% for priority_title in priority_order %}
     {% for link in nav_items %}
-        {% if link.title == priority_title %}
+        {% assign link_handle = link.title | handleize %}
+        {% assign priority_handle = priority_title | handleize %}
+        {% if link_handle == priority_handle %}
             {% assign rendered_panels = rendered_panels | append: link.title | append: "|||" %}
             
             {% assign sub_level_items = nil %}
@@ -288,7 +292,10 @@
             {% endif %}
         
             {% for item in mega_config %}
-              {% if item.triggerTitle == link.title %}
+              {% assign trigger_handle = item.triggerTitle | handleize %}
+              {% assign link_handle = link.title | handleize %}
+              
+              {% if trigger_handle == link_handle %}
                 {% assign matching_config = item %}
                 
                 {% unless sub_level_items %}
