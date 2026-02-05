@@ -182,23 +182,36 @@
     width: 100%;
 }
 
-/* MASONRY LAYOUT (Boşluksuz Kompakt - Satır Hizası YOK) */
+/* ============================
+   MASONRY LAYOUT - Serbest Akış (Satır Hizası YOK)
+   Grid'i tamamen devre dışı bırakıp column-count kullanıyoruz.
+   ============================ */
 .mega-cols.layout-masonry {
+    /* Grid özellikleri tamamen sıfırla */
     display: block !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    grid-gap: unset !important;
+    gap: unset !important;
+
+    /* Column-count ile gerçek masonry */
     column-count: 5 !important;
-    column-gap: var(--mega-grid-gap, 20px);
-    /* Grid'i tamamen devre dışı bırak */
-    grid-template-columns: none !important;
+    column-gap: 25px !important;
+    column-fill: balance;
 }
 
-.mega-cols.layout-masonry .mega-col {
-    display: inline-block;
-    width: 100%;
-    margin-bottom: var(--mega-grid-gap, 12px);
-    /* Kompakt: Varsayılan 12px */
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
-    page-break-inside: avoid;
+/* Masonry altındaki her kolon öğesi */
+.mega-cols.layout-masonry>.mega-col {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 20px 0 !important;
+    padding: 0 !important;
+
+    /* Kolonlar arası bölünmeyi engelle */
+    break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+    page-break-inside: avoid !important;
 }
 
 /* Masonry Responsive */
