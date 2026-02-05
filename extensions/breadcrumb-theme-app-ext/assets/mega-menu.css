@@ -113,16 +113,14 @@
 }
 
 /* ============================
-   SAĞ TARAF — 4 KOLON (MASONRY LAYOUT)
-   ============================ */
-/* ============================
-   SAĞ TARAF — 5 KOLON (MASONRY LAYOUT)
+   SAĞ TARAF — 4 KOLON (GRID LAYOUT)
    ============================ */
 .mega-cols {
-    display: block;
-    column-count: 5;
-    column-gap: 40px;
-    /* Biraz daha geniş boşluk */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+    /* Izgara boşluğu */
+    align-items: start;
 }
 
 /* ============================
@@ -131,10 +129,9 @@
 .mega-col {
     margin: 0 0 30px 0;
     padding: 0;
-    display: inline-block;
+    display: block;
+    /* Grid item behavior */
     width: 100%;
-    break-inside: avoid;
-    page-break-inside: avoid;
     vertical-align: top;
 }
 
