@@ -117,9 +117,10 @@
    ============================ */
 .mega-cols {
     display: block;
-    column-count: 4;
+    column-count: 4 !important;
+    columns: 4 !important;
     column-gap: 40px;
-    /* Masonry boşluğu */
+    width: 100%;
 }
 
 /* ============================
@@ -128,11 +129,12 @@
 .mega-col {
     margin: 0 0 30px 0;
     padding: 0;
-    display: inline-block;
-    /* Masonry item behavior */
+    display: block;
+    /* Safer for column-count */
     width: 100%;
     break-inside: avoid;
     page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
     vertical-align: top;
 }
 
