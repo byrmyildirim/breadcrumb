@@ -241,7 +241,7 @@
 
     /* 5 sütunlu düzen */
     column-count: 5 !important;
-    column-gap: 40px !important;
+    column-gap: var(--mega-grid-gap, 25px) !important;
     column-fill: auto;
 }
 
@@ -249,7 +249,7 @@
 .mega-cols.layout-xduzen>.mega-col {
     display: block !important;
     width: 100% !important;
-    margin: 0 0 25px 0 !important;
+    margin: 0 0 var(--mega-row-gap, 10px) 0 !important;
     padding: 0 !important;
 
     /* Bölünmeyi engelle */
